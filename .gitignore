@@ -1,0 +1,10 @@
+*.egg-info
+.coverage
+.ipynb_checkpoints/
+.mypy_cache/
+.pytest_cache/
+.vscode/
+build/
+dist/
+docs/source/tutorial.ipynb
+ioos_pkg_skeleton/_version.py
