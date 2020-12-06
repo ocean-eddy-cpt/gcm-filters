@@ -8,3 +8,7 @@ build/
 dist/
 docs/source/tutorial.ipynb
 ioos_pkg_skeleton/_version.py
+
+coverage.xml
+gcm_filters/_version.py
+*__pycache__

@@ -1,8 +1,9 @@
-## ioos_pkg_skeleton
+## GCM Filters
 
-[![Build Status](https://travis-ci.com/ioos/ioos-python-package-skeleton.svg?branch=master)](https://travis-ci.com/ioos/ioos-python-package-skeleton)
+[![pre-commit](https://github.com/ocean-eddy-cpt/gcm-filters/workflows/pre-commit/badge.svg)](https://github.com/ocean-eddy-cpt/gcm-filters/actions?query=workflow%3Apre-commit)
+[![Tests](https://github.com/ocean-eddy-cpt/gcm-filters/workflows/Tests/badge.svg)](https://github.com/ocean-eddy-cpt/gcm-filters/actions?query=workflow%3ATests)
 
-Quick description
+Diffusion-based smoothers for coarse-graining GCM data.
 
 ### Documentation and code
 
@@ -13,32 +14,32 @@ URLs for the docs and code.
 For `conda` users you can
 
 ```shell
-conda install --channel conda-forge ioos_pkg_skeleton
+conda install --channel conda-forge gcm_filters
 ```
 
 or, if you are a `pip` users
 
 ```shell
-pip install ioos_pkg_skeleton
+pip install gcm_filters
 ```
 
 ### Example
 
 ```python
-from ioos_pkg_skeleton import ioos_pkg_skeleton
+from gcm_filters import gcm_filters
 
 
-ioos_pkg_skeleton.meaning_of_life_url()
+gcm_filters.meaning_of_life_url()
 ```
 
 
 ## Get in touch
 
-Report bugs, suggest features or view the source code on [GitHub](https://github.com/ioos/ioos_pkg_skeleton/issues).
+Report bugs, suggest features or view the source code on [GitHub](https://github.com/ocean-eddy-cpt/gcm-filters).
 
 
 ## License and copyright
 
 ioos_pkg_skeleton is licensed under BSD 3-Clause "New" or "Revised" License (BSD-3-Clause).
 
-Development occurs on GitHub at <https://github.com/ioos/ioos_pkg_skeleton>.
+Development occurs on GitHub at <https://github.com/ocean-eddy-cpt/gcm-filters>.
