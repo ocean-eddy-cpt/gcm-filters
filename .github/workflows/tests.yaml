@@ -29,13 +29,6 @@ jobs:
           use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
       - shell: bash -l {0}
         run: mamba install --yes --file requirements.txt --file requirements-dev.txt
-      - shell: bash -l {0}
-        run: |
-          conda info
-          conda list
-          conda config --show-sources
-          conda config --show
-          printenv |
       - name: Set up conda environment
         shell: bash -l {0}
         run: |
