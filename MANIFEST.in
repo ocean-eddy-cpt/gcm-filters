@@ -1,4 +1,4 @@
 include *.txt
 include README.md
 
-recursive-include ioos_pkg_skeleton *.py
+recursive-include gcm_filters *.py

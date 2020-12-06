@@ -1,2 +1,2 @@
-numpy
-requests
+xarray
+dask[array]
