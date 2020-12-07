@@ -14,16 +14,6 @@ except ImportError:
         return np
 
 
-def _try_to_use_cupy(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        np = _get_array_module(*args)
-        return func(*args, **kwargs)
-
-    return wrapper
-
-
-@_try_to_use_cupy
 def simple_diffusion_kernel(phi):
     """Classic diffusion stencil for regular grid.
 
@@ -36,6 +26,7 @@ def simple_diffusion_kernel(phi):
     array_like
         The diffusive tendency for `phi`
     """
+    np = _get_array_module(phi)
     return (
         -4 * phi
         + np.roll(phi, -1, axis=-1)
