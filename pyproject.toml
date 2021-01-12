@@ -15,3 +15,6 @@ exclude = ["setup.py", "docs", "tests"]
 verbose = 1
 quiet = false
 color = true
+
+[tool.isort]
+known_third_party = ["numpy", "pytest", "setuptools"]
