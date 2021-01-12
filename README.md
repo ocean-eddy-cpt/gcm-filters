@@ -44,5 +44,3 @@ Report bugs, suggest features or view the source code on [GitHub](https://github
 ioos_pkg_skeleton is licensed under BSD 3-Clause "New" or "Revised" License (BSD-3-Clause).
 
 Development occurs on GitHub at <https://github.com/ocean-eddy-cpt/gcm-filters>.
-
-
