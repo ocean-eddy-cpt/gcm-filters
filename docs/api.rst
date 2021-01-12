@@ -1,4 +1,4 @@
-:mod:`gcm-filters API`
+:mod:`API`
 ----------------------------
 
 Kernels
