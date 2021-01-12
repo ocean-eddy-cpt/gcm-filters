@@ -11,7 +11,7 @@ This is an awesome description of gcm-filters, written in `reStructuredText`_.
 You can contribute new sections by either adding a new file (see ``new_section.rst``) or just putting a jupyter notebook
 in the ``docs`` folder (see ``new_section_notebook.ipynb``).
 
-In either case, make sure to add an entry in the ``.. toctree::``. Check out ``index.rst`` how it was done for the above examples. 
+In either case, make sure to add an entry in the ``.. toctree::``. Check out ``index.rst`` how it was done for the above examples.
 
 .. toctree::
    :maxdepth: 2
@@ -30,4 +30,3 @@ Indices and tables
 * :ref:`search`
 
 .. _reStructuredText: https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
-
