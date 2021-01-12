@@ -14,8 +14,6 @@ import os
 import pathlib
 import sys
 
-import gcm_filters
-
 
 print("python exec:", sys.executable)
 print("sys.path:", sys.path)
@@ -23,6 +21,7 @@ root = pathlib.Path(__file__).parent.parent.absolute()
 os.environ["PYTHONPATH"] = str(root)
 sys.path.insert(0, str(root))
 
+import gcm_filters  # isort:skip
 
 # -- Project information -----------------------------------------------------
 
