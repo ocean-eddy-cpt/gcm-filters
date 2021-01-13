@@ -1,7 +1,10 @@
-:mod:`ioos_pkg_skeleton API`
+:mod:`API`
 ----------------------------
 
-.. automodule:: ioos_pkg_skeleton.ioos_pkg_skeleton
+Kernels
+=======
+
+.. automodule:: gcm_filters.kernels
    :members:
    :undoc-members:
    :show-inheritance:
