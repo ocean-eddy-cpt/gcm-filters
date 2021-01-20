@@ -1,14 +1,14 @@
 """Main Filter class."""
 from dataclasses import dataclass, field
 import enum
-from typing import NamedTuple, Callable
+from typing import NamedTuple
 
 import numpy as np
 from scipy import interpolate
 import xarray as xr
 
 
-from .gpu_compat import get_array_module, ArrayType
+from .gpu_compat import get_array_module
 from .kernels import BaseLaplacian, GridType, ALL_KERNELS
 
 
@@ -167,7 +167,7 @@ class Filter:
     filter_shape : {"Gaussian", "Taper"}
         - Gaussian: The target filter has kernel $e^{-|x/Lf|^2}$
         - Taper: The target filter has target grid scale Lf. Smaller scales are zeroed out.
-          Scales larger than $\pi Lf/2$ are left as-is. In between is a smooth transition.
+          Scales larger than `pi * filter_scale / 2` are left as-is. In between is a smooth transition.
     transition_width : float, optional
         Width of the transition region in the "Taper" filter.
     grid_type: what sort of grid we are dealing with
@@ -201,7 +201,11 @@ class Filter:
 
         # check that we have all the required grid aguments
         self.Laplacian = ALL_KERNELS[self.grid_type]
-        assert set(self.Laplacian.required_grid_args()) == set(self.grid_vars)
+        if not set(self.Laplacian.required_grid_args()) == set(self.grid_vars):
+            raise ValueError(
+                f"Provided `grid_vars` {list(self.grid_vars)} do not match expected "
+                f"{list(self.Laplacian.required_grid_args())}"
+            )
         self.grid_ds = xr.Dataset({name: da for name, da in self.grid_vars.items()})
 
     def apply(self, field, dims):

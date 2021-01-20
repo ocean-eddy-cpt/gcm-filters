@@ -10,3 +10,5 @@ except ImportError:
 
 from .filter import Filter, FilterShape
 from .kernels import GridType
+
+__all__ = [Filter, FilterShape, GridType]

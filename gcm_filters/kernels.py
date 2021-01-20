@@ -4,7 +4,6 @@ Core smoothing routines that operate on 2D arrays.
 from abc import ABC
 from dataclasses import dataclass
 import enum
-from typing import Union
 
 from .gpu_compat import get_array_module, ArrayType
 
@@ -17,7 +16,7 @@ ALL_KERNELS = {}
 @dataclass
 class BaseLaplacian(ABC):
     def __call__(self, field):
-        pass
+        pass # pragma: no cover
 
     # change to property when we are using python 3.9
     # https://stackoverflow.com/questions/128573/using-property-on-classmethods
