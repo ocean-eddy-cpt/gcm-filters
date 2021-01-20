@@ -1,22 +1,25 @@
 """
 Core smoothing routines that operate on 2D arrays.
 """
-from abc import ABC
-from dataclasses import dataclass
 import enum
 
-from .gpu_compat import get_array_module, ArrayType
+from abc import ABC
+from dataclasses import dataclass
+from typing import Any, Dict
+
+from .gpu_compat import ArrayType, get_array_module
+
 
 # not married to the term "Cartesian"
 GridType = enum.Enum("GridType", ["CARTESIAN", "CARTESIAN_WITH_LAND"])
 
-ALL_KERNELS = {}
+ALL_KERNELS = {}  # type: Dict[GridType, Any]
 
 
 @dataclass
 class BaseLaplacian(ABC):
     def __call__(self, field):
-        pass # pragma: no cover
+        pass  # pragma: no cover
 
     # change to property when we are using python 3.9
     # https://stackoverflow.com/questions/128573/using-property-on-classmethods

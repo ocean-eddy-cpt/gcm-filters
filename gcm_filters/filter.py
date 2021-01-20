@@ -1,15 +1,16 @@
 """Main Filter class."""
-from dataclasses import dataclass, field
 import enum
-from typing import NamedTuple
+
+from dataclasses import dataclass, field
+from typing import Iterable, NamedTuple
 
 import numpy as np
-from scipy import interpolate
 import xarray as xr
 
+from scipy import interpolate
 
 from .gpu_compat import get_array_module
-from .kernels import BaseLaplacian, GridType, ALL_KERNELS
+from .kernels import ALL_KERNELS, BaseLaplacian, GridType
 
 
 FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
@@ -53,9 +54,9 @@ _target_function = {
 
 class FilterSpec(NamedTuple):
     n_lap_steps: int
-    s_l: float
+    s_l: Iterable[float]
     n_bih_steps: int
-    s_b: float
+    s_b: Iterable[complex]
 
 
 def _compute_filter_spec(
@@ -222,6 +223,6 @@ class Filter:
             input_core_dims=n_args * [dims],
             output_core_dims=[dims],
             output_dtypes=[field.dtype],
-            dask="parallelized"
+            dask="parallelized",
         )
         return field_smooth

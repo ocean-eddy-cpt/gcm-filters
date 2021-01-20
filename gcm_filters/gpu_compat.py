@@ -1,6 +1,7 @@
 """GPU compatibility stuff."""
 import numpy as np
 
+
 try:
     from cupy import get_array_module
 except ImportError:

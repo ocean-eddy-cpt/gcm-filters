@@ -1,8 +1,8 @@
-import pytest
 import numpy as np
+import pytest
 import xarray as xr
 
-from gcm_filters import Filter, GridType, FilterShape
+from gcm_filters import Filter, FilterShape, GridType
 from gcm_filters.filter import FilterSpec
 
 
@@ -75,7 +75,8 @@ def grid_type_and_input_ds(request):
 
 
 @pytest.mark.parametrize(
-    "filter_args", [dict(filter_scale=1.0, dx_min=1.0, n_steps=10, filter_shape=FilterShape.TAPER)]
+    "filter_args",
+    [dict(filter_scale=1.0, dx_min=1.0, n_steps=10, filter_shape=FilterShape.TAPER)],
 )
 def test_filter(grid_type_and_input_ds, filter_args):
     grid_type, da, grid_vars = grid_type_and_input_ds
@@ -91,7 +92,8 @@ def test_filter(grid_type_and_input_ds, filter_args):
 
     # check that we get an error if we leave out any required grid_vars
     for gv in grid_vars:
-        grid_vars_missing = {k: v for k, v in grid_vars.items()
-                             if k != gv}
+        grid_vars_missing = {k: v for k, v in grid_vars.items() if k != gv}
         with pytest.raises(ValueError, match=r"Provided `grid_vars` .*"):
-            filter = Filter(grid_type=grid_type, grid_vars=grid_vars_missing, **filter_args)
+            filter = Filter(
+                grid_type=grid_type, grid_vars=grid_vars_missing, **filter_args
+            )
