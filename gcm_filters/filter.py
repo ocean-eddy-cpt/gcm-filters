@@ -1,28 +1,43 @@
 """Main Filter class."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import enum
-
-import numpy as np
-from scipy import interpolate, integrate
 from typing import NamedTuple, Callable
 
-from .gpu_compat import get_array_module
+import numpy as np
+from scipy import interpolate
+import xarray as xr
 
-FilterShape = enum.Enum("FilterShape", "Gaussian Taper")
+
+from .gpu_compat import get_array_module, ArrayType
+from .kernels import BaseLaplacian, GridType, ALL_KERNELS
+
+
+FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
+
+
+class TargetSpec(NamedTuple):
+    s_max: float
+    filter_scale: float
+    transition_width: int
 
 
 # these functions return functions
-def _gaussian_target(s_max, filter_scale, transition_width):
-    lambda t: np.exp(-(s_max * (t + 1) / 2) * (filter_scale / 2) ** 2)
+def _gaussian_target(target_spec: TargetSpec):
+    return lambda t: np.exp(
+        -(target_spec.s_max * (t + 1) / 2) * (target_spec.filter_scale / 2) ** 2
+    )
 
 
-def _taper_target(s_max, filter_scale, transition_width):
+def _taper_target(target_spec: TargetSpec):
     return interpolate.PchipInterpolator(
         np.array(
             [
                 -1,
-                (2 / sMax) * (np.pi / (transition_width * filter_scale)) ** 2 - 1,
-                (2 / s_max) * (np.pi / Lf) ** 2 - 1,
+                (2 / target_spec.s_max)
+                * (np.pi / (target_spec.transition_width * target_spec.filter_scale))
+                ** 2
+                - 1,
+                (2 / target_spec.s_max) * (np.pi / target_spec.filter_scale) ** 2 - 1,
                 2,
             ]
         ),
@@ -31,8 +46,8 @@ def _taper_target(s_max, filter_scale, transition_width):
 
 
 _target_function = {
-    FilterShape.Gaussian: _gaussian_target,
-    FilterShape.Taper: _taper_target,
+    FilterShape.GAUSSIAN: _gaussian_target,
+    FilterShape.TAPER: _taper_target,
 }
 
 
@@ -48,16 +63,19 @@ def _compute_filter_spec(
 ):
     # First set up the mass matrix for the Galerkin basis from Shen (SISC95)
     M = (np.pi / 2) * (
-        2 * np.eye(N - 1) - np.diag(np.ones(N - 3), 2) - np.diag(np.ones(N - 3), -2)
+        2 * np.eye(n_steps - 1)
+        - np.diag(np.ones(n_steps - 3), 2)
+        - np.diag(np.ones(n_steps - 3), -2)
     )
     M[0, 0] = 3 * np.pi / 2
 
     # The range of wavenumbers is 0<=|k|<=sqrt(2)*pi/dxMin. Nyquist here is for a 2D grid.
     # Per the notes, define s=k^2.
     # Need to rescale to t in [-1,1]: t = (2/sMax)*s -1; s = sMax*(t+1)/2
-    s_max = 2 * (np.pi / dxMin) ** 2
+    s_max = 2 * (np.pi / dx_min) ** 2
 
-    F = _target_function[filter_shape]
+    target_spec = TargetSpec(s_max, filter_scale, transition_width)
+    F = _target_function[filter_shape](target_spec)
 
     # Compute inner products of Galerkin basis with target
     b = np.zeros(n_steps - 1)
@@ -101,24 +119,33 @@ def _compute_filter_spec(
 
 
 def _create_filter_func(
-    filter_spec: FilterSpec, laplacian_kernel: Callable, **kernel_kwargs
+    filter_spec: FilterSpec,
+    Laplacian: BaseLaplacian,
 ):
-    def laplacian(field):
-        # wrap any auxiliary arguments using a closure
-        return laplacian_kernel(field, **kernel_kwargs)
+    """Returns a function whose first argument is the field to be filtered
+    and whose subsequent arguments are the require grid variables
+    """
 
-    def filter_func(field):
+    def filter_func(field, *args):
+        # these next steps are a kind of hack we have to turn keyword arugments into regular arguments
+        # the reason for doing this is that Xarray's apply_ufunc machinery works a lot better
+        # with regular arguments
+        assert len(args) == len(Laplacian.required_grid_args())
+        grid_vars = {k: v for k, v in zip(Laplacian.required_grid_args(), args)}
+        laplacian = Laplacian(**grid_vars)
         np = get_array_module(field)
         field_bar = field.copy()  # Initalize the filtering process
         for i in range(filter_spec.n_lap_steps):
+            s_l = filter_spec.s_l[i]
             tendency = laplacian(field_bar)  # Compute Laplacian
-            field_bar += (1 / filter_spec.s_l[i]) * tendency  # Update filtered field
-        for i in range(filter_spec.n_big_steps):
-            temp_l = laplacian(filed_bar)  # Compute Laplacian
+            field_bar += (1 / s_l) * tendency  # Update filtered field
+        for i in range(filter_spec.n_bih_steps):
+            s_b = filter_spec.s_b[i]
+            temp_l = laplacian(field_bar)  # Compute Laplacian
             temp_b = laplacian(temp_l)  # Compute Biharmonic (apply Laplacian twice)
             field_bar += (
-                temp_l * 2 * np.real(sB[i]) / np.abs(sB[i]) ** 2
-                + temp_b * 1 / np.abs(sB[i]) ** 2
+                temp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
+                + temp_b * 1 / np.abs(s_b) ** 2
             )
         return field_bar
 
@@ -143,17 +170,21 @@ class Filter:
           Scales larger than $\pi Lf/2$ are left as-is. In between is a smooth transition.
     transition_width : float, optional
         Width of the transition region in the "Taper" filter.
+    grid_type: what sort of grid we are dealing with
+    grid_vars: dictionary of extra parameters used to initialize the grid laplacian
 
     Attributes
     ----------
     filter_spec: FilterSpec
     """
 
-    filter_scale: int
+    filter_scale: float
     dx_min: float
     n_steps: int = 40
-    shape: FilterShape = FilterShape.Gaussian
+    filter_shape: FilterShape = FilterShape.GAUSSIAN
     transition_width: float = np.pi
+    grid_type: GridType = GridType.CARTESIAN
+    grid_vars: dict = field(default_factory=dict)
 
     def __post_init__(self):
 
@@ -161,37 +192,32 @@ class Filter:
             raise ValueError("Filter requires N>2")
 
         self.filter_spec = _compute_filter_spec(
-            filter_scale, dx_min, n_steps, filter_shape, transition_width
+            self.filter_scale,
+            self.dx_min,
+            self.n_steps,
+            self.filter_shape,
+            self.transition_width,
         )
 
-    def apply(field, landMask, dx, dy):
-        """
-        Filters a 2D field, applying an operator of type (*) above.
-        Assumes dy=constant, dx varies in y direction
-        Inputs:
-        field: 2D array (y, x) to be filtered
-        landMask: 2D array, same size as field: 0 if cell is not on land, 1 if it is on land.
-        dx is a 1D array, same size as 1st dimension of field
-        dy is constant
-        NL is number of Laplacian steps, see output of filterSpec fct above
-        sL is s_i for the Laplacian steps, see output of filterSpec fct above
-        NB is the number of Biharmonic steps, see output of filterSpec fct above
-        sB is s_i for the Biharmonic steps, see output of filterSpec fct above
-        Output:
-        Filtered field.
-        """
-        fieldBar = field.copy()  # Initalize the filtering process
-        for i in range(self.NL):
-            tempL = Laplacian2D_FV(fieldBar, landMask, dx, dy)  # Compute Laplacian
-            fieldBar = fieldBar + (1 / self.sL[i]) * tempL  # Update filtered field
-        for i in range(self.NB):
-            tempL = Laplacian2D_FV(fieldBar, landMask, dx, dy)  # Compute Laplacian
-            tempB = Laplacian2D_FV(
-                tempL, landMask, dx, dy
-            )  # Compute Biharmonic (apply Laplacian twice)
-            fieldBar = (
-                fieldBar
-                + (2 * np.real(self.sB[i]) / np.abs(self.sB[i]) ** 2) * tempL
-                + (1 / np.abs(self.sB[i]) ** 2) * tempB
-            )
-        return fieldBar
+        # check that we have all the required grid aguments
+        self.Laplacian = ALL_KERNELS[self.grid_type]
+        assert set(self.Laplacian.required_grid_args()) == set(self.grid_vars)
+        self.grid_ds = xr.Dataset({name: da for name, da in self.grid_vars.items()})
+
+    def apply(self, field, dims):
+        """Filter a field across the dimensions specified by dims."""
+
+        filter_func = _create_filter_func(self.filter_spec, self.Laplacian)
+        grid_args = [self.grid_ds[name] for name in self.Laplacian.required_grid_args()]
+        assert len(dims) == 2
+        n_args = 1 + len(grid_args)
+        field_smooth = xr.apply_ufunc(
+            filter_func,
+            field,
+            *grid_args,
+            input_core_dims=n_args * [dims],
+            output_core_dims=[dims],
+            output_dtypes=[field.dtype],
+            dask="parallelized"
+        )
+        return field_smooth

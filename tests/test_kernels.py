@@ -14,8 +14,8 @@ def grid_type_field_and_extra_kwargs(request):
     extra_kwargs = {}
     if grid_type == GridType.CARTESIAN_WITH_LAND:
         mask_data = np.ones_like(data)
-        mask_data[:(ny // 2), :(nx // 2)] = 0
-        extra_kwargs['wet_mask'] = mask_data
+        mask_data[: (ny // 2), : (nx // 2)] = 0
+        extra_kwargs["wet_mask"] = mask_data
     return grid_type, data, extra_kwargs
 
 
