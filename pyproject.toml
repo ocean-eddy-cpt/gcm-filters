@@ -7,7 +7,7 @@ known_third_party = ["numpy", "pytest", "scipy", "setuptools", "xarray"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-v"
+addopts = " -v -n auto"
 testpaths = [
     "tests",
 ]
