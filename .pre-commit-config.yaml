@@ -1,12 +1,5 @@
 repos:
 
-- repo: https://github.com/econchick/interrogate
-  rev: 1.2.0
-  hooks:
-    - id: interrogate
-      exclude: ^(docs|setup.py|tests)
-      args: [--config=pyproject.toml]
-
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v3.1.0
   hooks:
@@ -52,10 +45,3 @@ repos:
   - id: mypy
     exclude: docs/source/conf.py
     args: [--ignore-missing-imports]
-
-- repo: https://github.com/codespell-project/codespell
-  rev: v1.16.0
-  hooks:
-    - id: codespell
-      args:
-        - --quiet-level=2
