@@ -8,7 +8,9 @@ This guide will take you through the necessary steps in order to contribute code
 
 
 1. Setup
-^^^^^^^^^^^^^^^^^^
+^^^^^^^^
+If you are not super familiar with the terminology of `forking`, `pull request` etc, here is a `git tutorial <https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork>`_ to get you started.
+
 Fork the main repository, and clone your fork onto the machine of your choice.
 
 Make sure to install and activate the environment with::
@@ -58,5 +60,4 @@ Some things will automatically be reformatted, others need manual fixes. Follow 
 until all checks pass.
 
 
-Once you got everything to pass, you can stage and commit your changes and push them to the remote github repository. If you are not completely sure what this means,
-you can find a git tutorial `here <https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork>`_.
+Once you got everything to pass, you can stage and commit your changes and push them to the remote github repository.
