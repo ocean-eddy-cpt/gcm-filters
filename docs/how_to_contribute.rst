@@ -18,7 +18,7 @@ Make sure to install and activate the environment with::
 If you find that `conda` takes a long time, try to install `mamba` with ``conda install mamba`` and then
 and do::
 
-   conda create -n gcm-filters-env -c conda-forge --file requirements.txt --file requirements-dev.txt
+   mamba create -n gcm-filters-env -c conda-forge --file requirements.txt --file requirements-dev.txt
 
 
 and finally activate the environment::
