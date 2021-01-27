@@ -1,19 +1,10 @@
-# Script parameters
-data_location = '/media/arthur/DATA/Data sets/CM2.6'
-grid_filename = 'grid_dataforeli'
-uv_filename = 'uv_dataforeli'
-
-from os.path import join
-
 import numpy as np
-import xarray as xr
 import matplotlib.pyplot as plt
 from gcm_filters import filter
 
+from read_data import read_data
 
-# Load the data
-grid_data = xr.open_zarr(join(data_location, grid_filename))
-uv_data = xr.open_zarr(join(data_location, uv_filename))
+grid_data, uv_data = read_data()
 
 # Try a cartesian filter
 data = uv_data.isel(time=0)['usurf']
