@@ -158,21 +158,23 @@ class Filter:
     """A class for applying diffusion-based smoothing filters to gridded data.
 
     ̦Parameters
-    -----------
+    ----------
     filter_scale : float
         The filter scale, which has different meaning depending on filter shape
     dx_min : float
         The smallest grid spacing. Should have same units as ``filter_scale``
     n_steps : int, optional
         Number of total steps in the filter
-    filter_shape : {"Gaussian", "Taper"}
-        - Gaussian: The target filter has kernel $e^{-|x/Lf|^2}$
-        - Taper: The target filter has target grid scale Lf. Smaller scales are zeroed out.
-          Scales larger than `pi * filter_scale / 2` are left as-is. In between is a smooth transition.
+    filter_shape : FilterShape
+        - ``FilterShape.GAUSSIAN``: The target filter has kernel :math:`e^{-|x/Lf|^2}`
+        - ``FilterShape.TAPER``: The target filter has target grid scale Lf. Smaller scales are zeroed out.
+          Scales larger than ``pi * filter_scale / 2`` are left as-is. In between is a smooth transition.
     transition_width : float, optional
         Width of the transition region in the "Taper" filter.
-    grid_type: what sort of grid we are dealing with
-    grid_vars: dictionary of extra parameters used to initialize the grid laplacian
+    grid_type : GridType
+        what sort of grid we are dealing with
+    grid_vars : dict
+        dictionary of extra parameters used to initialize the grid laplacian
 
     Attributes
     ----------
@@ -185,7 +187,7 @@ class Filter:
     filter_shape: FilterShape = FilterShape.GAUSSIAN
     transition_width: float = np.pi
     grid_type: GridType = GridType.CARTESIAN
-    grid_vars: dict = field(default_factory=dict)
+    grid_vars: dict = field(default_factory=dict, repr=False)
 
     def __post_init__(self):
 

@@ -87,3 +87,22 @@ class CartesianLaplacianWithLandMask(BaseLaplacian):
 
 
 ALL_KERNELS[GridType.CARTESIAN_WITH_LAND] = CartesianLaplacianWithLandMask
+
+
+def required_grid_vars(grid_type: GridType):
+    """Utility function for figuring out the required grid variables
+    needed by each grid type.
+
+    Parameters
+    ----------
+    grid_type : GridType
+        The grid type
+
+    Returns
+    -------
+    grid_vars : list
+        A list of names of required grid variables.
+    """
+
+    laplacian = ALL_KERNELS[grid_type]
+    return laplacian.required_grid_args()

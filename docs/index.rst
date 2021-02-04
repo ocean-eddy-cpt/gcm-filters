@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to gcm-filters's documentation!
-=======================================
+GCM Filters
+===========
 
 This is an awesome description of gcm-filters, written in `reStructuredText`_.
 
@@ -16,10 +16,10 @@ In either case, make sure to add an entry in the ``.. toctree::``. Check out ``i
 .. toctree::
    :maxdepth: 2
 
-   how_to_contribute
-   new_section
-   new_section_notebook
+   theory
+   tutorial
    api
+   how_to_contribute
 
 
 

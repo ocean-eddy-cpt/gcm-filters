@@ -1,9 +1,10 @@
-name: gcm-filters_docs
+name: gcm-filters-docs
 dependencies:
   - python=3.8
   - numpy
   - scipy
   - xarray
+  - scipy
   - numpydoc
   - sphinx
   - sphinx_rtd_theme
@@ -12,11 +13,12 @@ dependencies:
   - nbformat
   - ipykernel # not strictly necessary but this is nice to run notebooks in this env to test
   - pandoc
+  - myst-parser
   - pip
   - pip:
-    - docrep<=0.2.7
     - nbsphinx
     - jupyter_client
-    - sphinx_pangeo_theme
+    - sphinx-book-theme
     - sphinx-copybutton
     - sphinxcontrib-srclinks
+    - myst-nb

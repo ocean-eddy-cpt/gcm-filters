@@ -9,7 +9,7 @@ except ImportError:
 
 
 from .filter import Filter, FilterShape
-from .kernels import GridType
+from .kernels import GridType, required_grid_vars
 
 
 __all__ = ["Filter", "FilterShape", "GridType"]

@@ -1,2 +1,0 @@
-Some new exciting Section
-=========================
