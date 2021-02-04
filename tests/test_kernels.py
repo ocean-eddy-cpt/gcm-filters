@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from gcm_filters.kernels import ALL_KERNELS, GridType
+from gcm_filters.kernels import ALL_KERNELS, GridType, required_grid_vars
 
 
 @pytest.fixture(scope="module", params=list(GridType))
@@ -25,3 +25,9 @@ def test_conservation(grid_type_field_and_extra_kwargs):
     laplacian = LaplacianClass(**extra_kwargs)
     res = laplacian(data)
     np.testing.assert_allclose(res.sum(), 0.0, atol=1e-12)
+
+
+def test_required_grid_vars(grid_type_field_and_extra_kwargs):
+    grid_type, _, extra_kwargs = grid_type_field_and_extra_kwargs
+    grid_vars = required_grid_vars(grid_type)
+    assert set(grid_vars) == set(extra_kwargs)
