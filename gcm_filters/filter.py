@@ -60,8 +60,21 @@ class FilterSpec(NamedTuple):
 
 
 def _compute_filter_spec(
-    filter_scale, dx_min, n_steps, filter_shape, transition_width, grid_dimension, root_tolerance=1e-12
+    filter_scale, dx_min, n_steps=-1, filter_shape, transition_width, ndim, root_tolerance=1e-12
 ):
+    # First set number of steps if not supplied by user
+    if n_steps == -1:
+        if filter_shape == FilterShape.GAUSSIAN:
+            if ndim == 1:
+                n_steps = np.ceil(1.3*filter_scale/dx_min).astype(int)
+            else: # ndim==2
+                n_steps = np.ceil(1.8*filter_scale/dx_min).astype(int)
+        else: # Taper
+            if ndim == 1:
+                n_steps = np.ceil(4.5*filter_scale/dx_min).astype(int)
+            else: # ndim==2
+                n_steps = np.ceil(6.4*filter_scale/dx_min).astype(int)
+    
     # First set up the mass matrix for the Galerkin basis from Shen (SISC95)
     M = (np.pi / 2) * (
         2 * np.eye(n_steps - 1)
@@ -70,10 +83,10 @@ def _compute_filter_spec(
     )
     M[0, 0] = 3 * np.pi / 2
 
-    # The range of wavenumbers is 0<=|k|<=sqrt(d)*pi/dxMin. where d is grid_dimension
+    # The range of wavenumbers is 0<=|k|<=sqrt(ndim)*pi/dxMin.
     # Per the notes, define s=k^2.
     # Need to rescale to t in [-1,1]: t = (2/sMax)*s -1; s = sMax*(t+1)/2
-    s_max = grid_dimension * (np.pi / dx_min) ** 2
+    s_max = ndim * (np.pi / dx_min) ** 2
 
     target_spec = TargetSpec(s_max, filter_scale, transition_width)
     F = _target_function[filter_shape](target_spec)
