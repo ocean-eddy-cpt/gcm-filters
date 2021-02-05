@@ -11,7 +11,8 @@ from .gpu_compat import ArrayType, get_array_module
 
 
 # not married to the term "Cartesian"
-GridType = enum.Enum("GridType", ["CARTESIAN", "CARTESIAN_WITH_LAND"])
+GridType = enum.Enum("GridType", ["CARTESIAN", "CARTESIAN_WITH_LAND",
+                                  "MOM5"])
 
 ALL_KERNELS = {}  # type: Dict[GridType, Any]
 
@@ -62,13 +63,18 @@ class MOM5Laplacian(BaseLaplacian):
         
         for i in range(1,field.shape[0]-1):
             for j in range(field.shape[1]):
-                fx[i,j]=(field[i+1,j]-field[i-1,j])/(dxt[i,j]+dxt[i+1,j]) 
+                fx[i,j]=(field[i+1,j]-field[i-1,j])/(self.dxt[i,j]+self.dxt[i+1,
+                                                                         j])
         for i in range(field.shape[0]):
             for j in range(1,field.shape[1]-1):
-                fy[i,j]=(field[i,j+1]-field[i,j-1])/(dyt[i,j]+dyt[i,j+1])
+                fy[i,j]=(field[i,j+1]-field[i,j-1])/(self.dyt[i,j]+self.dyt[i,
+                                                                          j+1])
         for i in range(1,field.shape[0]-1):
             for j in range(1,field.shape[1]-1):
-                filtered_field = (fx[i+1,j]-fx[i-1,j])/(dxt[i,j]+dxt[i+1,j])+(fy[i,j+1]-fy[i,j-1])/(dyt[i,j]+dyt[i,j+1])
+                filtered_field[i, j] = (fx[i+1,j]-fx[i-1,j])/(self.dxt[i,
+                                                                    j]+self.dxt[
+                    i+1,j])+(fy[i,j+1]-fy[i,j-1])/(self.dyt[i,j]+self.dyt[i,
+                                                                          j+1])
         
         return filtered_field
 

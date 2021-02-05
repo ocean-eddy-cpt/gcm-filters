@@ -1,6 +1,5 @@
 # Simple Gaussian filtering
 # Script parameters
-scale = 4
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,10 +10,10 @@ from read_data import read_data
 
 grid, data = read_data()
 grid = grid.compute()
-data = data.isel(time=0)['usurf'].compute()
+data = data.isel(time=8)['usurf'].compute()
 
 
-def _gaussian_kernel(filter_scale: float, truncate: int = 4):
+def _gaussian_kernel(filter_scale: float, truncate: int):
     """Return the weights of a Gaussian kernel (only one side)"""
     xs = np.arange(int(filter_scale * truncate) + 1)
     weights = np.exp(-xs**2 / (2 * filter_scale**2))
@@ -24,7 +23,7 @@ def _gaussian_filter(array: np.ndarray, filter_scale: float,
                         truncate: int = 4, out: np.ndarray = None)\
         -> np.ndarray:
     """Applies a Gaussian kernel in 2d, by filtering along each dim
-    successfully."""
+    by turn."""
     weights = _gaussian_kernel(filter_scale, truncate)
     out1 = np.zeros_like(array, dtype=np.float64)
     out2 = np.zeros_like(array, dtype=np.float64)
@@ -44,7 +43,7 @@ def _gaussian_filter(array: np.ndarray, filter_scale: float,
 
 
 def gaussian_filter(data: xr.Dataset, grid: xr.Dataset, scale: \
-    float)-> xr.Dataset:
+    float, mode='own')-> xr.Dataset:
     """
     Applies a Gaussian filter, taking into account the grid areas,
     to an xarray dataset.
@@ -60,23 +59,22 @@ def gaussian_filter(data: xr.Dataset, grid: xr.Dataset, scale: \
     # The normalization term is such that applying this function to a constant
     # field returns the same constant field
     # TODO add a test based on this
-    func = lambda x: _gaussian_filter(x, scale)
+    if mode == 'own':
+        func = lambda x: _gaussian_filter(x, scale)
+    else:
+        func = lambda x: raw_gaussian_filter(x, scale)
     normalization = xr.apply_ufunc(func, areas_u)
     filtered_data = xr.apply_ufunc(func, data * areas_u)
     return filtered_data / normalization
 
-# a = np.arange(100).reshape((10,10))
-# a = np.array(a, dtype=np.float64)
-# a_bar = _gaussian_filter(a, 1)
-# plt.imshow(a_bar)
-# plt.colorbar()
-# plt.show()
-# a_bar2 = raw_gaussian_filter(a, 5)
-# print(a_bar)
-data_ = data.fillna(0.)
-filtered_data = gaussian_filter(data_, grid, 5)
-filtered_data = xr.where(np.isnan(data.values), np.nan,
-                         filtered_data)
-print(filtered_data)
-filtered_data.plot(vmin=-1, vmax=1)
-plt.show()
+if __name__ == '__main__':
+    data_ = data.fillna(0.)
+    filtered_data = gaussian_filter(data_, grid, scale=4, mode='scipy')
+    filtered_data = xr.where(np.isnan(data.values), np.nan,
+                             filtered_data)
+    filtered_data2 = gaussian_filter(data_, grid, scale=4)
+    filtered_data2 = xr.where(np.isnan(data.values), np.nan,
+                             filtered_data2)
+    filtered_data2.sel(yu_ocean=slice(20, 60), xu_ocean=slice(-80, -30)).plot(
+        vmin=-1, vmax=1, cmap='jet')
+    plt.show()
