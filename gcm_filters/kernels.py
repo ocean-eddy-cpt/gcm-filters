@@ -47,7 +47,7 @@ class CartesianLaplacian(BaseLaplacian):
 
 ALL_KERNELS[GridType.CARTESIAN] = CartesianLaplacian
 
-
+@dataclass
 class MOM5Laplacian(BaseLaplacian):
     dxt: ArrayType
     dyt: ArrayType
