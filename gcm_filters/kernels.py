@@ -45,8 +45,22 @@ class CartesianLaplacian(BaseLaplacian):
             + np.roll(field, 1, axis=-2)
         )
 
-
 ALL_KERNELS[GridType.CARTESIAN] = CartesianLaplacian
+
+
+class MOM5Laplacian(BaseLaplacian):
+    dxt: ArrayType
+    dyt: ArrayType
+
+    def __call__(self, field: ArrayType):
+        """Uses code by Elizabeth"""
+        # field is the fied to filter
+        return filtered_field
+
+
+ALL_KERNELS[GridType.MOM5] = MOM5Laplacian
+
+
 
 
 @dataclass
