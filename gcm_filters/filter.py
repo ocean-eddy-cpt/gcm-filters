@@ -19,13 +19,13 @@ FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
 class TargetSpec(NamedTuple):
     s_max: float
     filter_scale: float
-    transition_width: int
+    transition_width: float
 
 
 # these functions return functions
 def _gaussian_target(target_spec: TargetSpec):
     return lambda t: np.exp(
-        -(target_spec.s_max * (t + 1) / 2) * (target_spec.filter_scale / 2) ** 2
+        -(target_spec.s_max * (t + 1) / 2) * (target_spec.filter_scale) ** 2 / 24
     )
 
 
@@ -35,10 +35,10 @@ def _taper_target(target_spec: TargetSpec):
             [
                 -1,
                 (2 / target_spec.s_max)
-                * (np.pi / (target_spec.transition_width * target_spec.filter_scale))
+                * (2*np.pi / (target_spec.transition_width * target_spec.filter_scale))
                 ** 2
                 - 1,
-                (2 / target_spec.s_max) * (np.pi / target_spec.filter_scale) ** 2 - 1,
+                (2 / target_spec.s_max) * (2*np.pi / target_spec.filter_scale) ** 2 - 1,
                 2,
             ]
         ),
@@ -60,7 +60,7 @@ class FilterSpec(NamedTuple):
 
 
 def _compute_filter_spec(
-    filter_scale, dx_min, n_steps, filter_shape, transition_width, root_tolerance=1e-12
+    filter_scale, dx_min, n_steps, filter_shape, transition_width, grid_dimension, root_tolerance=1e-12
 ):
     # First set up the mass matrix for the Galerkin basis from Shen (SISC95)
     M = (np.pi / 2) * (
@@ -70,10 +70,10 @@ def _compute_filter_spec(
     )
     M[0, 0] = 3 * np.pi / 2
 
-    # The range of wavenumbers is 0<=|k|<=sqrt(2)*pi/dxMin. Nyquist here is for a 2D grid.
+    # The range of wavenumbers is 0<=|k|<=sqrt(d)*pi/dxMin. where d is grid_dimension
     # Per the notes, define s=k^2.
     # Need to rescale to t in [-1,1]: t = (2/sMax)*s -1; s = sMax*(t+1)/2
-    s_max = 2 * (np.pi / dx_min) ** 2
+    s_max = grid_dimension * (np.pi / dx_min) ** 2
 
     target_spec = TargetSpec(s_max, filter_scale, transition_width)
     F = _target_function[filter_shape](target_spec)
