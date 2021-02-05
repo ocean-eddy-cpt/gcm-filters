@@ -60,10 +60,10 @@ class FilterSpec(NamedTuple):
 
 
 def _compute_filter_spec(
-    filter_scale, dx_min, n_steps=-1, filter_shape, transition_width, ndim, root_tolerance=1e-12
+    filter_scale, dx_min, n_steps=None, filter_shape, transition_width, ndim, root_tolerance=1e-12
 ):
     # First set number of steps if not supplied by user
-    if n_steps == -1:
+    if n_steps == None:
         if filter_shape == FilterShape.GAUSSIAN:
             if ndim == 1:
                 n_steps = np.ceil(1.3*filter_scale/dx_min).astype(int)
@@ -178,12 +178,14 @@ class Filter:
         The smallest grid spacing. Should have same units as ``filter_scale``
     n_steps : int, optional
         Number of total steps in the filter
+        n_steps == None means the number of steps is chosen automatically
     filter_shape : FilterShape
         - ``FilterShape.GAUSSIAN``: The target filter has kernel :math:`e^{-|x/Lf|^2}`
         - ``FilterShape.TAPER``: The target filter has target grid scale Lf. Smaller scales are zeroed out.
           Scales larger than ``pi * filter_scale / 2`` are left as-is. In between is a smooth transition.
     transition_width : float, optional
         Width of the transition region in the "Taper" filter.
+    ndim : Laplacian is applied on a grid of dimension ndim
     grid_type : GridType
         what sort of grid we are dealing with
     grid_vars : dict
@@ -196,9 +198,10 @@ class Filter:
 
     filter_scale: float
     dx_min: float
-    n_steps: int = 40
+    n_steps: int = None
     filter_shape: FilterShape = FilterShape.GAUSSIAN
     transition_width: float = np.pi
+    ndim: int = 2
     grid_type: GridType = GridType.CARTESIAN
     grid_vars: dict = field(default_factory=dict, repr=False)
 
@@ -213,6 +216,7 @@ class Filter:
             self.n_steps,
             self.filter_shape,
             self.transition_width,
+            self.ndim,
         )
 
         # check that we have all the required grid aguments
