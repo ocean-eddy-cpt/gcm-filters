@@ -1,12 +1,12 @@
 """Main Filter class."""
 import enum
 
-from dataclasses import dataclass, field
 from typing import Iterable, NamedTuple
 
 import numpy as np
 import xarray as xr
 
+from dataclasses import dataclass, field
 from scipy import interpolate
 
 from .gpu_compat import get_array_module
@@ -30,25 +30,18 @@ def _gaussian_target(target_spec: TargetSpec):
 
 
 def _taper_target(target_spec: TargetSpec):
-    return interpolate.PchipInterpolator(
+    FK = interpolate.PchipInterpolator(
         np.array(
             [
-                -1,
-                (2 / target_spec.s_max)
-                * (
-                    2
-                    * np.pi
-                    / (target_spec.transition_width * target_spec.filter_scale)
-                )
-                ** 2
-                - 1,
-                (2 / target_spec.s_max) * (2 * np.pi / target_spec.filter_scale) ** 2
-                - 1,
-                2,
+                0,
+                2 * np.pi / (target_spec.transition_width * target_spec.filter_scale),
+                2 * np.pi / target_spec.filter_scale,
+                2 * np.sqrt(target_spec.s_max),
             ]
         ),
         np.array([1, 1, 0, 0]),
     )
+    return lambda t: FK(np.sqrt((t + 1) * (target_spec.s_max / 2)))
 
 
 _target_function = {
@@ -218,8 +211,8 @@ class Filter:
 
     def __post_init__(self):
 
-        if self.n_steps <= 2:
-            raise ValueError("Filter requires N>2")
+        if self.n_steps < 0:
+            raise ValueError("Filter requires N>=0")
 
         self.filter_spec = _compute_filter_spec(
             self.filter_scale,

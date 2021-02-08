@@ -4,8 +4,9 @@ Core smoothing routines that operate on 2D arrays.
 import enum
 
 from abc import ABC
-from dataclasses import dataclass
 from typing import Any, Dict
+
+from dataclasses import dataclass
 
 from .gpu_compat import ArrayType, get_array_module
 
