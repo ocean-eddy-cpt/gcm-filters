@@ -182,7 +182,7 @@ class Filter:
         The smallest grid spacing. Should have same units as ``filter_scale``
     n_steps : int, optional
         Number of total steps in the filter
-        n_steps == 0 means the number of steps is chosen automatically
+        ``n_steps == 0`` means the number of steps is chosen automatically
     filter_shape : FilterShape
         - ``FilterShape.GAUSSIAN``: The target filter has kernel :math:`e^{-|x/Lf|^2}`
         - ``FilterShape.TAPER``: The target filter has target grid scale Lf. Smaller scales are zeroed out.
