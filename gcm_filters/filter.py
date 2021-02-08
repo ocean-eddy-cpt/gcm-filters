@@ -189,7 +189,8 @@ class Filter:
           Scales larger than ``pi * filter_scale / 2`` are left as-is. In between is a smooth transition.
     transition_width : float, optional
         Width of the transition region in the "Taper" filter.
-    ndim : Laplacian is applied on a grid of dimension ndim
+    ndim : int, optional
+         Laplacian is applied on a grid of dimension ndim
     grid_type : GridType
         what sort of grid we are dealing with
     grid_vars : dict
