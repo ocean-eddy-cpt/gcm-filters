@@ -1,12 +1,12 @@
 """Main Filter class."""
 import enum
 
+from dataclasses import dataclass, field
 from typing import Iterable, NamedTuple
 
 import numpy as np
 import xarray as xr
 
-from dataclasses import dataclass, field
 from scipy import interpolate
 
 from .gpu_compat import get_array_module
@@ -68,6 +68,8 @@ def _compute_filter_spec(
 ):
     # First set number of steps if not supplied by user
     if n_steps == 0:
+        if ndim > 2:
+            raise ValueError(f"When ndim > 2, you must set n_steps manually")
         if filter_shape == FilterShape.GAUSSIAN:
             if ndim == 1:
                 n_steps = np.ceil(1.3 * filter_scale / dx_min).astype(int)
