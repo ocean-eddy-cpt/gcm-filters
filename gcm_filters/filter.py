@@ -19,31 +19,29 @@ FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
 class TargetSpec(NamedTuple):
     s_max: float
     filter_scale: float
-    transition_width: int
+    transition_width: float
 
 
 # these functions return functions
 def _gaussian_target(target_spec: TargetSpec):
     return lambda t: np.exp(
-        -(target_spec.s_max * (t + 1) / 2) * (target_spec.filter_scale / 2) ** 2
+        -(target_spec.s_max * (t + 1) / 2) * (target_spec.filter_scale) ** 2 / 24
     )
 
 
 def _taper_target(target_spec: TargetSpec):
-    return interpolate.PchipInterpolator(
+    FK = interpolate.PchipInterpolator(
         np.array(
             [
-                -1,
-                (2 / target_spec.s_max)
-                * (np.pi / (target_spec.transition_width * target_spec.filter_scale))
-                ** 2
-                - 1,
-                (2 / target_spec.s_max) * (np.pi / target_spec.filter_scale) ** 2 - 1,
-                2,
+                0,
+                2 * np.pi / (target_spec.transition_width * target_spec.filter_scale),
+                2 * np.pi / target_spec.filter_scale,
+                2 * np.sqrt(target_spec.s_max),
             ]
         ),
         np.array([1, 1, 0, 0]),
     )
+    return lambda t: FK(np.sqrt((t + 1) * (target_spec.s_max / 2)))
 
 
 _target_function = {
@@ -60,8 +58,29 @@ class FilterSpec(NamedTuple):
 
 
 def _compute_filter_spec(
-    filter_scale, dx_min, n_steps, filter_shape, transition_width, root_tolerance=1e-12
+    filter_scale,
+    dx_min,
+    filter_shape,
+    transition_width,
+    ndim,
+    n_steps=0,
+    root_tolerance=1e-12,
 ):
+    # First set number of steps if not supplied by user
+    if n_steps == 0:
+        if ndim > 2:
+            raise ValueError(f"When ndim > 2, you must set n_steps manually")
+        if filter_shape == FilterShape.GAUSSIAN:
+            if ndim == 1:
+                n_steps = np.ceil(1.3 * filter_scale / dx_min).astype(int)
+            else:  # ndim==2
+                n_steps = np.ceil(1.8 * filter_scale / dx_min).astype(int)
+        else:  # Taper
+            if ndim == 1:
+                n_steps = np.ceil(4.5 * filter_scale / dx_min).astype(int)
+            else:  # ndim==2
+                n_steps = np.ceil(6.4 * filter_scale / dx_min).astype(int)
+
     # First set up the mass matrix for the Galerkin basis from Shen (SISC95)
     M = (np.pi / 2) * (
         2 * np.eye(n_steps - 1)
@@ -70,10 +89,10 @@ def _compute_filter_spec(
     )
     M[0, 0] = 3 * np.pi / 2
 
-    # The range of wavenumbers is 0<=|k|<=sqrt(2)*pi/dxMin. Nyquist here is for a 2D grid.
+    # The range of wavenumbers is 0<=|k|<=sqrt(ndim)*pi/dxMin.
     # Per the notes, define s=k^2.
     # Need to rescale to t in [-1,1]: t = (2/sMax)*s -1; s = sMax*(t+1)/2
-    s_max = 2 * (np.pi / dx_min) ** 2
+    s_max = ndim * (np.pi / dx_min) ** 2
 
     target_spec = TargetSpec(s_max, filter_scale, transition_width)
     F = _target_function[filter_shape](target_spec)
@@ -165,12 +184,15 @@ class Filter:
         The smallest grid spacing. Should have same units as ``filter_scale``
     n_steps : int, optional
         Number of total steps in the filter
+        ``n_steps == 0`` means the number of steps is chosen automatically
     filter_shape : FilterShape
         - ``FilterShape.GAUSSIAN``: The target filter has kernel :math:`e^{-|x/Lf|^2}`
         - ``FilterShape.TAPER``: The target filter has target grid scale Lf. Smaller scales are zeroed out.
           Scales larger than ``pi * filter_scale / 2`` are left as-is. In between is a smooth transition.
     transition_width : float, optional
         Width of the transition region in the "Taper" filter.
+    ndim : int, optional
+         Laplacian is applied on a grid of dimension ndim
     grid_type : GridType
         what sort of grid we are dealing with
     grid_vars : dict
@@ -183,23 +205,25 @@ class Filter:
 
     filter_scale: float
     dx_min: float
-    n_steps: int = 40
     filter_shape: FilterShape = FilterShape.GAUSSIAN
     transition_width: float = np.pi
+    ndim: int = 2
+    n_steps: int = 0
     grid_type: GridType = GridType.CARTESIAN
     grid_vars: dict = field(default_factory=dict, repr=False)
 
     def __post_init__(self):
 
-        if self.n_steps <= 2:
-            raise ValueError("Filter requires N>2")
+        if self.n_steps < 0:
+            raise ValueError("Filter requires N>=0")
 
         self.filter_spec = _compute_filter_spec(
             self.filter_scale,
             self.dx_min,
-            self.n_steps,
             self.filter_shape,
             self.transition_width,
+            self.ndim,
+            self.n_steps,
         )
 
         # check that we have all the required grid aguments
