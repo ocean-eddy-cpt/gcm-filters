@@ -215,7 +215,9 @@ class Filter:
     def __post_init__(self):
 
         if self.n_steps < 0:
-            raise ValueError("Filter requires N>=0")
+            raise ValueError("Filter requires n_steps>=0")
+        if self.filter_scale < self.dx_min:
+            raise ValueError("Filter requires filter_scale>=dx_min")
 
         self.filter_spec = _compute_filter_spec(
             self.filter_scale,
