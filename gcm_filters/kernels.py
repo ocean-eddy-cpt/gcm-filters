@@ -60,22 +60,24 @@ class CartesianLaplacianWithLandMask(BaseLaplacian):
 
     wet_mask: ArrayType
 
-    def __call__(self, field: ArrayType):
-        np = get_array_module(field)
+    def __post_init__(self):
+        np = get_array_module(self.wet_mask)
 
-        out = field.copy()  # is this necessary?
-        out = np.nan_to_num(field)  # is this necessary?
-        out = self.wet_mask * out
-
-        fac = (
+        self.wet_fac = (
             np.roll(self.wet_mask, -1, axis=-1)
             + np.roll(self.wet_mask, 1, axis=-1)
             + np.roll(self.wet_mask, -1, axis=-2)
             + np.roll(self.wet_mask, 1, axis=-2)
         )
 
+    def __call__(self, field: ArrayType):
+        np = get_array_module(field)
+
+        out = np.nan_to_num(field)  # set all nans to zero
+        out = self.wet_mask * out
+
         out = (
-            -fac * out
+            -self.wet_fac * out
             + np.roll(out, -1, axis=-1)
             + np.roll(out, 1, axis=-1)
             + np.roll(out, -1, axis=-2)
