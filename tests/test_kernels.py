@@ -16,6 +16,16 @@ def grid_type_field_and_extra_kwargs(request):
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         extra_kwargs["wet_mask"] = mask_data
+    if grid_type == GridType.IRREGULAR_CARTESIAN_WITH_LAND:
+        mask_data = np.ones_like(data)
+        mask_data[: (ny // 2), : (nx // 2)] = 0
+        extra_kwargs["wet_mask"] = mask_data
+        grid_data = np.ones_like(data)
+        extra_kwargs["dxw"] = grid_data
+        extra_kwargs["dyw"] = grid_data
+        extra_kwargs["dxs"] = grid_data
+        extra_kwargs["dys"] = grid_data
+        extra_kwargs["area"] = grid_data
     return grid_type, data, extra_kwargs
 
 

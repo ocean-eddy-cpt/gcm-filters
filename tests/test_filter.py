@@ -79,6 +79,20 @@ def grid_type_and_input_ds(request):
         mask_data[: (ny // 2), : (nx // 2)] = 0
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
         grid_vars = {"wet_mask": da_mask}
+    if grid_type == GridType.IRREGULAR_CARTESIAN_WITH_LAND:
+        mask_data = np.ones_like(data)
+        mask_data[: (ny // 2), : (nx // 2)] = 0
+        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
+        grid_data = np.ones_like(data)
+        da_grid = xr.DataArray(grid_data, dims=["y", "x"])
+        grid_vars = {
+            "wet_mask": da_mask,
+            "dxw": da_grid,
+            "dyw": da_grid,
+            "dxs": da_grid,
+            "dys": da_grid,
+            "area": da_grid,
+        }
 
     return grid_type, da, grid_vars
 
