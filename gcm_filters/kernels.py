@@ -54,9 +54,23 @@ class MOM5Laplacian(BaseLaplacian):
     dyt: ArrayType
     dxu: ArrayType
     dyu: ArrayType
-    dau: ArrayType
+    area_u: ArrayType
 
     def __call__(self, field: ArrayType):
+        np = get_array_module()
+        fx = (np.roll(field, shift=-1, axis=0) - field) \
+                / np.roll(self.dxt, -1, 0)
+        fy = (np.roll(field, shift=-1, axis=1) - field) \
+             / np.roll(self.dyt, -1, 1)
+        filtered_field1 = self.dyu * fx
+        filtered_field1 -= np.roll(self.dyu, 1, 0) * np.roll(fx, 1, 0)
+        filtered_field1 /= self.area_u
+        filtered_field2 = self.dxu * fy
+        filtered_field2 -= np.roll(self.dxu, 1, 1) * np.roll(fy, 1, 1)
+        filtered_field2 /= self.area_u
+        return filtered_field1 + filtered_field2
+
+    def __old_call__(self, field: ArrayType):
         np = get_array_module(field)
         """Uses code by Elizabeth"""
         
@@ -74,8 +88,12 @@ class MOM5Laplacian(BaseLaplacian):
 
         for i in range(1,field.shape[0]-1):
             for j in range(1,field.shape[1]-1):
-                filtered_field[i,j]=((self.dyu[i,j]*fx[i,j]-self.dyu[i-1,j]*fx[i-1,j])/self.dau[i,j])+
-                                    ((self.dxu[i,j]*fy[i,j]-self.dxu[i,j-1]*fy[i,j-1])/self.dau[i,j])
+                filtered_field[i,j]=((self.dyu[i,j]*fx[i,j]-self.dyu[i-1,
+                                                                     j]*fx[
+                    i-1,j])/self.area_u[i,j])+\
+                                    ((self.dxu[i,j]*fy[i,j]-self.dxu[i,
+                                                                     j-1]*fy[
+                                        i,j-1])/self.area_u[i,j])
         return filtered_field
 
 
