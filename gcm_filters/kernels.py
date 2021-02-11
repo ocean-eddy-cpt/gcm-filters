@@ -57,6 +57,7 @@ class MOM5Laplacian(BaseLaplacian):
     area_u: ArrayType
 
     def __call__(self, field: ArrayType):
+        """Uses code by Elizabeth"""
         np = get_array_module()
         fx = (np.roll(field, shift=-1, axis=0) - field) \
                 / np.roll(self.dxt, -1, 0)
