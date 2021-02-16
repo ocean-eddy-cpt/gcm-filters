@@ -93,6 +93,11 @@ def grid_type_and_input_ds(request):
             "dys": da_grid,
             "area": da_grid,
         }
+    if grid_type == GridType.POP_TRIPOLAR_GRID:
+        mask_data = np.ones_like(data)
+        mask_data[3 * (ny // 4) :, (nx // 4) : (nx // 2)] = 0
+        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
+        grid_vars = {"wet_mask": da_mask}
 
     return grid_type, da, grid_vars
 
