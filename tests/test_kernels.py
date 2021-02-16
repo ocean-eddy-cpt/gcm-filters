@@ -1,3 +1,5 @@
+import enum
+
 import numpy as np
 import pytest
 
@@ -35,7 +37,7 @@ def grid_type_field_and_extra_kwargs(request):
     return grid_type, data, extra_kwargs
 
 
-# Note: The POP wet mask has land in southernmost row. TODO: Implement check that makes sure that sourthernmost row of user-specified land mask is indeed land, otherwise raise error.
+# TODO: implement check (elsewhere) that makes sure that sourthernmost row of user-specified land mask is land
 
 
 def test_conservation(grid_type_field_and_extra_kwargs):

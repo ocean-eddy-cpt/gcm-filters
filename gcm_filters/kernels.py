@@ -94,6 +94,7 @@ ALL_KERNELS[GridType.CARTESIAN_WITH_LAND] = CartesianLaplacianWithLandMask
 
 
 @dataclass
+<<<<<<< HEAD
 class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
     """̵Laplacian for irregularly spaced Cartesian grids with land mask.
     
@@ -157,6 +158,8 @@ class POPTripolarSimpleLaplacian(CartesianLaplacianWithLandMask):
     wet_mask: ArrayType
 
     def __post_init__(self):
+        np = get_array_module(self.wet_mask)
+
         nbdry = self.wet_mask[..., [-1], :]  # grab northernmost row
         nbdry_flipped = nbdry[..., ::-1]  # mirror it
         wet_mask_extended = np.concatenate(
