@@ -35,7 +35,7 @@ class BaseLaplacian(ABC):
 
 @dataclass
 class CartesianLaplacian(BaseLaplacian):
-    """̵Laplacian for regularly spaced Cartesian grids."""
+    """Laplacian for regularly spaced Cartesian grids."""
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
@@ -53,7 +53,7 @@ ALL_KERNELS[GridType.CARTESIAN] = CartesianLaplacian
 
 @dataclass
 class CartesianLaplacianWithLandMask(BaseLaplacian):
-    """̵Laplacian for regularly spaced Cartesian grids with land mask.
+    """Laplacian for regularly spaced Cartesian grids with land mask.
 
     Attributes
     ----------
@@ -95,7 +95,7 @@ ALL_KERNELS[GridType.CARTESIAN_WITH_LAND] = CartesianLaplacianWithLandMask
 
 @dataclass
 class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
-    """̵Laplacian for irregularly spaced Cartesian grids with land mask.
+    """Laplacian for irregularly spaced Cartesian grids with land mask.
 
     Attributes
     ----------
@@ -105,6 +105,8 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
     dxs: x-spacing centered at southern cell edge
     dys: y-spacing centered at southern cell edge
     area: cell area
+    kappa_w: zonal diffusivity at western cell edge
+    kappa_s: meridional diffusivity at southern cell edge
     """
 
     wet_mask: ArrayType
@@ -120,7 +122,7 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
         self.w_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-1)
         self.s_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2)
 
-    def __call__(self, field: ArrayType):
+    def __call__(self, field: ArrayType, kappa_w=1, kappa_s=1):
         np = get_array_module(field)
 
         out = np.nan_to_num(field)
@@ -132,8 +134,8 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
             (out - np.roll(out, -1, axis=-2)) / self.dys * self.dxs
         )  # flux across southern cell edge
 
-        wflux = wflux * self.w_wet_mask  # no-flux boundary condition
-        sflux = sflux * self.s_wet_mask  # no-flux boundary condition
+        wflux = kappa_w * wflux * self.w_wet_mask  # no-flux boundary condition
+        sflux = kappa_s * sflux * self.s_wet_mask  # no-flux boundary condition
 
         out = np.roll(wflux, 1, axis=-1) - wflux + np.roll(sflux, 1, axis=-2) - sflux
 
