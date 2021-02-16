@@ -105,8 +105,6 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
     dxs: x-spacing centered at southern cell edge
     dys: y-spacing centered at southern cell edge
     area: cell area
-    kappa_w: zonal diffusivity at western cell edge
-    kappa_s: meridional diffusivity at southern cell edge
     """
 
     wet_mask: ArrayType
