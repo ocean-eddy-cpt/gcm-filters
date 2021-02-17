@@ -8,11 +8,6 @@ from scipy.ndimage import gaussian_filter as raw_gaussian_filter
 from read_data import read_data
 
 
-grid, data = read_data()
-grid = grid.compute()
-data = data.isel(time=8)['usurf'].compute()
-
-
 def _gaussian_kernel(filter_scale: float, truncate: int):
     """Return the weights of a Gaussian kernel (only one side)"""
     xs = np.arange(int(filter_scale * truncate) + 1)
@@ -68,6 +63,9 @@ def gaussian_filter(data: xr.Dataset, grid: xr.Dataset, scale: \
     return filtered_data / normalization
 
 if __name__ == '__main__':
+    grid, data = read_data()
+    grid = grid.compute()
+    data = data.isel(time=8)['usurf'].compute()
     data_ = data.fillna(0.)
     filtered_data = gaussian_filter(data_, grid, scale=4, mode='scipy')
     filtered_data = xr.where(np.isnan(data.values), np.nan,
