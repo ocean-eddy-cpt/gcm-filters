@@ -161,12 +161,10 @@ class POPTripolarSimpleLaplacian(CartesianLaplacianWithLandMask):
         np = get_array_module(self.wet_mask)
 
         nbdry = self.wet_mask[..., [-1], :]  # grab northernmost row
-        nbdry_flipped = nbdry[..., ::-1]  # mirror it
-        wet_mask_extended = np.concatenate(
-            (self.wet_mask, nbdry_flipped), axis=-2
-        )  # append it
+        nbdry = nbdry[..., ::-1]  # mirror it
+        wet_mask_extended = np.concatenate((self.wet_mask, nbdry), axis=-2)  # append it
 
-        self.wet_fac_extended = (
+        self.wet_fac = (
             np.roll(wet_mask_extended, -1, axis=-1)
             + np.roll(wet_mask_extended, 1, axis=-1)
             + np.roll(wet_mask_extended, -1, axis=-2)
@@ -180,15 +178,15 @@ class POPTripolarSimpleLaplacian(CartesianLaplacianWithLandMask):
         data = self.wet_mask * data
 
         nbdry = data[..., [-1], :]  # grab northernmost row
-        nbdry_flipped = nbdry[..., ::-1]  # mirror it
-        data_extended = np.concatenate((data, nbdry_flipped), axis=-2)  # append it
+        nbdry = nbdry[..., ::-1]  # mirror it
+        data = np.concatenate((data, nbdry), axis=-2)  # append it
 
         out = (
-            -self.wet_fac_extended * data_extended
-            + np.roll(data_extended, -1, axis=-1)
-            + np.roll(data_extended, 1, axis=-1)
-            + np.roll(data_extended, -1, axis=-2)
-            + np.roll(data_extended, 1, axis=-2)
+            -self.wet_fac * data
+            + np.roll(data, -1, axis=-1)
+            + np.roll(data, 1, axis=-1)
+            + np.roll(data, -1, axis=-2)
+            + np.roll(data, 1, axis=-2)
         )
 
         out = out[..., 0:-1, :]  # disregard appended row
