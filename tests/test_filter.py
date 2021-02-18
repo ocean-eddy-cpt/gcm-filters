@@ -20,30 +20,39 @@ def _check_equal_filter_spec(spec1, spec2):
     "filter_args, expected_filter_spec",
     [
         (
-            dict(filter_scale=10.0, dx_min=1.0, n_steps=4),
+            dict(
+                filter_scale=10.0,
+                dx_min=1.0,
+                filter_shape=FilterShape.GAUSSIAN,
+                transition_width=np.pi,
+                ndim=2,
+                n_steps=4,
+            ),
             FilterSpec(
                 n_lap_steps=4,
-                s_l=[2.36715983, 8.36124821, 15.17931706, 19.7392088],
+                s_l=[2.56046256, 8.47349198, 15.22333438, 19.7392088],
                 n_bih_steps=0,
                 s_b=[],
             ),
         ),
         (
             dict(
-                filter_scale=1.0, dx_min=1.0, n_steps=10, filter_shape=FilterShape.TAPER
+                filter_scale=2.0,
+                dx_min=1.0,
+                filter_shape=FilterShape.TAPER,
+                transition_width=np.pi,
+                ndim=1,
             ),
             FilterSpec(
-                n_lap_steps=6,
-                s_l=[
-                    9.87341331,
-                    12.66526236,
-                    15.23856752,
-                    17.38217753,
-                    18.91899844,
-                    19.7392088,
+                n_lap_steps=1,
+                s_l=[9.8696044],
+                n_bih_steps=4,
+                s_b=[
+                    -0.74638043 - 1.24167777j,
+                    3.06062496 - 3.94612205j,
+                    7.80242999 - 3.18038659j,
+                    9.81491354 - 0.44874939j,
                 ],
-                n_bih_steps=2,
-                s_b=[-1.83974928 - 2.24294603j, 1.21758518 - 8.29775049j],
             ),
         ),
     ],
@@ -70,6 +79,20 @@ def grid_type_and_input_ds(request):
         mask_data[: (ny // 2), : (nx // 2)] = 0
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
         grid_vars = {"wet_mask": da_mask}
+    if grid_type == GridType.IRREGULAR_CARTESIAN_WITH_LAND:
+        mask_data = np.ones_like(data)
+        mask_data[: (ny // 2), : (nx // 2)] = 0
+        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
+        grid_data = np.ones_like(data)
+        da_grid = xr.DataArray(grid_data, dims=["y", "x"])
+        grid_vars = {
+            "wet_mask": da_mask,
+            "dxw": da_grid,
+            "dyw": da_grid,
+            "dxs": da_grid,
+            "dys": da_grid,
+            "area": da_grid,
+        }
 
     return grid_type, da, grid_vars
 
