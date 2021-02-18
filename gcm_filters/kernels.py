@@ -55,10 +55,12 @@ class MOM5Laplacian(BaseLaplacian):
     dxu: ArrayType
     dyu: ArrayType
     area_u: ArrayType
+    # wet: ArrayType
 
     def __call__(self, field: ArrayType):
         """Uses code by Elizabeth"""
         np = get_array_module()
+        field[np.isnan(field)] = 0.
         fx = (np.roll(field, shift=-1, axis=0) - field) \
                 / np.roll(self.dxt, -1, 0)
         fy = (np.roll(field, shift=-1, axis=1) - field) \
@@ -69,7 +71,7 @@ class MOM5Laplacian(BaseLaplacian):
         filtered_field2 = self.dxu * fy
         filtered_field2 -= np.roll(self.dxu, 1, 1) * np.roll(fy, 1, 1)
         filtered_field2 /= self.area_u
-        return filtered_field1 + filtered_field2
+        return (filtered_field1 + filtered_field2)
 
     def __old_call__(self, field: ArrayType):
         np = get_array_module(field)
