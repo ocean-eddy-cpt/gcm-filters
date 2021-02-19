@@ -93,11 +93,12 @@ def grid_type_and_input_ds(request):
             "dys": da_grid,
             "area": da_grid,
         }
-    if grid_type == GridType.POP_TRIPOLAR_GRID:
+    if grid_type == GridType.POP_SIMPLE_TRIPOLAR_GRID:
         mask_data = np.ones_like(data)
         mask_data[3 * (ny // 4) :, (nx // 4) : (nx // 2)] = 0
+        mask_data[0, :] = 0  #  Antarctica
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-        grid_vars = {"wet_mask": da_mask}
+        grid_vars = {"wet_mask": da_mask, "position": "T"}
 
     return grid_type, da, grid_vars
 
