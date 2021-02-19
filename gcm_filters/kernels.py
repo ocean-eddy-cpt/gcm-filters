@@ -13,7 +13,7 @@ from .gpu_compat import ArrayType, get_array_module
 # not married to the term "Cartesian"
 GridType = enum.Enum(
     "GridType", ["CARTESIAN", "CARTESIAN_WITH_LAND",
-                 "IRREGULAR_CARTESIAN_WITH_LAND", "MOM5"]
+                 "IRREGULAR_CARTESIAN_WITH_LAND", "MOM5U", "MOM5T"]
 )
 
 ALL_KERNELS = {}  # type: Dict[GridType, Any]
@@ -137,29 +137,6 @@ class MOM5LaplacianT(BaseLaplacian):
 
 ALL_KERNELS[GridType.MOM5T] = MOM5LaplacianT
 
-@dataclass
-class MOM5Vorticity(???):
-    u: ArrayType
-    v: ArrayType
-    dxt: ArrayType
-    dyt: ArrayType
-
-    def __call__(self):
-        """Uses code by Elizabeth"""
-
-        vorticity = np.empty(self.u.shape)
-
-        for i in range(1,vorticity.shape[0]-1):
-            for j in range(1,vorticity.shape[1]-1):
-                dvdx = 0.5*( (self.v[i,j]-self.v[i-1,j])/(0.5*(self.dxt[i,j]+self.dxt[i,j+1]))\ 
-                        + (self.v[i,j-1]-self.v[i-1,j-1])/(0.5*(self.dxt[i,j]+self.dxt[i,j-1])))
-                dudy = 0.5*( (self.u[i,j]-self.u[i,j-1])/(0.5*(self.dyt[i,j]+self.dyt[i+1,j]))\
-                        + (self.u[i-1,j]-self.u[i-1,j-1])/(0.5*(self.dyt[i,j]+self.dyt[i-1,j])))
-                vorticity[i,j] = dvdx-dudy
-
-        return vorticity
-
-#For the grid type here I'm not sure what to do, because vorticity is defined on T-points but is calculated from U=point velocities. 
 
 @dataclass
 class CartesianLaplacianWithLandMask(BaseLaplacian):
