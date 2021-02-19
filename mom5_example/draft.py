@@ -5,13 +5,17 @@ from gcm_filters.kernels import GridType
 from gaussian_filter import gaussian_filter
 import xarray as xr
 
+# Script parameters
+filter_scale=4
+
 from read_data import read_data
 
 grid_data, data = read_data()
 grid_data = grid_data.compute().reset_coords()
 
 data = data['usurf'].isel(time=0).sel(xu_ocean=slice(-100, -0),
-                                         yu_ocean=slice(-50, 50)).compute()
+                                      yu_ocean=slice(-50, 50)).compute()
+# How do we deal with continents?
 grid_data = grid_data.sel(xu_ocean=slice(-100, 0), yu_ocean=slice(-50, 50))
 grid_data = grid_data[['dxt', 'dyt']]
 
@@ -23,14 +27,15 @@ grid_data = grid_data.interp(dict(xt_ocean=data.xu_ocean,
                                   yt_ocean=data.yu_ocean))
 
 # Still not sure about the parameter dxmin
-cartesian_filter = filter.Filter(4, 1e3, n_steps=10,
+cartesian_filter = filter.Filter(filter_scale, dx_min=1, n_steps=10,
                                  filter_shape=filter.FilterShape.GAUSSIAN,
                                  grid_vars=grid_data[['dxt', 'dyt']],
                                  grid_type=GridType.MOM5)
 print(cartesian_filter.filter_spec)
 
-filtered_data = cartesian_filter.apply(data, ['yu_ocean', 'xu_ocean'])
-print(filtered_data)
+filtered_data = cartesian_filter.apply(data, dims=['yu_ocean', 'xu_ocean'])
+
+# Plot
 plt.figure()
 filtered_data.plot(vmin=-0.1, vmax=0.1)
 plt.figure()

@@ -9,6 +9,7 @@ def compute_vorticity(field: np.ndarray, grid: np.ndarray):
     dxt = grid['dxt'].values
     dyt = grid['dyt'].values
     vorticity = np.empty(u.shape)
+    tracer_coords = dict(yt_ocean=grid['yt_ocean'], xt_ocean=grid['xt_ocean'])
 
     for i in range(1, vorticity.shape[0] - 1):
         for j in range(1, vorticity.shape[1] - 1):
@@ -24,6 +25,6 @@ def compute_vorticity(field: np.ndarray, grid: np.ndarray):
     xt_ocean = grid['dxt'].xt_ocean
     yt_ocean = grid['dxt'].yt_ocean
     vorticity = xr.DataArray(vorticity,
-                             coords=dict(xt_ocean=xt_ocean,yt_ocean=yt_ocean),
+                             coords=tracer_coords,
                              dims=('yt_ocean','xt_ocean'))
     return vorticity
