@@ -146,12 +146,14 @@ def _create_filter_func(
     and whose subsequent arguments are the require grid variables
     """
 
+    # def filter_func(field, *args, **kwargs):
     def filter_func(field, *args):
         # these next steps are a kind of hack we have to turn keyword arugments into regular arguments
         # the reason for doing this is that Xarray's apply_ufunc machinery works a lot better
         # with regular arguments
         assert len(args) == len(Laplacian.required_grid_args())
         grid_vars = {k: v for k, v in zip(Laplacian.required_grid_args(), args)}
+        # laplacian = Laplacian(**grid_vars,**kwargs)
         laplacian = Laplacian(**grid_vars)
         np = get_array_module(field)
         field_bar = field.copy()  # Initalize the filtering process
@@ -242,6 +244,12 @@ class Filter:
         grid_args = [self.grid_ds[name] for name in self.Laplacian.required_grid_args()]
         assert len(dims) == 2
         n_args = 1 + len(grid_args)
+        # if "position" in self.grid_ds:
+        #    n_args -= 1
+        #    kwargs = {"position":self.grid_ds["position"].values}
+        #    grid_args.remove(self.grid_ds["position"])
+        # else:
+        #    kwargs = {}
         field_smooth = xr.apply_ufunc(
             filter_func,
             field,
@@ -250,5 +258,6 @@ class Filter:
             output_core_dims=[dims],
             output_dtypes=[field.dtype],
             dask="parallelized",
+            # **kwargs
         )
         return field_smooth
