@@ -51,7 +51,7 @@ class CartesianLaplacian(BaseLaplacian):
 ALL_KERNELS[GridType.CARTESIAN] = CartesianLaplacian
 
 @dataclass
-class MOM5Laplacian(BaseLaplacian):
+class MOM5LaplacianU(BaseLaplacian):
     dxt: ArrayType
     dyt: ArrayType
     dxu: ArrayType
@@ -59,23 +59,23 @@ class MOM5Laplacian(BaseLaplacian):
     area_u: ArrayType
     # wet: ArrayType
 
-    def __call__(self, field: ArrayType):
-        """Uses code by Elizabeth"""
-        np = get_array_module()
-        field[np.isnan(field)] = 0.
-        fx = (np.roll(field, shift=-1, axis=0) - field) \
-                / np.roll(self.dxt, -1, 0)
-        fy = (np.roll(field, shift=-1, axis=1) - field) \
-             / np.roll(self.dyt, -1, 1)
-        filtered_field1 = self.dyu * fx
-        filtered_field1 -= np.roll(self.dyu, 1, 0) * np.roll(fx, 1, 0)
-        filtered_field1 /= self.area_u
-        filtered_field2 = self.dxu * fy
-        filtered_field2 -= np.roll(self.dxu, 1, 1) * np.roll(fy, 1, 1)
-        filtered_field2 /= self.area_u
-        return filtered_field1 + filtered_field2
+#This call needs to be changed since I modified the Laplacian definition
+#    def __call__(self, field: ArrayType):
+#        """Uses code by Elizabeth"""
+#        np = get_array_module()
+#        fx = (np.roll(field, shift=-1, axis=0) - field) \
+#                / np.roll(self.dxt, -1, 0)
+#        fy = (np.roll(field, shift=-1, axis=1) - field) \
+#             / np.roll(self.dyt, -1, 1)
+#        filtered_field1 = self.dyu * fx
+#        filtered_field1 -= np.roll(self.dyu, 1, 0) * np.roll(fx, 1, 0)
+#        filtered_field1 /= self.area_u
+#        filtered_field2 = self.dxu * fy
+#        filtered_field2 -= np.roll(self.dxu, 1, 1) * np.roll(fy, 1, 1)
+#        filtered_field2 /= self.area_u
+#        return filtered_field1 + filtered_field2
 
-    def __old_call__(self, field: ArrayType):
+    def __call__(self, field: ArrayType):
         np = get_array_module(field)
         """We can delete this, leaving it here for now."""
         
@@ -83,29 +83,83 @@ class MOM5Laplacian(BaseLaplacian):
         fy = np.empty(field.shape)
         filtered_field = np.empty(field.shape)
         
-        for i in range(1,field.shape[0]-1):
-            for j in range(field.shape[1]):
-                fx[i,j]=(field[i+1,j]-field[i,j])/(self.dxt[i+1,j])
+        for i in range(field.shape[0]-1):
+            for j in range(field.shape[1]-1):
+                fx[i,j]=(field[i+1,j]-field[i,j])*2.0/(self.dxt[i+1,j]+self.dxt[i+1,j+1])
 
-        for i in range(field.shape[0]):
-            for j in range(1,field.shape[1]-1):
-                fy[i,j]=(field[i,j+1]-field[i,j])/(self.dyt[i,j+1])
+        for i in range(field.shape[0]-1):
+            for j in range(field.shape[1]-1):
+                fy[i,j]=(field[i,j+1]-field[i,j])*2.0/(self.dyt[i,j+1]+self.dyt[i+1,j+1])
 
         for i in range(1,field.shape[0]-1):
             for j in range(1,field.shape[1]-1):
-                filtered_field[i,j]=((self.dyu[i,j]*fx[i,j]-self.dyu[i-1,
-                                                                     j]*fx[
-                    i-1,j])/self.area_u[i,j])+\
-                                    ((self.dxu[i,j]*fy[i,j]-self.dxu[i,
-                                                                     j-1]*fy[
-                                        i,j-1])/self.area_u[i,j])
+                filtered_field[i,j]= (0.5* (self.dyu[i,j]+self.dyu[i+1,j])*fx[i,j]-\
+                        0.5* (self.dyu[i-1,j]+self.dyu[i,j])*fx[i-1,j] )/self.area_u[i,j]+\
+                                     (0.5* (self.dxu[i,j]+self.dxu[i,j+1])*fy[i,j]-\
+                        0.5* (self.dxu[i,j-1]+self.dxu[i,j])*fy[i,j-1] )/self.area_u[i,j]
+
         return filtered_field
 
+ALL_KERNELS[GridType.MOM5U] = MOM5LaplacianU
 
-ALL_KERNELS[GridType.MOM5] = MOM5Laplacian
+@dataclass
+class MOM5LaplacianT(BaseLaplacian):
+    dxt: ArrayType
+    dyt: ArrayType
+    dxu: ArrayType
+    dyu: ArrayType
+    area_t: ArrayType
 
+    def __call__(self, field: ArrayType):
+        np = get_array_module(field)
+        """Uses code by Elizabeth"""
 
+        fx = np.empty(field.shape)
+        fy = np.empty(field.shape)
+        filtered_field = np.empty(field.shape)
 
+        for i in range(1,field.shape[0]-1):
+            for j in range(1,field.shape[1]-1):
+                fx[i,j]=(field[i+1,j]-field[i,j])*2.0/(self.dxu[i,j]+self.dxu[i,j-1])
+
+        for i in range(1,field.shape[0]-1):
+            for j in range(1,field.shape[1]-1):
+                fy[i,j]=(field[i,j+1]-field[i,j])*2.0/(self.dyu[i,j]+self.dyu[i-1,j])
+
+        for i in range(1,field.shape[0]-1):
+            for j in range(1,field.shape[1]-1):
+                filtered_field[i,j]= (0.5* (self.dyt[i,j]+self.dyt[i+1,j])*fx[i,j]-\
+                        0.5* (self.dyt[i-1,j]+self.dyt[i,j])*fx[i-1,j] )/self.area_t[i,j]+\
+                                     (0.5* (self.dxt[i,j]+self.dxt[i,j+1])*fy[i,j]-\
+                        0.5* (self.dxt[i,j-1]+self.dxt[i,j])*fy[i,j-1] )/self.area_t[i,j]
+
+        return filtered_field
+
+ALL_KERNELS[GridType.MOM5T] = MOM5LaplacianT
+
+@dataclass
+class MOM5Vorticity(???):
+    u: ArrayType
+    v: ArrayType
+    dxt: ArrayType
+    dyt: ArrayType
+
+    def __call__(self):
+        """Uses code by Elizabeth"""
+
+        vorticity = np.empty(self.u.shape)
+
+        for i in range(1,vorticity.shape[0]-1):
+            for j in range(1,vorticity.shape[1]-1):
+                dvdx = 0.5*( (self.v[i,j]-self.v[i-1,j])/(0.5*(self.dxt[i,j]+self.dxt[i,j+1]))\ 
+                        + (self.v[i,j-1]-self.v[i-1,j-1])/(0.5*(self.dxt[i,j]+self.dxt[i,j-1])))
+                dudy = 0.5*( (self.u[i,j]-self.u[i,j-1])/(0.5*(self.dyt[i,j]+self.dyt[i+1,j]))\
+                        + (self.u[i-1,j]-self.u[i-1,j-1])/(0.5*(self.dyt[i,j]+self.dyt[i-1,j])))
+                vorticity[i,j] = dvdx-dudy
+
+        return vorticity
+
+#For the grid type here I'm not sure what to do, because vorticity is defined on T-points but is calculated from U=point velocities. 
 
 @dataclass
 class CartesianLaplacianWithLandMask(BaseLaplacian):
