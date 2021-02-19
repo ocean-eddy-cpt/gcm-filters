@@ -12,7 +12,7 @@ from .gpu_compat import ArrayType, get_array_module
 
 # not married to the term "Cartesian"
 GridType = enum.Enum(
-    "GridType", ["CARTESIAN", "CARTESIAN_WITH_LAND", "IRREGULAR_CARTESIAN_WITH_LAND", "POP_TRIPOLAR_GRID"]
+    "GridType", ["CARTESIAN", "CARTESIAN_WITH_LAND", "IRREGULAR_CARTESIAN_WITH_LAND", "POP_SIMPLE_TRIPOLAR_GRID"]
 )
 
 ALL_KERNELS = {}  # type: Dict[GridType, Any]
@@ -153,15 +153,46 @@ class POPTripolarSimpleLaplacian(CartesianLaplacianWithLandMask):
     Attributes
     ----------
     wet_mask: Mask array, 1 for ocean, 0 for land
+    position: string
+        - 'T': Laplacian is applied for field defined at T-points
+        - 'U': Laplacian is applied for field defined at U-points
     """
 
     wet_mask: ArrayType
+    position: str
 
     def __post_init__(self):
         np = get_array_module(self.wet_mask)
 
-        nbdry = self.wet_mask[..., [-1], :]  # grab northernmost row
-        nbdry = nbdry[..., ::-1]  # mirror it
+        if self.position == "T":
+            # check that southernmost row of wet mask has only zeros
+            if self.wet_mask[..., 0, :].any():
+                raise AssertionError("Wet mask requires zeros in southernmost row")
+
+            # prepare wet mask for northern boundary exchanges
+            nbdry = self.wet_mask[..., [-1], :]  # grab northernmost row
+            nbdry = nbdry[..., ::-1]  # mirror it
+
+        elif self.position == "U":
+            # check that northernmost row of wet mask folds onto itself
+            nbdry = self.wet_mask[..., -1, :]  # grab northernmost row
+            nbdry = nbdry[..., ::-1]  # mirror it
+            nbdry = np.roll(nbdry, -1, axis=-1)  # shift by 1 cell to the left
+            np.testing.assert_equal(
+                self.wet_mask[..., -1, :],
+                nbdry,
+                err_msg="Uppermost row of wet mask does not fold onto itself.",
+            )
+
+            # check that southernmost row of wet mask has only zeros
+            if self.wet_mask[..., 0, :].any():
+                raise AssertionError("Wet mask requires zeros in southernmost row")
+
+            # prepare wet mask for northern boundary exchanges
+            nbdry = self.wet_mask[..., [-2], :]  # grab second northernmost row
+            nbdry = nbdry[..., ::-1]  # mirror it
+            nbdry = np.roll(nbdry, -1, axis=-1)  # shift by 1 cell to the left
+
         wet_mask_extended = np.concatenate((self.wet_mask, nbdry), axis=-2)  # append it
 
         self.wet_fac = (
@@ -169,7 +200,7 @@ class POPTripolarSimpleLaplacian(CartesianLaplacianWithLandMask):
             + np.roll(wet_mask_extended, 1, axis=-1)
             + np.roll(wet_mask_extended, -1, axis=-2)
             + np.roll(wet_mask_extended, 1, axis=-2)
-        )
+        )  # todo: inherit this operation from CartesianLaplacianWithLandMask
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
@@ -177,9 +208,28 @@ class POPTripolarSimpleLaplacian(CartesianLaplacianWithLandMask):
         data = np.nan_to_num(field)  # set all nans to zero
         data = self.wet_mask * data
 
-        nbdry = data[..., [-1], :]  # grab northernmost row
-        nbdry = nbdry[..., ::-1]  # mirror it
-        data = np.concatenate((data, nbdry), axis=-2)  # append it
+        if self.position == "T":
+            # prepare data for northern boundary exchanges
+            nbdry = data[..., [-1], :]  # grab northernmost row
+            nbdry = nbdry[..., ::-1]  # mirror it
+
+        elif self.position == "U":
+            # check that northernmost row of input field folds onto itself
+            nbdry = data[..., -1, :]  # grab northernmost row
+            nbdry = -nbdry[..., ::-1]  # mirror and invert it
+            nbdry = np.roll(nbdry, -1, axis=-1)  # shift by 1 cell to the left
+            np.testing.assert_equal(
+                data[..., -1, :],
+                nbdry,
+                err_msg="Uppermost row of input field does not fold onto itself.",
+            )
+
+            # prepare data for northern boundary exchanges
+            nbdry = data[..., [-2], :]  # grab second northernmost row
+            nbdry = -nbdry[..., ::-1]  # mirror and invert it
+            nbdry = np.roll(nbdry, -1, axis=-1)  # shift by 1 cell to the left
+
+        data = np.concatenate((data, nbdry), axis=-2)  # append mirrored row
 
         out = (
             -self.wet_fac * data
@@ -187,15 +237,15 @@ class POPTripolarSimpleLaplacian(CartesianLaplacianWithLandMask):
             + np.roll(data, 1, axis=-1)
             + np.roll(data, -1, axis=-2)
             + np.roll(data, 1, axis=-2)
-        )
+        )  # todo: inherit this operation from CartesianLaplacianWithLandMask
 
-        out = out[..., 0:-1, :]  # disregard appended row
+        out = out[..., :-1, :]  # disregard appended row
 
         out = self.wet_mask * out
         return out
 
 
-ALL_KERNELS[GridType.POP_TRIPOLAR_GRID] = POPTripolarSimpleLaplacian
+ALL_KERNELS[GridType.POP_SIMPLE_TRIPOLAR_GRID] = POPTripolarSimpleLaplacian
 
 
 def required_grid_vars(grid_type: GridType):
