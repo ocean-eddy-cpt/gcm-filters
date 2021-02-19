@@ -77,7 +77,7 @@ class MOM5Laplacian(BaseLaplacian):
 
     def __old_call__(self, field: ArrayType):
         np = get_array_module(field)
-        """Uses code by Elizabeth"""
+        """We can delete this, leaving it here for now."""
         
         fx = np.empty(field.shape)
         fy = np.empty(field.shape)
