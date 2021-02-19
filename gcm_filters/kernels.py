@@ -11,8 +11,10 @@ from .gpu_compat import ArrayType, get_array_module
 
 
 # not married to the term "Cartesian"
-GridType = enum.Enum("GridType", ["CARTESIAN", "CARTESIAN_WITH_LAND",
-                                  "MOM5"])
+GridType = enum.Enum(
+    "GridType", ["CARTESIAN", "CARTESIAN_WITH_LAND",
+                 "IRREGULAR_CARTESIAN_WITH_LAND", "MOM5"]
+)
 
 ALL_KERNELS = {}  # type: Dict[GridType, Any]
 
@@ -55,6 +57,7 @@ class MOM5LaplacianU(BaseLaplacian):
     dxu: ArrayType
     dyu: ArrayType
     area_u: ArrayType
+    # wet: ArrayType
 
 #This call needs to be changed since I modified the Laplacian definition
 #    def __call__(self, field: ArrayType):
@@ -169,22 +172,24 @@ class CartesianLaplacianWithLandMask(BaseLaplacian):
 
     wet_mask: ArrayType
 
-    def __call__(self, field: ArrayType):
-        np = get_array_module(field)
+    def __post_init__(self):
+        np = get_array_module(self.wet_mask)
 
-        out = field.copy()  # is this necessary?
-        out = np.nan_to_num(field)  # is this necessary?
-        out = self.wet_mask * out
-
-        fac = (
+        self.wet_fac = (
             np.roll(self.wet_mask, -1, axis=-1)
             + np.roll(self.wet_mask, 1, axis=-1)
             + np.roll(self.wet_mask, -1, axis=-2)
             + np.roll(self.wet_mask, 1, axis=-2)
         )
 
+    def __call__(self, field: ArrayType):
+        np = get_array_module(field)
+
+        out = np.nan_to_num(field)  # set all nans to zero
+        out = self.wet_mask * out
+
         out = (
-            -fac * out
+            -self.wet_fac * out
             + np.roll(out, -1, axis=-1)
             + np.roll(out, 1, axis=-1)
             + np.roll(out, -1, axis=-2)
@@ -196,6 +201,59 @@ class CartesianLaplacianWithLandMask(BaseLaplacian):
 
 
 ALL_KERNELS[GridType.CARTESIAN_WITH_LAND] = CartesianLaplacianWithLandMask
+
+
+@dataclass
+class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
+    """̵Laplacian for irregularly spaced Cartesian grids with land mask.
+
+    Attributes
+    ----------
+    wet_mask: Mask array, 1 for ocean, 0 for land
+    dxw: x-spacing centered at western cell edge
+    dyw: y-spacing centered at western cell edge
+    dxs: x-spacing centered at southern cell edge
+    dys: y-spacing centered at southern cell edge
+    area: cell area
+    """
+
+    wet_mask: ArrayType
+    dxw: ArrayType
+    dyw: ArrayType
+    dxs: ArrayType
+    dys: ArrayType
+    area: ArrayType
+
+    def __post_init__(self):
+        np = get_array_module(self.wet_mask)
+
+        self.w_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-1)
+        self.s_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2)
+
+    def __call__(self, field: ArrayType):
+        np = get_array_module(field)
+
+        out = np.nan_to_num(field)
+
+        wflux = (
+            (out - np.roll(out, -1, axis=-1)) / self.dxw * self.dyw
+        )  # flux across western cell edge
+        sflux = (
+            (out - np.roll(out, -1, axis=-2)) / self.dys * self.dxs
+        )  # flux across southern cell edge
+
+        wflux = wflux * self.w_wet_mask  # no-flux boundary condition
+        sflux = sflux * self.s_wet_mask  # no-flux boundary condition
+
+        out = np.roll(wflux, 1, axis=-1) - wflux + np.roll(sflux, 1, axis=-2) - sflux
+
+        out = out / self.area
+        return out
+
+
+ALL_KERNELS[
+    GridType.IRREGULAR_CARTESIAN_WITH_LAND
+] = IrregularCartesianLaplacianWithLandMask
 
 
 def required_grid_vars(grid_type: GridType):
