@@ -7,6 +7,13 @@ import pytest
 from gcm_filters.kernels import ALL_KERNELS, GridType, required_grid_vars
 
 
+tripolar_u_grids = [
+    member
+    for name, member in GridType.__members__.items()
+    if name == "POP_SIMPLE_TRIPOLAR_U_GRID"
+]
+
+
 def _fold_northern_boundary(ufield, nx, invert):
     """Auxiliary function to create data on tripolar grid. """
     folded = ufield[-1, :]  # grab northernmost row
@@ -51,10 +58,9 @@ def grid_type_field_and_extra_kwargs(request):
         mask_data[: (ny // 2), : (nx // 2)] = 0
         mask_data[0, :] = 0  #  Antarctica
         mask_data = _fold_northern_boundary(mask_data, nx, invert=False)
-        data = _fold_northern_boundary(
-            data, nx, invert=False
-        )  # for now, we check for non-inverted velocities, otherwise testing for conservation is meaningless, see discussion in PR #26
         extra_kwargs["wet_mask"] = mask_data
+        # for now, we check for non-inverted velocities, otherwise testing for conservation is meaningless, see discussion in PR #26
+        data = _fold_northern_boundary(data, nx, invert=False)
     return grid_type, data, extra_kwargs
 
 
@@ -88,11 +94,6 @@ tripolar_t_grids = [
     member
     for name, member in GridType.__members__.items()
     if name == "POP_SIMPLE_TRIPOLAR_T_GRID"
-]
-tripolar_u_grids = [
-    member
-    for name, member in GridType.__members__.items()
-    if name == "POP_SIMPLE_TRIPOLAR_U_GRID"
 ]
 
 

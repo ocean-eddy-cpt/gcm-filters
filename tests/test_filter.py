@@ -119,9 +119,8 @@ def grid_type_and_input_ds(request):
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
         grid_vars = {"wet_mask": da_mask}
     if grid_type == GridType.POP_SIMPLE_TRIPOLAR_U_GRID:
-        data = _fold_northern_boundary(
-            data, nx, invert=False
-        )  # for now, we assume non-inverted velocities, otherwise testing for conservation is meaningless, see discussion in PR #26
+        # for now, we assume non-inverted velocities, otherwise testing for conservation is meaningless, see discussion in PR #26
+        data = _fold_northern_boundary(data, nx, invert=False)
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         mask_data[0, :] = 0  #  Antarctica
