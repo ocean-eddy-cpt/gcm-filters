@@ -153,6 +153,7 @@ ALL_KERNELS[
 ] = IrregularCartesianLaplacianWithLandMask
 
 
+@dataclass
 class POPTripolarSimpleLaplacianTpoint(BaseLaplacian):
     """̵Laplacian for fields defined at T-points on POP tripolar grid geometry with land mask, but assuming that dx = dy = 1
 
