@@ -1,5 +1,5 @@
-import enum
 import copy
+import enum
 
 import numpy as np
 import pytest

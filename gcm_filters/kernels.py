@@ -101,11 +101,9 @@ ALL_KERNELS[GridType.CARTESIAN_WITH_LAND] = CartesianLaplacianWithLandMask
 
 
 @dataclass
-<<<<<<< HEAD
-<<<<<<< HEAD
 class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
     """̵Laplacian for irregularly spaced Cartesian grids with land mask.
-    
+
     Attributes
     ----------
     wet_mask: Mask array, 1 for ocean, 0 for land
@@ -125,7 +123,7 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
 
     def __post_init__(self):
         np = get_array_module(self.wet_mask)
-        
+
         self.w_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-1)
         self.s_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2)
 
