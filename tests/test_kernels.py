@@ -26,6 +26,8 @@ def grid_type_field_and_extra_kwargs(request):
         extra_kwargs["dxs"] = grid_data
         extra_kwargs["dys"] = grid_data
         extra_kwargs["area"] = grid_data
+        extra_kwargs["kappa_s"] = grid_data
+        extra_kwargs["kappa_w"] = grid_data
     return grid_type, data, extra_kwargs
 
 
