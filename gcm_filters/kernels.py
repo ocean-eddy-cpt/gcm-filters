@@ -12,8 +12,14 @@ from .gpu_compat import ArrayType, get_array_module
 
 # not married to the term "Cartesian"
 GridType = enum.Enum(
-    "GridType", ["CARTESIAN", "CARTESIAN_WITH_LAND",
-                 "IRREGULAR_CARTESIAN_WITH_LAND", "MOM5U", "MOM5T"]
+    "GridType",
+    [
+        "CARTESIAN",
+        "CARTESIAN_WITH_LAND",
+        "IRREGULAR_CARTESIAN_WITH_LAND",
+        "MOM5U",
+        "MOM5T",
+    ],
 )
 
 ALL_KERNELS = {}  # type: Dict[GridType, Any]
@@ -48,92 +54,142 @@ class CartesianLaplacian(BaseLaplacian):
             + np.roll(field, 1, axis=-2)
         )
 
+
 ALL_KERNELS[GridType.CARTESIAN] = CartesianLaplacian
+
 
 @dataclass
 class MOM5LaplacianU(BaseLaplacian):
+    """Laplacian for MOM5 gird (velocity points)"""
+
     dxt: ArrayType
     dyt: ArrayType
     dxu: ArrayType
     dyu: ArrayType
     area_u: ArrayType
-    # wet: ArrayType
-
-#This call needs to be changed since I modified the Laplacian definition
-#    def __call__(self, field: ArrayType):
-#        """Uses code by Elizabeth"""
-#        np = get_array_module()
-#        fx = (np.roll(field, shift=-1, axis=0) - field) \
-#                / np.roll(self.dxt, -1, 0)
-#        fy = (np.roll(field, shift=-1, axis=1) - field) \
-#             / np.roll(self.dyt, -1, 1)
-#        filtered_field1 = self.dyu * fx
-#        filtered_field1 -= np.roll(self.dyu, 1, 0) * np.roll(fx, 1, 0)
-#        filtered_field1 /= self.area_u
-#        filtered_field2 = self.dxu * fy
-#        filtered_field2 -= np.roll(self.dxu, 1, 1) * np.roll(fy, 1, 1)
-#        filtered_field2 /= self.area_u
-#        return filtered_field1 + filtered_field2
+    wet: ArrayType
 
     def __call__(self, field: ArrayType):
+        """Uses code by Elizabeth"""
+        np = get_array_module()
+        field = np.nan_to_num(field)
+        fx = 2 * (np.roll(field, shift=-1, axis=0) - field)
+        fx /= np.roll(self.dxt, -1, axis=0) + np.roll(self.dxt, (-1, -1), axis=(0, 1))
+        fy = 2 * (np.roll(field, shift=-1, axis=1) - field)
+        fy /= np.roll(self.dyt, -1, axis=1) + np.roll(self.dyt, (-1, -1), axis=(0, 1))
+        out1 = 0.5 * fx * (self.dyu + np.roll(self.dyu, -1, axis=0))
+        out1 -= 0.5 * np.roll(fx, 1, axis=0) * (self.dyu + np.roll(self.dyu, 1, axis=0))
+        out1 /= self.area_u
+        out2 = 0.5 * fy * (self.dxu + np.roll(self.dxu, -1, axis=1))
+        out2 -= 0.5 * np.roll(fy, 1, axis=1) * (self.dxu + np.roll(self.dxu, 1, axis=1))
+        out2 /= self.area_u
+        return (out1 + out2) * self.wet
+
+    def __old_call__(self, field: ArrayType):
         np = get_array_module(field)
-        """We can delete this, leaving it here for now."""
-        
+        """We can delete this, leaving it here for now. We could also add a
+        test to check that __call__ gives the same result."""
+
         fx = np.empty(field.shape)
         fy = np.empty(field.shape)
         filtered_field = np.empty(field.shape)
-        
-        for i in range(field.shape[0]-1):
-            for j in range(field.shape[1]-1):
-                fx[i,j]=(field[i+1,j]-field[i,j])*2.0/(self.dxt[i+1,j]+self.dxt[i+1,j+1])
 
-        for i in range(field.shape[0]-1):
-            for j in range(field.shape[1]-1):
-                fy[i,j]=(field[i,j+1]-field[i,j])*2.0/(self.dyt[i,j+1]+self.dyt[i+1,j+1])
+        for i in range(field.shape[0] - 1):
+            for j in range(field.shape[1] - 1):
+                fx[i, j] = (
+                    (field[i + 1, j] - field[i, j])
+                    * 2.0
+                    / (self.dxt[i + 1, j] + self.dxt[i + 1, j + 1])
+                )
 
-        for i in range(1,field.shape[0]-1):
-            for j in range(1,field.shape[1]-1):
-                filtered_field[i,j]= (0.5* (self.dyu[i,j]+self.dyu[i+1,j])*fx[i,j]-\
-                        0.5* (self.dyu[i-1,j]+self.dyu[i,j])*fx[i-1,j] )/self.area_u[i,j]+\
-                                     (0.5* (self.dxu[i,j]+self.dxu[i,j+1])*fy[i,j]-\
-                        0.5* (self.dxu[i,j-1]+self.dxu[i,j])*fy[i,j-1] )/self.area_u[i,j]
+        for i in range(field.shape[0] - 1):
+            for j in range(field.shape[1] - 1):
+                fy[i, j] = (
+                    (field[i, j + 1] - field[i, j])
+                    * 2.0
+                    / (self.dyt[i, j + 1] + self.dyt[i + 1, j + 1])
+                )
+
+        for i in range(1, field.shape[0] - 1):
+            for j in range(1, field.shape[1] - 1):
+                filtered_field[i, j] = (
+                    0.5 * (self.dyu[i, j] + self.dyu[i + 1, j]) * fx[i, j]
+                    - 0.5 * (self.dyu[i - 1, j] + self.dyu[i, j]) * fx[i - 1, j]
+                ) / self.area_u[i, j] + (
+                    0.5 * (self.dxu[i, j] + self.dxu[i, j + 1]) * fy[i, j]
+                    - 0.5 * (self.dxu[i, j - 1] + self.dxu[i, j]) * fy[i, j - 1]
+                ) / self.area_u[
+                    i, j
+                ]
 
         return filtered_field
 
+
 ALL_KERNELS[GridType.MOM5U] = MOM5LaplacianU
+
 
 @dataclass
 class MOM5LaplacianT(BaseLaplacian):
+    """Laplacian for MOM5 grid (tracer points)."""
+
     dxt: ArrayType
     dyt: ArrayType
     dxu: ArrayType
     dyu: ArrayType
     area_t: ArrayType
+    wet: ArrayType
 
-    def __call__(self, field: ArrayType):
+    def __call__(self, field):
         np = get_array_module(field)
-        """Uses code by Elizabeth"""
+        field = np.nan_to_num(field)
+        fx = 2 * (np.roll(field, -1, axis=0) - field)
+        fx /= self.dxu + np.roll(self.dxu, 1, axis=1)
+        fy = 2 * (np.roll(field, -1, axis=1) - field)
+        fy /= self.dyu + np.roll(self.dxu, 1, axis=0)
+        out1 = fx * 0.5 * (self.dyt + np.roll(self.dyt, -1, axis=0))
+        out1 -= np.roll(fx, 1, axis=0) * 0.5 * (self.dyt + np.roll(self.dyt, 1, axis=0))
+        out1 /= self.area_t
+        out2 = fy * 0.5 * (self.dxt + np.roll(self.dxt, -1, axis=1))
+        out2 -= np.roll(fy, 1, axis=1) * 0.5 * (self.dxt + np.roll(self.dyt, 1, axis=1))
+        out2 /= self.area_t
+        return (out1 + out2) * self.wet
 
+    def __old_call__(self, field: ArrayType):
+        np = get_array_module(field)
         fx = np.empty(field.shape)
         fy = np.empty(field.shape)
         filtered_field = np.empty(field.shape)
 
-        for i in range(1,field.shape[0]-1):
-            for j in range(1,field.shape[1]-1):
-                fx[i,j]=(field[i+1,j]-field[i,j])*2.0/(self.dxu[i,j]+self.dxu[i,j-1])
+        for i in range(1, field.shape[0] - 1):
+            for j in range(1, field.shape[1] - 1):
+                fx[i, j] = (
+                    (field[i + 1, j] - field[i, j])
+                    * 2.0
+                    / (self.dxu[i, j] + self.dxu[i, j - 1])
+                )
 
-        for i in range(1,field.shape[0]-1):
-            for j in range(1,field.shape[1]-1):
-                fy[i,j]=(field[i,j+1]-field[i,j])*2.0/(self.dyu[i,j]+self.dyu[i-1,j])
+        for i in range(1, field.shape[0] - 1):
+            for j in range(1, field.shape[1] - 1):
+                fy[i, j] = (
+                    (field[i, j + 1] - field[i, j])
+                    * 2.0
+                    / (self.dyu[i, j] + self.dyu[i - 1, j])
+                )
 
-        for i in range(1,field.shape[0]-1):
-            for j in range(1,field.shape[1]-1):
-                filtered_field[i,j]= (0.5* (self.dyt[i,j]+self.dyt[i+1,j])*fx[i,j]-\
-                        0.5* (self.dyt[i-1,j]+self.dyt[i,j])*fx[i-1,j] )/self.area_t[i,j]+\
-                                     (0.5* (self.dxt[i,j]+self.dxt[i,j+1])*fy[i,j]-\
-                        0.5* (self.dxt[i,j-1]+self.dxt[i,j])*fy[i,j-1] )/self.area_t[i,j]
+        for i in range(1, field.shape[0] - 1):
+            for j in range(1, field.shape[1] - 1):
+                filtered_field[i, j] = (
+                    0.5 * (self.dyt[i, j] + self.dyt[i + 1, j]) * fx[i, j]
+                    - 0.5 * (self.dyt[i - 1, j] + self.dyt[i, j]) * fx[i - 1, j]
+                ) / self.area_t[i, j] + (
+                    0.5 * (self.dxt[i, j] + self.dxt[i, j + 1]) * fy[i, j]
+                    - 0.5 * (self.dxt[i, j - 1] + self.dxt[i, j]) * fy[i, j - 1]
+                ) / self.area_t[
+                    i, j
+                ]
 
         return filtered_field
+
 
 ALL_KERNELS[GridType.MOM5T] = MOM5LaplacianT
 
