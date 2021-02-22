@@ -18,7 +18,6 @@ GridType = enum.Enum(
         "CARTESIAN_WITH_LAND",
         "IRREGULAR_CARTESIAN_WITH_LAND",
         "POP_SIMPLE_TRIPOLAR_T_GRID",
-        "POP_SIMPLE_TRIPOLAR_U_GRID",
     ],
 )
 
@@ -213,91 +212,6 @@ class POPTripolarSimpleLaplacianTpoint(BaseLaplacian):
 
 
 ALL_KERNELS[GridType.POP_SIMPLE_TRIPOLAR_T_GRID] = POPTripolarSimpleLaplacianTpoint
-
-
-@dataclass
-class POPTripolarSimpleLaplacianUpoint(BaseLaplacian):
-    """̵Laplacian for fields defined at U-points on POP tripolar grid geometry with land mask, but assuming that dx = dy = 1
-
-    Attributes
-    ----------
-    wet_mask: Mask array, 1 for ocean, 0 for land
-    """
-
-    wet_mask: ArrayType
-
-    def __post_init__(self):
-        np = get_array_module(self.wet_mask)
-
-        # check that northernmost row of wet mask folds onto itself
-        folded = self.wet_mask[..., -1, :]  # grab northernmost row
-        folded = folded[..., ::-1]  # mirror it
-        folded = np.roll(folded, -1, axis=-1)  # shift by 1 cell to the left
-        np.testing.assert_equal(
-            self.wet_mask[..., -1, :],
-            folded,
-            err_msg="Uppermost row of wet mask does not fold onto itself.",
-        )
-
-        # check that southernmost row of wet mask has only zeros
-        if self.wet_mask[..., 0, :].any():
-            raise AssertionError("Wet mask requires zeros in southernmost row")
-
-        # prepare wet mask for northern boundary exchanges
-        folded = self.wet_mask[..., [-2], :]  # grab second northernmost row
-        folded = folded[..., ::-1]  # mirror it
-        folded = np.roll(folded, -1, axis=-1)  # shift by 1 cell to the left
-
-        wet_mask_extended = np.concatenate(
-            (self.wet_mask, folded), axis=-2
-        )  # append it
-
-        self.wet_fac = (
-            np.roll(wet_mask_extended, -1, axis=-1)
-            + np.roll(wet_mask_extended, 1, axis=-1)
-            + np.roll(wet_mask_extended, -1, axis=-2)
-            + np.roll(wet_mask_extended, 1, axis=-2)
-        )  # todo: inherit this operation from CartesianLaplacianWithLandMask
-
-    def __call__(self, field: ArrayType):
-        np = get_array_module(field)
-
-        data = np.nan_to_num(field)  # set all nans to zero
-        data = self.wet_mask * data
-
-        # check that northernmost row of input field folds onto itself
-        # folded = data[..., -1, :]  # grab northernmost row
-        # folded = -folded[..., ::-1]  # mirror and invert it
-        # folded = np.roll(folded, -1, axis=-1)  # shift by 1 cell to the left
-        # np.testing.assert_equal(
-        #     data[..., -1, :],
-        #     folded,
-        #     err_msg="Uppermost row of input field does not fold onto itself.",
-        # )
-        # until discussion in PR #26 is resolved, we don't do any check here. the question is whether to check for duplicated & inverted values (as implemented above) or for duplicated (as suggested by Ian)
-
-        # prepare data for northern boundary exchanges
-        folded = data[..., [-2], :]  # grab second northernmost row
-        folded = -folded[..., ::-1]  # mirror and invert it
-        folded = np.roll(folded, -1, axis=-1)  # shift by 1 cell to the left
-
-        data = np.concatenate((data, folded), axis=-2)  # append mirrored row
-
-        out = (
-            -self.wet_fac * data
-            + np.roll(data, -1, axis=-1)
-            + np.roll(data, 1, axis=-1)
-            + np.roll(data, -1, axis=-2)
-            + np.roll(data, 1, axis=-2)
-        )  # todo: inherit this operation from CartesianLaplacianWithLandMask
-
-        out = out[..., :-1, :]  # disregard appended row
-
-        out = self.wet_mask * out
-        return out
-
-
-ALL_KERNELS[GridType.POP_SIMPLE_TRIPOLAR_U_GRID] = POPTripolarSimpleLaplacianUpoint
 
 
 def required_grid_vars(grid_type: GridType):
