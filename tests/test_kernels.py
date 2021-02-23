@@ -33,6 +33,17 @@ def grid_type_field_and_extra_kwargs(request):
         mask_data[: (ny // 2), : (nx // 2)] = 0
         mask_data[0, :] = 0  #  Antarctica
         extra_kwargs["wet_mask"] = mask_data
+    if grid_type == GridType.POP_TRIPOLAR_T_GRID:
+        mask_data = np.ones_like(data)
+        mask_data[: (ny // 2), : (nx // 2)] = 0
+        mask_data[0, :] = 0  #  Antarctica
+        extra_kwargs["wet_mask"] = mask_data
+        grid_data = np.ones_like(data)
+        extra_kwargs["dxe"] = grid_data
+        extra_kwargs["dye"] = grid_data
+        extra_kwargs["dxn"] = grid_data
+        extra_kwargs["dyn"] = grid_data
+        extra_kwargs["tarea"] = grid_data
     return grid_type, data, extra_kwargs
 
 
@@ -86,6 +97,7 @@ def test_tripolar_exchanges(grid_type_field_and_extra_kwargs):
         delta_fct[-1, random_loc] = 1  # deploy mass at northern boundary
         diffused = laplacian(delta_fct)
         # check that delta function gets diffused isotropically across northern boundary
+        # this would need to be replaced once we provide irregular grid data in fixture
         np.testing.assert_allclose(
             diffused[-2, random_loc], diffused[-1, nx - random_loc - 1], atol=1e-12
         )
