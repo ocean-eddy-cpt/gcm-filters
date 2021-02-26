@@ -73,15 +73,17 @@ def grid_type_and_input_ds(request):
     da = xr.DataArray(data, dims=["y", "x"])
 
     grid_vars = {}
+    mask_data = np.ones_like(data)
+    mask_data[: (ny // 2), : (nx // 2)] = 0
+
+    def make_yx_da(np_arr):
+        return xr.DataArray(np_arr, dims=["y", "x"])
+
+    da_mask = make_yx_da(mask_data)
 
     if grid_type == GridType.CARTESIAN_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
         grid_vars = {"wet_mask": da_mask}
     if grid_type == GridType.IRREGULAR_CARTESIAN_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
         grid_data = np.ones_like(data)
         da_grid = xr.DataArray(grid_data, dims=["y", "x"])
@@ -93,6 +95,25 @@ def grid_type_and_input_ds(request):
             "dys": da_grid,
             "area": da_grid,
         }
+    if (grid_type == GridType.MOM5U) or (grid_type == GridType.MOM5T):
+        # Add one to random dxs due to dxmin = 1.
+        dxu, dyu = np.meshgrid(1.0 + np.random.rand(nx), 1.0 + np.random.rand(ny))
+        dxt, dyt = dxu, dyu
+        dxu = make_yx_da(dxu)
+        dyu = make_yx_da(dyu)
+        dxt = make_yx_da(dxt)
+        dyt = make_yx_da(dyt)
+        area_u = dxu * dyu
+        area_t = dxt * dyt
+        grid_vars["wet"] = da_mask
+        grid_vars["dxu"] = dxu
+        grid_vars["dyu"] = dyu
+        grid_vars["dxt"] = dxt
+        grid_vars["dyt"] = dyt
+    if grid_type == GridType.MOM5U:
+        grid_vars["area_u"] = area_u
+    if grid_type == GridType.MOM5T:
+        grid_vars["area_t"] = area_t
 
     return grid_type, da, grid_vars
 
