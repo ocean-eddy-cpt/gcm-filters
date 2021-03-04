@@ -6,6 +6,11 @@ from gcm_filters import Filter, FilterShape, GridType
 from gcm_filters.filter import FilterSpec
 
 
+vector_grids = [
+    member for name, member in GridType.__members__.items() if name.startswith("VECTOR")
+]
+
+
 def _check_equal_filter_spec(spec1, spec2):
     assert spec1.n_steps_total == spec2.n_steps_total
     np.testing.assert_allclose(spec1.s, spec2.s)

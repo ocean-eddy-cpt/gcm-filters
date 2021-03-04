@@ -43,16 +43,29 @@ def grid_type_field_and_extra_kwargs(request):
         extra_kwargs["dxn"] = grid_data
         extra_kwargs["dyn"] = grid_data
         extra_kwargs["tarea"] = grid_data
+    if grid_type == GridType.VECTOR_C_GRID:
+        grid_data = np.ones_like(data)
+        extra_kwargs["dxT"] = grid_data
+        extra_kwargs["dyT"] = grid_data
+        extra_kwargs["dxCu"] = grid_data
+        extra_kwargs["dyCu"] = grid_data
+        extra_kwargs["dxCv"] = grid_data
+        extra_kwargs["dyCv"] = grid_data
+        extra_kwargs["dxBu"] = grid_data
+        extra_kwargs["dyBu"] = grid_data
+        extra_kwargs["area_u"] = grid_data
+        extra_kwargs["area_v"] = grid_data
     return grid_type, data, extra_kwargs
 
 
 def test_conservation(grid_type_field_and_extra_kwargs):
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
-    LaplacianClass = ALL_KERNELS[grid_type]
-    laplacian = LaplacianClass(**extra_kwargs)
-    diffused = laplacian(data)
-    res = diffused.sum()  # integrate over full domain
-    np.testing.assert_allclose(res, 0.0, atol=1e-12)
+
+    if grid_type not in vector_grids:
+        LaplacianClass = ALL_KERNELS[grid_type]
+        laplacian = LaplacianClass(**extra_kwargs)
+        res = laplacian(data)
+        np.testing.assert_allclose(res.sum(), 0.0, atol=1e-12)
 
 
 def test_required_grid_vars(grid_type_field_and_extra_kwargs):
@@ -211,3 +224,8 @@ def test_tripolar_exchanges(grid_type_field_and_extra_kwargs):
         np.testing.assert_allclose(
             diffused[-2, random_loc], diffused[-1, nx - random_loc - 1], atol=1e-12
         )
+=======
+#################### Vector Laplacian tests ########################################
+vector_grids = [
+    member for name, member in GridType.__members__.items() if name.startswith("VECTOR")
+]
