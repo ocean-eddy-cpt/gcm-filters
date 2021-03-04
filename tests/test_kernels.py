@@ -13,11 +13,11 @@ def grid_type_field_and_extra_kwargs(request):
     data = np.random.rand(ny, nx)
 
     extra_kwargs = {}
-    if grid_type == GridType.CARTESIAN_WITH_LAND:
+    if grid_type == GridType.REGULAR_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         extra_kwargs["wet_mask"] = mask_data
-    if grid_type == GridType.IRREGULAR_CARTESIAN_WITH_LAND:
+    if grid_type == GridType.IRREGULAR_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         extra_kwargs["wet_mask"] = mask_data
@@ -27,12 +27,12 @@ def grid_type_field_and_extra_kwargs(request):
         extra_kwargs["dxs"] = grid_data
         extra_kwargs["dys"] = grid_data
         extra_kwargs["area"] = grid_data
-    if grid_type == GridType.POP_SIMPLE_TRIPOLAR_T_GRID:
+    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         mask_data[0, :] = 0  #  Antarctica
         extra_kwargs["wet_mask"] = mask_data
-    if grid_type == GridType.POP_TRIPOLAR_T_GRID:
+    if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         mask_data[0, :] = 0  #  Antarctica
@@ -63,7 +63,9 @@ def test_required_grid_vars(grid_type_field_and_extra_kwargs):
 
 ################## Tripolar grid tests ##############################################
 tripolar_grids = [
-    member for name, member in GridType.__members__.items() if name.startswith("POP")
+    member
+    for name, member in GridType.__members__.items()
+    if name.startswith("TRIPOLAR")
 ]
 
 

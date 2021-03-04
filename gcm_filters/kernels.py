@@ -14,11 +14,11 @@ from .gpu_compat import ArrayType, get_array_module
 GridType = enum.Enum(
     "GridType",
     [
-        "CARTESIAN",
-        "CARTESIAN_WITH_LAND",
-        "IRREGULAR_CARTESIAN_WITH_LAND",
-        "POP_SIMPLE_TRIPOLAR_T_GRID",
-        "POP_TRIPOLAR_T_GRID",
+        "REGULAR",
+        "REGULAR_WITH_LAND",
+        "IRREGULAR_WITH_LAND",
+        "TRIPOLAR_REGULAR_WITH_LAND",
+        "TRIPOLAR_POP_WITH_LAND",
     ],
 )
 
@@ -51,7 +51,7 @@ class BaseLaplacian(ABC):
 
 
 @dataclass
-class CartesianLaplacian(BaseLaplacian):
+class RegularLaplacian(BaseLaplacian):
     """̵Laplacian for regularly spaced Cartesian grids."""
 
     def __call__(self, field: ArrayType):
@@ -65,11 +65,11 @@ class CartesianLaplacian(BaseLaplacian):
         )
 
 
-ALL_KERNELS[GridType.CARTESIAN] = CartesianLaplacian
+ALL_KERNELS[GridType.REGULAR] = RegularLaplacian
 
 
 @dataclass
-class CartesianLaplacianWithLandMask(BaseLaplacian):
+class RegularLaplacianWithLandMask(BaseLaplacian):
     """̵Laplacian for regularly spaced Cartesian grids with land mask.
 
     Attributes
@@ -107,11 +107,11 @@ class CartesianLaplacianWithLandMask(BaseLaplacian):
         return out
 
 
-ALL_KERNELS[GridType.CARTESIAN_WITH_LAND] = CartesianLaplacianWithLandMask
+ALL_KERNELS[GridType.REGULAR_WITH_LAND] = RegularLaplacianWithLandMask
 
 
 @dataclass
-class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
+class IrregularLaplacianWithLandMask(BaseLaplacian):
     """̵Laplacian for irregularly spaced Cartesian grids with land mask.
 
     Attributes
@@ -158,13 +158,11 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
         return out
 
 
-ALL_KERNELS[
-    GridType.IRREGULAR_CARTESIAN_WITH_LAND
-] = IrregularCartesianLaplacianWithLandMask
+ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularLaplacianWithLandMask
 
 
 @dataclass
-class POPTripolarSimpleLaplacianTpoint(BaseLaplacian):
+class TripolarRegularLaplacianTpoint(BaseLaplacian):
     """̵Laplacian for fields defined at T-points on POP tripolar grid geometry with land mask, but assuming that dx = dy = 1
 
     Attributes
@@ -210,7 +208,7 @@ class POPTripolarSimpleLaplacianTpoint(BaseLaplacian):
         return out
 
 
-ALL_KERNELS[GridType.POP_SIMPLE_TRIPOLAR_T_GRID] = POPTripolarSimpleLaplacianTpoint
+ALL_KERNELS[GridType.TRIPOLAR_REGULAR_WITH_LAND] = TripolarRegularLaplacianTpoint
 
 
 @dataclass
@@ -275,7 +273,7 @@ class POPTripolarLaplacianTpoint(BaseLaplacian):
         return out
 
 
-ALL_KERNELS[GridType.POP_TRIPOLAR_T_GRID] = POPTripolarLaplacianTpoint
+ALL_KERNELS[GridType.TRIPOLAR_POP_WITH_LAND] = POPTripolarLaplacianTpoint
 
 
 def required_grid_vars(grid_type: GridType):
