@@ -6,6 +6,11 @@ from gcm_filters import Filter, FilterShape, GridType
 from gcm_filters.filter import FilterSpec
 
 
+vector_grids = [
+    member for name, member in GridType.__members__.items() if name.startswith("VECTOR")
+]
+
+
 def _check_equal_filter_spec(spec1, spec2):
     assert spec1.n_lap_steps == spec2.n_lap_steps
     assert spec1.n_bih_steps == spec2.n_bih_steps

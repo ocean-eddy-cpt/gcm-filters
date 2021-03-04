@@ -12,7 +12,13 @@ from .gpu_compat import ArrayType, get_array_module
 
 # not married to the term "Cartesian"
 GridType = enum.Enum(
-    "GridType", ["CARTESIAN", "CARTESIAN_WITH_LAND", "IRREGULAR_CARTESIAN_WITH_LAND"]
+    "GridType",
+    [
+        "CARTESIAN",
+        "CARTESIAN_WITH_LAND",
+        "IRREGULAR_CARTESIAN_WITH_LAND",
+        "VECTOR_C_GRID",
+    ],
 )
 
 ALL_KERNELS = {}  # type: Dict[GridType, Any]
@@ -144,6 +150,102 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
 ALL_KERNELS[
     GridType.IRREGULAR_CARTESIAN_WITH_LAND
 ] = IrregularCartesianLaplacianWithLandMask
+
+
+@dataclass
+class VectorLaplacian(BaseLaplacian):
+    """̵Vector Laplacian on C-Grid.
+
+    Attributes
+    ----------
+    dxT: x-spacing centered at t points
+    dyT: y-spacing centered at t points
+    dxCu: x-spacing centered at u points
+    dyCu: y-spacing centered at u points
+    dxCv: x-spacing centered at v points
+    dyCv: y-spacing centered at v points
+    dxBu: x-spacing centered at q points
+    dyBu: y-spacing centered at q points
+    area_u: U-cell area
+    area_v: V-cell area
+    """
+
+    dxT: ArrayType
+    dyT: ArrayType
+    dxCu: ArrayType
+    dyCu: ArrayType
+    dxCv: ArrayType
+    dyCv: ArrayType
+    dxBu: ArrayType
+    dyBu: ArrayType
+    area_u: ArrayType
+    area_v: ArrayType
+
+    def __post_init__(self):
+        np = get_array_module(self.dxT)
+
+        self.dx_dyT = self.dxT / self.dyT
+        self.dy_dxT = self.dyT / self.dxT
+        self.dx_dyBy = self.dxBu / self.dyBu
+        self.dy_dxBu = self.dyBu / self.dxBu
+
+        self.dx2h = self.dxT ** 2
+        self.dy2h = self.dyT ** 2
+        self.dx2q = self.dxBu ** 2
+        self.dy2q = self.dyBu ** 2
+
+    def __call__(self, ufield: ArrayType, vfield: ArrayType):
+        np = get_array_module(field_u)
+
+        ufield = np.nan_to_num(ufield)
+        vfield = np.nan_to_num(vfield)
+
+        dufield_dx = self.dy_dxT * (
+            ufield / self.dyCu - np.roll(ufield / self.dyCu, -1, axis=-1)
+        )
+        dvfield_dy = self.dx_dyT * (
+            vfield / self.dxCv - np.roll(vfield / self.dxCv, -1, axis=-2)
+        )
+        str_xx = dufield_dx - dvfield_dy  # horizontal tension
+        str_xx = -kappa * str_xx  # multiply by isotropic viscosity
+
+        dvfield_dx = self.dy_dxBu * (
+            np.roll(vfield / self.dyCv, 1, axis=-1) - vfield / self.dyCv
+        )
+        dufield_dy = self.dx_dyBu * (
+            np.roll(ufield / self.dxCu, 1, axis=-2) - ufield / self.dxCu
+        )
+        str_xy = dvfield_dx + dufield_dy  # horizontal shear strain
+        str_xy = -kappa * str_xy  # multiply by isotropic viscosity
+
+        u_component = (
+            1
+            / self.dyCu
+            * (self.dy2h * str_xx - np.roll(self.dy2h * str_xx, 1, axis=-1))
+        )
+        u_component += (
+            1
+            / self.dxCu
+            * (np.roll(self.dx2q * str_xy, -1, axis=-2) - self.dx2q * str_xy)
+        )
+        u_component /= self.area_u
+
+        v_component = (
+            1
+            / self.dyCv
+            * (np.roll(self.dy2q * str_xy, -1, axis=-2) - self.dy2q * str_xy)
+        )
+        v_component = (
+            1
+            / self.dyCv
+            * (self.dx2h * str_xx - np.roll(self.dx2h * str_xx, 1, axis=-1))
+        )
+        v_component /= self.area_v
+
+        return u_component, v_component
+
+
+ALL_KERNELS[GridType.VECTOR_C_GRID] = VectorLaplacian
 
 
 def required_grid_vars(grid_type: GridType):
