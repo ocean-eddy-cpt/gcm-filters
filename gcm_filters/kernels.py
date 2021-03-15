@@ -105,8 +105,8 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
     dxs: x-spacing centered at southern cell edge
     dys: y-spacing centered at southern cell edge
     area: cell area
-    kappa_w: zonal diffusivity centered at western cell edge
-    kappa_s: meridional diffusivity centered at southern cell edge
+    kappa_w: zonal diffusivity centered at western cell edge, values must be <= 1.
+    kappa_s: meridional diffusivity centered at southern cell edge, values must be <= 1.
     """
 
     wet_mask: ArrayType
@@ -121,8 +121,20 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
     def __post_init__(self):
         np = get_array_module(self.wet_mask)
 
-        self.w_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-1)
-        self.s_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2)
+        err_w = np.where(self.kappa_w > 1.)[0]
+        if err_w.size > 0 :
+            raise ValueError(f"There are kappa_w values > 1 and this can cause the filter to blow up."
+                             f"Please make sure all kappa_w are <=1.")
+
+        err_s = np.where(self.kappa_s > 1.)[0]
+        if err_s.size > 0:
+            raise ValueError(f"There are kappa_s values > 1 and this can cause the filter to blow up."
+                             f"Please make sure all kappa_s are <=1.")
+
+        self.w_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-1) * \
+                          self.kappa_w
+        self.s_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2) * \
+                          self.kappa_s
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
@@ -136,8 +148,8 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
             (out - np.roll(out, -1, axis=-2)) / self.dys * self.dxs
         )  # flux across southern cell edge
 
-        wflux = self.kappa_w * wflux * self.w_wet_mask  # no-flux boundary condition
-        sflux = self.kappa_s * sflux * self.s_wet_mask  # no-flux boundary condition
+        wflux = wflux * self.w_wet_mask  # no-flux boundary condition
+        sflux = sflux * self.s_wet_mask  # no-flux boundary condition
 
         out = np.roll(wflux, 1, axis=-1) - wflux + np.roll(sflux, 1, axis=-2) - sflux
 
