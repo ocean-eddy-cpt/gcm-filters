@@ -121,20 +121,26 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
     def __post_init__(self):
         np = get_array_module(self.wet_mask)
 
-        err_w = np.where(self.kappa_w > 1.)[0]
-        if err_w.size > 0 :
-            raise ValueError(f"There are kappa_w values > 1 and this can cause the filter to blow up."
-                             f"Please make sure all kappa_w are <=1.")
+        err_w = np.where(self.kappa_w > 1.0)[0]
+        if err_w.size > 0:
+            raise ValueError(
+                f"There are kappa_w values > 1 and this can cause the filter to blow up."
+                f"Please make sure all kappa_w are <=1."
+            )
 
-        err_s = np.where(self.kappa_s > 1.)[0]
+        err_s = np.where(self.kappa_s > 1.0)[0]
         if err_s.size > 0:
-            raise ValueError(f"There are kappa_s values > 1 and this can cause the filter to blow up."
-                             f"Please make sure all kappa_s are <=1.")
+            raise ValueError(
+                f"There are kappa_s values > 1 and this can cause the filter to blow up."
+                f"Please make sure all kappa_s are <=1."
+            )
 
-        self.w_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-1) * \
-                          self.kappa_w
-        self.s_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2) * \
-                          self.kappa_s
+        self.w_wet_mask = (
+            self.wet_mask * np.roll(self.wet_mask, -1, axis=-1) * self.kappa_w
+        )
+        self.s_wet_mask = (
+            self.wet_mask * np.roll(self.wet_mask, -1, axis=-2) * self.kappa_s
+        )
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
