@@ -92,6 +92,8 @@ def grid_type_and_input_ds(request):
             "dxs": da_grid,
             "dys": da_grid,
             "area": da_grid,
+            "kappa_s": da_grid,
+            "kappa_w": da_grid,
         }
 
     return grid_type, da, grid_vars
