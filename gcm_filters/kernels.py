@@ -325,7 +325,7 @@ class VectorLaplacian(BaseLaplacian):
 
         self.dx_dyT = self.dxT / self.dyT
         self.dy_dxT = self.dyT / self.dxT
-        self.dx_dyBy = self.dxBu / self.dyBu
+        self.dx_dyBu = self.dxBu / self.dyBu
         self.dy_dxBu = self.dyBu / self.dxBu
 
         self.dx2h = self.dxT ** 2
