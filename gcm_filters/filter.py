@@ -252,3 +252,22 @@ class Filter:
             dask="parallelized",
         )
         return field_smooth
+
+    def apply_to_vector(self, field_u, field_v, dims):
+        """Filter a vector field across the dimensions specified by dims."""
+
+        filter_func = _create_filter_func(self.filter_spec, self.Laplacian)
+        grid_args = [self.grid_ds[name] for name in self.Laplacian.required_grid_args()]
+        assert len(dims) == 2
+        n_args = 1 + len(grid_args)
+        (field_u_smooth, field_v_smooth) = xr.apply_ufunc(
+            filter_func,
+            field_u,
+            field_v,
+            *grid_args,
+            input_core_dims=n_args * [dims],
+            output_core_dims=[dims],
+            output_dtypes=[field.dtype],
+            dask="parallelized",
+        )
+        return (field_u_smooth, field_v_smooth)
