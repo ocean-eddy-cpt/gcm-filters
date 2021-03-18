@@ -307,6 +307,7 @@ class VectorLaplacian(BaseLaplacian):
     dyBu: y-spacing centered at q points
     area_u: U-cell area
     area_v: V-cell area
+    kappa: isotropic viscosity
     """
 
     dxT: ArrayType
@@ -319,6 +320,7 @@ class VectorLaplacian(BaseLaplacian):
     dyBu: ArrayType
     area_u: ArrayType
     area_v: ArrayType
+    kappa: ArrayType
 
     def __post_init__(self):
         np = get_array_module(self.dxT)
@@ -334,7 +336,7 @@ class VectorLaplacian(BaseLaplacian):
         self.dy2q = self.dyBu ** 2
 
     def __call__(self, ufield: ArrayType, vfield: ArrayType):
-        np = get_array_module(field_u)
+        np = get_array_module(ufield)
 
         ufield = np.nan_to_num(ufield)
         vfield = np.nan_to_num(vfield)
@@ -346,7 +348,7 @@ class VectorLaplacian(BaseLaplacian):
             vfield / self.dxCv - np.roll(vfield / self.dxCv, -1, axis=-2)
         )
         str_xx = dufield_dx - dvfield_dy  # horizontal tension
-        str_xx = -kappa * str_xx  # multiply by isotropic viscosity
+        str_xx = -self.kappa * str_xx  # multiply by isotropic viscosity
 
         dvfield_dx = self.dy_dxBu * (
             np.roll(vfield / self.dyCv, 1, axis=-1) - vfield / self.dyCv
@@ -355,7 +357,7 @@ class VectorLaplacian(BaseLaplacian):
             np.roll(ufield / self.dxCu, 1, axis=-2) - ufield / self.dxCu
         )
         str_xy = dvfield_dx + dufield_dy  # horizontal shear strain
-        str_xy = -kappa * str_xy  # multiply by isotropic viscosity
+        str_xy = -self.kappa * str_xy  # multiply by isotropic viscosity
 
         u_component = (
             1
@@ -381,7 +383,7 @@ class VectorLaplacian(BaseLaplacian):
         )
         v_component /= self.area_v
 
-        return u_component, v_component
+        return (u_component, v_component)
 
 
 ALL_KERNELS[GridType.VECTOR_C_GRID] = VectorLaplacian

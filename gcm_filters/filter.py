@@ -189,7 +189,45 @@ def _create_filter_func(
         return field_bar
 
     return filter_func
+    
+def _create_filter_func_vec(
+    filter_spec: FilterSpec,
+    Laplacian: BaseLaplacian,
+):
+    """Returns a function whose first argument is the field to be filtered
+    and whose subsequent arguments are the require grid variables
+    """
+    
+    def filter_func_vec(field_u, field_v, *args):
+        # these next steps are a kind of hack we have to turn keyword arugments into regular arguments
+        # the reason for doing this is that Xarray's apply_ufunc machinery works a lot better
+        # with regular arguments
+        assert len(args) == len(Laplacian.required_grid_args())
+        grid_vars = {k: v for k, v in zip(Laplacian.required_grid_args(), args)}
+        laplacian = Laplacian(**grid_vars)
+        np = get_array_module(field)
+        field_u_bar = field_u.copy()  # Initalize the filtering process
+        field_v_bar = field_v.copy()  # Initalize the filtering process
+        for i in range(filter_spec.n_lap_steps):
+            s_l = filter_spec.s_l[i]
+            (tendency_u, tendency_v) = laplacian(field_u_bar, field_v_bar)  # Compute Laplacian
+            field_u_bar += (1 / s_l) * tendency_u  # Update filtered field
+            field_v_bar += (1 / s_l) * tendency_v  # Update filtered field
+        for i in range(filter_spec.n_bih_steps):
+            s_b = filter_spec.s_b[i]
+            (temp_l_u, temp_l_v) = laplacian(field_u_bar, field_v_bar)  # Compute Laplacian
+            (temp_b_u, temp_b_v) = laplacian(temp_l_u, temp_l_v)  # Compute Biharmonic (apply Laplacian twice)
+            field_u_bar += (
+                temp_l_u * 2 * np.real(s_b) / np.abs(s_b) ** 2
+                + temp_b_u * 1 / np.abs(s_b) ** 2
+            )
+            field_v_bar += (
+                temp_l_v * 2 * np.real(s_b) / np.abs(s_b) ** 2
+                + temp_b_v * 1 / np.abs(s_b) ** 2
+            )
+        return (field_u_bar, field_v_bar)
 
+    return filter_func_vec
 
 @dataclass
 class Filter:
@@ -275,18 +313,18 @@ class Filter:
     def apply_to_vector(self, field_u, field_v, dims):
         """Filter a vector field across the dimensions specified by dims."""
 
-        filter_func = _create_filter_func(self.filter_spec, self.Laplacian)
+        filter_func_vec = _create_filter_func_vec(self.filter_spec, self.Laplacian)
         grid_args = [self.grid_ds[name] for name in self.Laplacian.required_grid_args()]
         assert len(dims) == 2
-        n_args = 1 + len(grid_args)
+        n_args = 2 + len(grid_args)
         (field_u_smooth, field_v_smooth) = xr.apply_ufunc(
-            filter_func,
+            filter_func_vec,
             field_u,
             field_v,
             *grid_args,
             input_core_dims=n_args * [dims],
-            output_core_dims=[dims],
-            output_dtypes=[field.dtype],
+            output_core_dims=2 * [dims],
+            output_dtypes=[field_u.dtype, field_v.dtype],
             dask="parallelized",
         )
         return (field_u_smooth, field_v_smooth)
