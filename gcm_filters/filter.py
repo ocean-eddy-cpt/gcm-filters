@@ -83,6 +83,7 @@ def _compute_filter_spec(
             else:  # ndim==2
                 n_steps = np.ceil(6.4 * filter_scale / dx_min).astype(int)
 
+    print('n_steps = %i' %n_steps)
     # First set up the mass matrix for the Galerkin basis from Shen (SISC95)
     M = (np.pi / 2) * (
         2 * np.eye(n_steps - 1)

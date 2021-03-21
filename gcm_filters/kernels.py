@@ -123,6 +123,8 @@ class IrregularLaplacianWithLandMask(BaseLaplacian):
     dxs: x-spacing centered at southern cell edge
     dys: y-spacing centered at southern cell edge
     area: cell area
+    kappa_w:  zonal diffusivity centered at western cell edge
+    kappa_s:  zonal diffusivity centered at southern cell edge
     """
 
     wet_mask: ArrayType
@@ -131,6 +133,8 @@ class IrregularLaplacianWithLandMask(BaseLaplacian):
     dxs: ArrayType
     dys: ArrayType
     area: ArrayType
+    kappa_w: ArrayType
+    kappa_s: ArrayType
 
     def __post_init__(self):
         np = get_array_module(self.wet_mask)
@@ -138,12 +142,12 @@ class IrregularLaplacianWithLandMask(BaseLaplacian):
         # derive wet mask for western cell edge from wet_mask at T points via
         # w_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j,i-1)
         # note: wet_mask(j,i-1) corresponds to np.roll(wet_mask, +1, axis=-1)
-        self.w_wet_mask = self.wet_mask * np.roll(self.wet_mask, 1, axis=-1)
+        self.w_wet_mask = self.wet_mask * np.roll(self.wet_mask, 1, axis=-1) * self.kappa_w
 
         # derive wet mask for southern cell edge from wet_mask at T points via
         # s_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j-1,i)
         # note: wet_mask(j-1,i) corresponds to np.roll(wet_mask, +1, axis=-2)
-        self.s_wet_mask = self.wet_mask * np.roll(self.wet_mask, 1, axis=-2)
+        self.s_wet_mask = self.wet_mask * np.roll(self.wet_mask, 1, axis=-2) * self.kappa_s
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
