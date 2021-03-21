@@ -111,6 +111,8 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
     dxs: x-spacing centered at southern cell edge
     dys: y-spacing centered at southern cell edge
     area: cell area
+    kappa_w:  zonal diffusivity centered at western cell edge
+    kappa_s:  zonal diffusivity centered at southern cell edge
     """
 
     wet_mask: ArrayType
@@ -119,12 +121,14 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
     dxs: ArrayType
     dys: ArrayType
     area: ArrayType
+    kappa_w: ArrayType
+    kappa_s: ArrayType
 
     def __post_init__(self):
         np = get_array_module(self.wet_mask)
 
-        self.w_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-1)
-        self.s_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2)
+        self.w_wet_mask = (self.wet_mask * np.roll(self.wet_mask, -1, axis=-1) * self.kappa_w)
+        self.s_wet_mask = (self.wet_mask * np.roll(self.wet_mask, -1, axis=-2) * self.kappa_s)
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
