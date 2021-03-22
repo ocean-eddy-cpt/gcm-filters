@@ -134,8 +134,8 @@ class IrregularLaplacianWithLandMask(BaseLaplacian):
     def __post_init__(self):
         np = get_array_module(self.wet_mask)
 
-        self.w_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-1)
-        self.s_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2)
+        self.w_wet_mask = self.wet_mask * np.roll(self.wet_mask, 1, axis=-1)
+        self.s_wet_mask = self.wet_mask * np.roll(self.wet_mask, 1, axis=-2)
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
@@ -143,16 +143,16 @@ class IrregularLaplacianWithLandMask(BaseLaplacian):
         out = np.nan_to_num(field)
 
         wflux = (
-            (out - np.roll(out, -1, axis=-1)) / self.dxw * self.dyw
+            (out - np.roll(out, 1, axis=-1)) / self.dxw * self.dyw
         )  # flux across western cell edge
         sflux = (
-            (out - np.roll(out, -1, axis=-2)) / self.dys * self.dxs
+            (out - np.roll(out, 1, axis=-2)) / self.dys * self.dxs
         )  # flux across southern cell edge
 
         wflux = wflux * self.w_wet_mask  # no-flux boundary condition
         sflux = sflux * self.s_wet_mask  # no-flux boundary condition
 
-        out = np.roll(wflux, 1, axis=-1) - wflux + np.roll(sflux, 1, axis=-2) - sflux
+        out = np.roll(wflux, -1, axis=-1) - wflux + np.roll(sflux, -1, axis=-2) - sflux
 
         out = out / self.area
         return out
@@ -246,8 +246,8 @@ class POPTripolarLaplacianTpoint(BaseLaplacian):
         self.dyn = _prepare_tripolar_exchanges(self.dyn)
         self.wet_mask = _prepare_tripolar_exchanges(self.wet_mask)
 
-        self.e_wet_mask = self.wet_mask * np.roll(self.wet_mask, 1, axis=-1)
-        self.n_wet_mask = self.wet_mask * np.roll(self.wet_mask, 1, axis=-2)
+        self.e_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-1)
+        self.n_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2)
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
@@ -257,16 +257,16 @@ class POPTripolarLaplacianTpoint(BaseLaplacian):
         data = _prepare_tripolar_exchanges(data)
 
         eflux = (
-            (np.roll(data, 1, axis=-1) - data) / self.dxe * self.dye
+            (np.roll(data, -1, axis=-1) - data) / self.dxe * self.dye
         )  # flux across eastern T-cell edge
         nflux = (
-            (np.roll(data, 1, axis=-2) - data) / self.dyn * self.dxn
+            (np.roll(data, -1, axis=-2) - data) / self.dyn * self.dxn
         )  # flux across northern T-cell edge
 
         eflux = eflux * self.e_wet_mask  # no-flux boundary condition
         nflux = nflux * self.n_wet_mask  # no-flux boundary condition
 
-        out = eflux - np.roll(eflux, -1, axis=-1) + nflux - np.roll(nflux, -1, axis=-2)
+        out = eflux - np.roll(eflux, 1, axis=-1) + nflux - np.roll(nflux, 1, axis=-2)
 
         out = out[..., :-1, :]  # disregard appended row
         out = out / self.tarea
