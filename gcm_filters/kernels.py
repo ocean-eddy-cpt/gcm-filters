@@ -127,8 +127,8 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
     def __post_init__(self):
         np = get_array_module(self.wet_mask)
 
-        self.w_wet_mask = (self.wet_mask * np.roll(self.wet_mask, -1, axis=-1) * self.kappa_w)
-        self.s_wet_mask = (self.wet_mask * np.roll(self.wet_mask, -1, axis=-2) * self.kappa_s)
+        self.w_wet_mask = (self.wet_mask * np.roll(self.wet_mask, 1, axis=-1) * self.kappa_w)
+        self.s_wet_mask = (self.wet_mask * np.roll(self.wet_mask, 1, axis=-2) * self.kappa_s)
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
@@ -136,16 +136,16 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
         out = np.nan_to_num(field)
 
         wflux = (
-            (out - np.roll(out, -1, axis=-1)) / self.dxw * self.dyw
+            (out - np.roll(out, 1, axis=-1)) / self.dxw * self.dyw
         )  # flux across western cell edge
         sflux = (
-            (out - np.roll(out, -1, axis=-2)) / self.dys * self.dxs
+            (out - np.roll(out, 1, axis=-2)) / self.dys * self.dxs
         )  # flux across southern cell edge
 
         wflux = wflux * self.w_wet_mask  # no-flux boundary condition
         sflux = sflux * self.s_wet_mask  # no-flux boundary condition
 
-        out = np.roll(wflux, 1, axis=-1) - wflux + np.roll(sflux, 1, axis=-2) - sflux
+        out = np.roll(wflux, -1, axis=-1) - wflux + np.roll(sflux, -1, axis=-2) - sflux
 
         out = out / self.area
         return out
@@ -162,6 +162,8 @@ class VectorLaplacian(BaseLaplacian):
 
     Attributes
     ----------
+    wet_mask_t: Mask array for t points, 1 for ocean, 0 for land
+    wet_mask_q: Mask array for q points, 1 for ocean, 0 for land
     dxT: x-spacing centered at t points
     dyT: y-spacing centered at t points
     dxCu: x-spacing centered at u points
@@ -175,6 +177,8 @@ class VectorLaplacian(BaseLaplacian):
     kappa: isotropic viscosity
     """
 
+    wet_mask_t: ArrayType
+    wet_mask_q: ArrayType
     dxT: ArrayType
     dyT: ArrayType
     dxCu: ArrayType
@@ -188,17 +192,17 @@ class VectorLaplacian(BaseLaplacian):
     kappa: ArrayType
 
     def __post_init__(self):
-        np = get_array_module(self.dxT)
+        np = get_array_module(self.wet_mask_t)
 
-        self.dx_dyT = self.dxT / self.dyT
-        self.dy_dxT = self.dyT / self.dxT
-        self.dx_dyBu = self.dxBu / self.dyBu
-        self.dy_dxBu = self.dyBu / self.dxBu
+        self.dx_dyT = self.dxT / self.dyT * self.wet_mask_t
+        self.dy_dxT = self.dyT / self.dxT * self.wet_mask_t
+        self.dx_dyBu = self.dxBu / self.dyBu * self.wet_mask_q
+        self.dy_dxBu = self.dyBu / self.dxBu * self.wet_mask_q
 
-        self.dx2h = self.dxT ** 2
-        self.dy2h = self.dyT ** 2
-        self.dx2q = self.dxBu ** 2
-        self.dy2q = self.dyBu ** 2
+        self.dx2h = self.dxT * self.dxT
+        self.dy2h = self.dyT * self.dyT
+        self.dx2q = self.dxBu * self.dxBu
+        self.dy2q = self.dyBu * self.dyBu
 
     def __call__(self, ufield: ArrayType, vfield: ArrayType):
         np = get_array_module(ufield)
@@ -207,19 +211,19 @@ class VectorLaplacian(BaseLaplacian):
         vfield = np.nan_to_num(vfield)
 
         dufield_dx = self.dy_dxT * (
-            ufield / self.dyCu - np.roll(ufield / self.dyCu, -1, axis=-1)
+            ufield / self.dyCu - np.roll(ufield / self.dyCu, 1, axis=-1)
         )
         dvfield_dy = self.dx_dyT * (
-            vfield / self.dxCv - np.roll(vfield / self.dxCv, -1, axis=-2)
+            vfield / self.dxCv - np.roll(vfield / self.dxCv, 1, axis=-2)
         )
         str_xx = dufield_dx - dvfield_dy  # horizontal tension
         str_xx = -self.kappa * str_xx  # multiply by isotropic viscosity
 
         dvfield_dx = self.dy_dxBu * (
-            np.roll(vfield / self.dyCv, 1, axis=-1) - vfield / self.dyCv
+            np.roll(vfield / self.dyCv, -1, axis=-1) - vfield / self.dyCv
         )
         dufield_dy = self.dx_dyBu * (
-            np.roll(ufield / self.dxCu, 1, axis=-2) - ufield / self.dxCu
+            np.roll(ufield / self.dxCu, -1, axis=-2) - ufield / self.dxCu
         )
         str_xy = dvfield_dx + dufield_dy  # horizontal shear strain
         str_xy = -self.kappa * str_xy  # multiply by isotropic viscosity
@@ -227,24 +231,24 @@ class VectorLaplacian(BaseLaplacian):
         u_component = (
             1
             / self.dyCu
-            * (self.dy2h * str_xx - np.roll(self.dy2h * str_xx, 1, axis=-1))
+            * (self.dy2h * str_xx - np.roll(self.dy2h * str_xx, -1, axis=-1))
         )
         u_component += (
             1
             / self.dxCu
-            * (np.roll(self.dx2q * str_xy, -1, axis=-2) - self.dx2q * str_xy)
+            * (np.roll(self.dx2q * str_xy, 1, axis=-2) - self.dx2q * str_xy)
         )
         u_component /= self.area_u
 
         v_component = (
             1
             / self.dyCv
-            * (np.roll(self.dy2q * str_xy, -1, axis=-2) - self.dy2q * str_xy)
+            * (np.roll(self.dy2q * str_xy, 1, axis=-1) - self.dy2q * str_xy)
         )
-        v_component = (
+        v_component -= (
             1
-            / self.dyCv
-            * (self.dx2h * str_xx - np.roll(self.dx2h * str_xx, 1, axis=-1))
+            / self.dxCv
+            * (self.dx2h * str_xx - np.roll(self.dx2h * str_xx, -1, axis=-2))
         )
         v_component /= self.area_v
 

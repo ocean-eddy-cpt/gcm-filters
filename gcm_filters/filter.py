@@ -136,6 +136,8 @@ def _compute_filter_spec(
     s_b_im = np.imag(s[np.where(np.abs(np.imag(r)) > root_tolerance)])[indices]
     s_b = s_b_re + s_b_im * 1j
 
+    print('number of Laplacian steps: %i; number of Biharmonic steps: %i' %(n_lap_steps, n_bih_steps))
+
     return FilterSpec(n_lap_steps, s_l, n_bih_steps, s_b)
 
 
