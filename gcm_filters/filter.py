@@ -139,6 +139,7 @@ def _compute_filter_spec(
     s_b_im = np.imag(s[np.where(np.abs(r.imag / r.real) > root_tolerance)])[indices]
     s_b = s_b_re + s_b_im * 1j
 
+<<<<<<< HEAD
     # Alternate stages that damp and amplify small scales
     s = np.concatenate((s_l, s_b))
     n_steps_total = s.shape[0]
