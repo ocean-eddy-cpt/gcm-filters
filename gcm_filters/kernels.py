@@ -313,7 +313,8 @@ class VectorLaplacian(BaseLaplacian):
     dyBu: y-spacing centered at q points
     area_u: U-cell area
     area_v: V-cell area
-    kappa: isotropic viscosity
+    kappa_iso: isotropic viscosity
+    kappa_aniso: anisotropic viscosity aligned with x-direction
     """
 
     wet_mask_t: ArrayType
@@ -328,7 +329,8 @@ class VectorLaplacian(BaseLaplacian):
     dyBu: ArrayType
     area_u: ArrayType
     area_v: ArrayType
-    kappa: ArrayType
+    kappa_iso: ArrayType
+    kappa_aniso: ArrayType
 
     def __post_init__(self):
         np = get_array_module(self.wet_mask_t)
@@ -356,7 +358,7 @@ class VectorLaplacian(BaseLaplacian):
             vfield / self.dxCv - np.roll(vfield / self.dxCv, 1, axis=-2)
         )
         str_xx = dufield_dx - dvfield_dy  # horizontal tension
-        str_xx = -self.kappa * str_xx  # multiply by isotropic viscosity
+        str_xx = - (self.kappa_iso + 0.5 * self.kappa_aniso) * str_xx  # multiply by viscosity in x-direction
 
         dvfield_dx = self.dy_dxBu * (
             np.roll(vfield / self.dyCv, -1, axis=-1) - vfield / self.dyCv
@@ -365,7 +367,7 @@ class VectorLaplacian(BaseLaplacian):
             np.roll(ufield / self.dxCu, -1, axis=-2) - ufield / self.dxCu
         )
         str_xy = dvfield_dx + dufield_dy  # horizontal shear strain
-        str_xy = -self.kappa * str_xy  # multiply by isotropic viscosity
+        str_xy = -self.kappa_iso * str_xy  # multiply by viscosity in y-direction
 
         u_component = (
             1
