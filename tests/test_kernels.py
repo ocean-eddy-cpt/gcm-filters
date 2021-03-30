@@ -62,7 +62,7 @@ def test_required_grid_vars(grid_type_field_and_extra_kwargs):
 
 
 ################## Irregular grid tests ##############################################
-# Irregular grids are grids that allow varying dx, dy
+# Irregular grids are grids that allow spatially varying dx, dy
 
 # The following definition of irregular_grids is hard coded; maybe a better definition
 # would be: all grids that have len(required_grid_vars)>1 (more than just a wet_mask)
@@ -74,17 +74,16 @@ irregular_grids = [
 
 
 def test_use_correct_dy(grid_type_field_and_extra_kwargs):
-    """This test checks that Laplacian uses grid information with correct index in y-direction. For example, the test will catch sign errors in the rolling of array elements along the y-axis."""
+    """This test checks that Laplacian uses grid information with correct index in y-direction. The test will catch sign errors in the Laplacian rolling of array elements along the y-axis."""
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
 
     if grid_type in irregular_grids:
-        print(grid_type)
+        # deploy mass at random location away from Antarctica: delta_{j,i}
         delta = np.zeros_like(data)
         ny = np.shape(delta)[0]
         random_yloc = np.random.randint(5, ny)
         nx = np.shape(delta)[1]
-        random_xloc = np.random.randint(5, nx)
-        # deploy mass at random location away from Antarctica: delta_{j,i}
+        random_xloc = np.random.randint(0, nx)
         delta[random_yloc, random_xloc] = 1
 
         test_kwargs = copy.deepcopy(extra_kwargs)
@@ -116,7 +115,7 @@ def test_use_correct_dy(grid_type_field_and_extra_kwargs):
         LaplacianClass = ALL_KERNELS[grid_type]
         laplacian = LaplacianClass(**test_kwargs)
         diffused = laplacian(delta)
-        # check that delta function gets diffused isotropically across in y-direction
+        # check that delta function gets diffused isotropically in y-direction
         np.testing.assert_allclose(
             diffused[random_yloc - 1, random_xloc],
             diffused[random_yloc + 1, random_xloc],
@@ -125,16 +124,16 @@ def test_use_correct_dy(grid_type_field_and_extra_kwargs):
 
 
 def test_use_correct_dx(grid_type_field_and_extra_kwargs):
-    """This test checks that Laplacian uses grid information with correct index in x-direction. For example, the test will catch sign errors in the rolling of array elements along the x-axis."""
+    """This test checks that Laplacian uses grid information with correct index in x-direction. The test will catch sign errors in the Laplacian rolling of array elements along the x-axis."""
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
 
     if grid_type in irregular_grids:
+        # deploy mass at random location away from Antarctica: delta_{j,i}
         delta = np.zeros_like(data)
         ny = np.shape(delta)[0]
         random_yloc = np.random.randint(5, ny)
         nx = np.shape(delta)[1]
-        random_xloc = np.random.randint(5, nx)
-        # deploy mass at random location away from Antarctica: delta_{j,i}
+        random_xloc = np.random.randint(0, nx)
         delta[random_yloc, random_xloc] = 1
 
         test_kwargs = copy.deepcopy(extra_kwargs)
@@ -166,7 +165,7 @@ def test_use_correct_dx(grid_type_field_and_extra_kwargs):
         LaplacianClass = ALL_KERNELS[grid_type]
         laplacian = LaplacianClass(**test_kwargs)
         diffused = laplacian(delta)
-        # check that delta function gets diffused isotropically across in y-direction
+        # check that delta function gets diffused isotropically in x-direction
         np.testing.assert_allclose(
             diffused[random_yloc, random_xloc - 1],
             diffused[random_yloc, random_xloc + 1],
