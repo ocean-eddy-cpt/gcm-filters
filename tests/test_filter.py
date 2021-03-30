@@ -7,10 +7,9 @@ from gcm_filters.filter import FilterSpec
 
 
 def _check_equal_filter_spec(spec1, spec2):
-    assert spec1.n_lap_steps == spec2.n_lap_steps
-    assert spec1.n_bih_steps == spec2.n_bih_steps
-    np.testing.assert_allclose(spec1.s_l, spec2.s_l)
-    np.testing.assert_allclose(spec1.s_b, spec2.s_b)
+    assert spec1.n_steps_total == spec2.n_steps_total
+    np.testing.assert_allclose(spec1.s, spec2.s)
+    assert (spec1.is_laplacian == spec2.is_laplacian).all()
 
 
 # These values were just hard copied from my dev environment.
@@ -29,10 +28,14 @@ def _check_equal_filter_spec(spec1, spec2):
                 n_steps=4,
             ),
             FilterSpec(
-                n_lap_steps=4,
-                s_l=[2.56046256, 8.47349198, 15.22333438, 19.7392088],
-                n_bih_steps=0,
-                s_b=[],
+                n_steps_total=4,
+                s=[
+                    19.7392088 + 0.0j,
+                    2.56046256 + 0.0j,
+                    15.22333438 + 0.0j,
+                    8.47349198 + 0.0j,
+                ],
+                is_laplacian=[True, True, True, True],
             ),
         ),
         (
@@ -44,15 +47,15 @@ def _check_equal_filter_spec(spec1, spec2):
                 ndim=1,
             ),
             FilterSpec(
-                n_lap_steps=1,
-                s_l=[9.8696044],
-                n_bih_steps=4,
-                s_b=[
+                n_steps_total=5,
+                s=[
+                    9.8696044 + 0.0j,
                     -0.74638043 - 1.24167777j,
+                    9.81491354 - 0.44874939j,
                     3.06062496 - 3.94612205j,
                     7.80242999 - 3.18038659j,
-                    9.81491354 - 0.44874939j,
                 ],
+                is_laplacian=[True, False, False, False, False],
             ),
         ),
     ],
