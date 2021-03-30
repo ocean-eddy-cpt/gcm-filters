@@ -73,8 +73,9 @@ irregular_grids = [
 ]
 
 
-def test_use_correct_dy(grid_type_field_and_extra_kwargs):
-    """This test checks that Laplacian uses grid information with correct index in y-direction. The test will catch sign errors in the Laplacian rolling of array elements along the y-axis."""
+def test_flux_in_y_direction(grid_type_field_and_extra_kwargs):
+    """This test checks that the Laplacian computes the correct fluxes in y-direction if the grid is irregular.
+    The test will catch sign errors in the Laplacian rolling of array elements along the y-axis."""
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
 
     if grid_type in irregular_grids:
@@ -123,8 +124,9 @@ def test_use_correct_dy(grid_type_field_and_extra_kwargs):
         )
 
 
-def test_use_correct_dx(grid_type_field_and_extra_kwargs):
-    """This test checks that Laplacian uses grid information with correct index in x-direction. The test will catch sign errors in the Laplacian rolling of array elements along the x-axis."""
+def test_flux_in_x_direction(grid_type_field_and_extra_kwargs):
+    """This test checks that the Laplacian computes the correct fluxes in x-direction if the grid is irregular.
+    The test will catch sign errors in the Laplacian rolling of array elements along the x-axis."""
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
 
     if grid_type in irregular_grids:
