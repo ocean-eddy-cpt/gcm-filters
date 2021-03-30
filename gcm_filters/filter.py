@@ -54,7 +54,7 @@ _target_function = {
 class FilterSpec(NamedTuple):
     n_steps_total: int
     s: Iterable[complex]
-    is_laplacian: bool  # This is really an array of booleans; not sure what this line should be
+    is_laplacian: Iterable[bool]  # This is really an array of booleans; not sure what this line should be
 
 
 def _compute_filter_spec(
