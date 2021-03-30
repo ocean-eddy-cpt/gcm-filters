@@ -61,6 +61,119 @@ def test_required_grid_vars(grid_type_field_and_extra_kwargs):
     assert set(grid_vars) == set(extra_kwargs)
 
 
+################## Irregular grid tests ##############################################
+# Irregular grids are grids that allow varying dx, dy
+
+# The following definition of irregular_grids is hard coded; maybe a better definition
+# would be: all grids that have len(required_grid_vars)>1 (more than just a wet_mask)
+irregular_grids = [
+    member
+    for name, member in GridType.__members__.items()
+    if "IRREGULAR" in name or "TRIPOLAR_POP" in name
+]
+
+
+def test_use_correct_dy(grid_type_field_and_extra_kwargs):
+    """This test checks that Laplacian uses grid information with correct index in y-direction. For example, the test will catch sign errors in the rolling of array elements along the y-axis."""
+    grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
+
+    if grid_type in irregular_grids:
+        print(grid_type)
+        delta = np.zeros_like(data)
+        ny = np.shape(delta)[0]
+        random_yloc = np.random.randint(5, ny)
+        nx = np.shape(delta)[1]
+        random_xloc = np.random.randint(5, nx)
+        # deploy mass at random location away from Antarctica: delta_{j,i}
+        delta[random_yloc, random_xloc] = 1
+
+        test_kwargs = copy.deepcopy(extra_kwargs)
+        ones = np.ones_like(data)
+        # create highly irregular grid data for
+        # - southern edge of cell {j-1,i};
+        # - southern edge of cell {j+2,i};
+        # this should leave laplacian(delta_{j,i}) unaffected
+        if grid_type == GridType.IRREGULAR_WITH_LAND:
+            test_kwargs["wet_mask"] = ones  # no land for simplicity
+            test_kwargs["area"] = ones
+            test_kwargs["dyw"] = ones
+            test_kwargs["dys"] = ones
+            test_kwargs["dxw"] = ones
+            test_kwargs["dxs"] = ones.copy()
+            test_kwargs["dxs"][random_yloc - 1, :] = 1000
+            test_kwargs["dxs"][random_yloc + 2, :] = 2000
+        if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
+            test_kwargs["wet_mask"] = ones.copy()
+            test_kwargs["wet_mask"][0, :] = 0  # Antarctica
+            test_kwargs["tarea"] = ones
+            test_kwargs["dye"] = ones
+            test_kwargs["dyn"] = ones
+            test_kwargs["dxe"] = ones
+            test_kwargs["dxn"] = ones.copy()
+            test_kwargs["dxn"][random_yloc - 2, :] = 1000
+            test_kwargs["dxn"][random_yloc + 1, :] = 2000
+
+        LaplacianClass = ALL_KERNELS[grid_type]
+        laplacian = LaplacianClass(**test_kwargs)
+        diffused = laplacian(delta)
+        # check that delta function gets diffused isotropically across in y-direction
+        np.testing.assert_allclose(
+            diffused[random_yloc - 1, random_xloc],
+            diffused[random_yloc + 1, random_xloc],
+            atol=1e-12,
+        )
+
+
+def test_use_correct_dx(grid_type_field_and_extra_kwargs):
+    """This test checks that Laplacian uses grid information with correct index in x-direction. For example, the test will catch sign errors in the rolling of array elements along the x-axis."""
+    grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
+
+    if grid_type in irregular_grids:
+        delta = np.zeros_like(data)
+        ny = np.shape(delta)[0]
+        random_yloc = np.random.randint(5, ny)
+        nx = np.shape(delta)[1]
+        random_xloc = np.random.randint(5, nx)
+        # deploy mass at random location away from Antarctica: delta_{j,i}
+        delta[random_yloc, random_xloc] = 1
+
+        test_kwargs = copy.deepcopy(extra_kwargs)
+        ones = np.ones_like(data)
+        # create highly irregular grid data for
+        # - western edge of cell {j,i-1};
+        # - western edge of cell {j,i+2}
+        # this should leave laplacian(delta_{j,i}) unaffected
+        if grid_type == GridType.IRREGULAR_WITH_LAND:
+            test_kwargs["wet_mask"] = ones  # no land for simplicity
+            test_kwargs["area"] = ones
+            test_kwargs["dys"] = ones
+            test_kwargs["dxw"] = ones
+            test_kwargs["dxs"] = ones
+            test_kwargs["dyw"] = ones.copy()
+            test_kwargs["dyw"][:, random_xloc - 1] = 1000
+            test_kwargs["dyw"][:, random_xloc + 2] = 2000
+        if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
+            test_kwargs["wet_mask"] = ones.copy()
+            test_kwargs["wet_mask"][0, :] = 0  # Antarctica
+            test_kwargs["tarea"] = ones
+            test_kwargs["dyn"] = ones
+            test_kwargs["dxe"] = ones
+            test_kwargs["dxn"] = ones
+            test_kwargs["dye"] = ones.copy()
+            test_kwargs["dye"][:, random_xloc - 2] = 1000
+            test_kwargs["dye"][:, random_xloc + 1] = 2000
+
+        LaplacianClass = ALL_KERNELS[grid_type]
+        laplacian = LaplacianClass(**test_kwargs)
+        diffused = laplacian(delta)
+        # check that delta function gets diffused isotropically across in y-direction
+        np.testing.assert_allclose(
+            diffused[random_yloc, random_xloc - 1],
+            diffused[random_yloc, random_xloc + 1],
+            atol=1e-12,
+        )
+
+
 ################## Tripolar grid tests ##############################################
 tripolar_grids = [
     member
@@ -87,16 +200,17 @@ def test_for_antarctica(grid_type_field_and_extra_kwargs):
 def test_tripolar_exchanges(grid_type_field_and_extra_kwargs):
     """This test checks that Laplacian exchanges across northern boundary seam line of tripolar grid are correct. """
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
-    LaplacianClass = ALL_KERNELS[grid_type]
-    laplacian = LaplacianClass(**extra_kwargs)
-
-    delta_fct = np.zeros_like(data)
-    nx = np.shape(delta_fct)[1]
 
     if grid_type in tripolar_grids:
+        LaplacianClass = ALL_KERNELS[grid_type]
+        laplacian = LaplacianClass(**extra_kwargs)
+
+        delta = np.zeros_like(data)
+        nx = np.shape(delta)[1]
         random_loc = np.random.randint(0, nx)
-        delta_fct[-1, random_loc] = 1  # deploy mass at northern boundary
-        diffused = laplacian(delta_fct)
+        delta[-1, random_loc] = 1  # deploy mass at northern boundary
+
+        diffused = laplacian(delta)
         # check that delta function gets diffused isotropically across northern boundary
         # this would need to be replaced once we provide irregular grid data in fixture
         np.testing.assert_allclose(
