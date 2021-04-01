@@ -228,7 +228,7 @@ class Filter:
     transition_width: float = np.pi
     ndim: int = 2
     n_steps: int = 0
-    grid_type: GridType = GridType.CARTESIAN
+    grid_type: GridType = GridType.REGULAR
     grid_vars: dict = field(default_factory=dict, repr=False)
 
     def __post_init__(self):

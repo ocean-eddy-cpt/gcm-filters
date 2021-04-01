@@ -73,16 +73,15 @@ def grid_type_and_input_ds(request):
 
     ny, nx = (128, 256)
     data = np.random.rand(ny, nx)
-    da = xr.DataArray(data, dims=["y", "x"])
 
     grid_vars = {}
 
-    if grid_type == GridType.CARTESIAN_WITH_LAND:
+    if grid_type == GridType.REGULAR_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
         grid_vars = {"wet_mask": da_mask}
-    if grid_type == GridType.IRREGULAR_CARTESIAN_WITH_LAND:
+    if grid_type == GridType.IRREGULAR_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
@@ -96,6 +95,28 @@ def grid_type_and_input_ds(request):
             "dys": da_grid,
             "area": da_grid,
         }
+    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND:
+        mask_data = np.ones_like(data)
+        mask_data[: (ny // 2), : (nx // 2)] = 0
+        mask_data[0, :] = 0  #  Antarctica
+        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
+        grid_vars = {"wet_mask": da_mask}
+    if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
+        mask_data = np.ones_like(data)
+        mask_data[: (ny // 2), : (nx // 2)] = 0
+        mask_data[0, :] = 0  #  Antarctica
+        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
+        grid_data = np.ones_like(data)
+        da_grid = xr.DataArray(grid_data, dims=["y", "x"])
+        grid_vars = {
+            "wet_mask": da_mask,
+            "dxe": da_grid,
+            "dye": da_grid,
+            "dxn": da_grid,
+            "dyn": da_grid,
+            "tarea": da_grid,
+        }
+    da = xr.DataArray(data, dims=["y", "x"])
 
     return grid_type, da, grid_vars
 
@@ -111,7 +132,10 @@ def test_filter(grid_type_and_input_ds, filter_args):
 
     # check conservation
     # this would need to be replaced by a proper area-weighted integral
-    xr.testing.assert_allclose(da.sum(), filtered.sum())
+    da_sum = da.sum()
+    filtered_sum = filtered.sum()
+
+    xr.testing.assert_allclose(da_sum, filtered_sum)
 
     # check variance reduction
     assert (filtered ** 2).sum() < (da ** 2).sum()
