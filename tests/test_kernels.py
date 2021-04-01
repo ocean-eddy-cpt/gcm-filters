@@ -67,9 +67,7 @@ def test_required_grid_vars(grid_type_field_and_extra_kwargs):
 # The following definition of irregular_grids is hard coded; maybe a better definition
 # would be: all grids that have len(required_grid_vars)>1 (more than just a wet_mask)
 irregular_grids = [
-    member
-    for name, member in GridType.__members__.items()
-    if "IRREGULAR" in name or "TRIPOLAR_POP" in name
+    gt for gt in GridType if "IRREGULAR" in gt.name or "TRIPOLAR_POP" in gt.name
 ]
 
 
@@ -176,11 +174,7 @@ def test_flux_in_x_direction(grid_type_field_and_extra_kwargs):
 
 
 ################## Tripolar grid tests ##############################################
-tripolar_grids = [
-    member
-    for name, member in GridType.__members__.items()
-    if name.startswith("TRIPOLAR")
-]
+tripolar_grids = [gt for gt in GridType if gt.name.startswith("TRIPOLAR")]
 
 
 def test_for_antarctica(grid_type_field_and_extra_kwargs):
