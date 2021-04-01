@@ -139,7 +139,6 @@ def _compute_filter_spec(
     s_b_im = np.imag(s[np.where(np.abs(r.imag / r.real) > root_tolerance)])[indices]
     s_b = s_b_re + s_b_im * 1j
 
-<<<<<<< HEAD
     # Alternate stages that damp and amplify small scales
     s = np.concatenate((s_l, s_b))
     n_steps_total = s.shape[0]
@@ -207,26 +206,27 @@ def _create_filter_func_vec(
         assert len(args) == len(Laplacian.required_grid_args())
         grid_vars = {k: v for k, v in zip(Laplacian.required_grid_args(), args)}
         laplacian = Laplacian(**grid_vars)
-        np = get_array_module(field)
+        np = get_array_module(field_u)
         field_u_bar = field_u.copy()  # Initalize the filtering process
         field_v_bar = field_v.copy()  # Initalize the filtering process
-        for i in range(filter_spec.n_lap_steps):
-            s_l = filter_spec.s_l[i]
-            (tendency_u, tendency_v) = laplacian(field_u_bar, field_v_bar)  # Compute Laplacian
-            field_u_bar += (1 / s_l) * tendency_u  # Update filtered field
-            field_v_bar += (1 / s_l) * tendency_v  # Update filtered field
-        for i in range(filter_spec.n_bih_steps):
-            s_b = filter_spec.s_b[i]
-            (temp_l_u, temp_l_v) = laplacian(field_u_bar, field_v_bar)  # Compute Laplacian
-            (temp_b_u, temp_b_v) = laplacian(temp_l_u, temp_l_v)  # Compute Biharmonic (apply Laplacian twice)
-            field_u_bar += (
-                temp_l_u * 2 * np.real(s_b) / np.abs(s_b) ** 2
-                + temp_b_u * 1 / np.abs(s_b) ** 2
-            )
-            field_v_bar += (
-                temp_l_v * 2 * np.real(s_b) / np.abs(s_b) ** 2
-                + temp_b_v * 1 / np.abs(s_b) ** 2
-            )
+        for i in range(filter_spec.n_steps_total):
+            if filter_spec.is_laplacian[i]:
+                s_l = np.real(filter_spec.s[i])
+                (tendency_u, tendency_v) = laplacian(field_u_bar, field_v_bar)  # Compute Laplacian
+                field_u_bar += (1 / s_l) * tendency_u  # Update filtered field
+                field_v_bar += (1 / s_l) * tendency_v  # Update filtered field
+            else:
+                s_b = filter_spec.s[i]
+                (temp_l_u, temp_l_v) = laplacian(field_u_bar, field_v_bar)  # Compute Laplacian
+                (temp_b_u, temp_b_v) = laplacian(temp_l_u, temp_l_v)  # Compute Biharmonic (apply Laplacian twice)
+                field_u_bar += (
+                    temp_l_u * 2 * np.real(s_b) / np.abs(s_b) ** 2
+                    + temp_b_u * 1 / np.abs(s_b) ** 2
+                )
+                field_v_bar += (
+                    temp_l_v * 2 * np.real(s_b) / np.abs(s_b) ** 2
+                    + temp_b_v * 1 / np.abs(s_b) ** 2
+                )
         return (field_u_bar, field_v_bar)
 
     return filter_func_vec
