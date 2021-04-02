@@ -224,7 +224,8 @@ def test_tripolar_exchanges(grid_type_field_and_extra_kwargs):
         np.testing.assert_allclose(
             diffused[-2, random_loc], diffused[-1, nx - random_loc - 1], atol=1e-12
         )
-=======
+
+
 #################### Vector Laplacian tests ########################################
 vector_grids = [
     member for name, member in GridType.__members__.items() if name.startswith("VECTOR")
