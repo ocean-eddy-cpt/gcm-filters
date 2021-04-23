@@ -83,7 +83,7 @@ def _compute_filter_spec(
             else:  # ndim==2
                 n_steps = np.ceil(6.4 * filter_scale / dx_min).astype(int)
 
-    print('n_steps = %i' %n_steps)
+    print("n_steps = %i" % n_steps)
     # First set up the mass matrix for the Galerkin basis from Shen (SISC95)
     M = (np.pi / 2) * (
         2 * np.eye(n_steps - 1)
@@ -190,15 +190,16 @@ def _create_filter_func(
         return field_bar
 
     return filter_func
-    
+
+
 def _create_filter_func_vec(
     filter_spec: FilterSpec,
     Laplacian: BaseLaplacian,
 ):
-    """Returns a function whose first argument is the field to be filtered
+    """Returns a function whose first two arguments are the vector components of the field to be filtered
     and whose subsequent arguments are the require grid variables
     """
-    
+
     def filter_func_vec(field_u, field_v, *args):
         # these next steps are a kind of hack we have to turn keyword arugments into regular arguments
         # the reason for doing this is that Xarray's apply_ufunc machinery works a lot better
@@ -212,13 +213,19 @@ def _create_filter_func_vec(
         for i in range(filter_spec.n_steps_total):
             if filter_spec.is_laplacian[i]:
                 s_l = np.real(filter_spec.s[i])
-                (tendency_u, tendency_v) = laplacian(field_u_bar, field_v_bar)  # Compute Laplacian
+                (tendency_u, tendency_v) = laplacian(
+                    field_u_bar, field_v_bar
+                )  # Compute Laplacian
                 field_u_bar += (1 / s_l) * tendency_u  # Update filtered field
                 field_v_bar += (1 / s_l) * tendency_v  # Update filtered field
             else:
                 s_b = filter_spec.s[i]
-                (temp_l_u, temp_l_v) = laplacian(field_u_bar, field_v_bar)  # Compute Laplacian
-                (temp_b_u, temp_b_v) = laplacian(temp_l_u, temp_l_v)  # Compute Biharmonic (apply Laplacian twice)
+                (temp_l_u, temp_l_v) = laplacian(
+                    field_u_bar, field_v_bar
+                )  # Compute Laplacian
+                (temp_b_u, temp_b_v) = laplacian(
+                    temp_l_u, temp_l_v
+                )  # Compute Biharmonic (apply Laplacian twice)
                 field_u_bar += (
                     temp_l_u * 2 * np.real(s_b) / np.abs(s_b) ** 2
                     + temp_b_u * 1 / np.abs(s_b) ** 2
@@ -230,6 +237,7 @@ def _create_filter_func_vec(
         return (field_u_bar, field_v_bar)
 
     return filter_func_vec
+
 
 @dataclass
 class Filter:
