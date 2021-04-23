@@ -306,7 +306,7 @@ class VectorLaplacian(BaseLaplacian):
     Attributes
     ----------
     wet_mask_t: Mask array for t points, 1 for ocean, 0 for land
-    wet_mask_q: Mask array for q points, 1 for ocean, 0 for land
+    wet_mask_q: Mask array for q (vorticity) points, 1 for ocean, 0 for land
     dxT: x-spacing centered at t points
     dyT: y-spacing centered at t points
     dxCu: x-spacing centered at u points
