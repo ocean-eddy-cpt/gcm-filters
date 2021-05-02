@@ -250,13 +250,13 @@ def test_viscosity_filter(vector_grid_type_and_input_ds, filter_args):
 
     # check conservation under solid body rotation: u = cos(lat), v=0;
     # this test fails due to numerical instabilities
-    # data_u = np.cos(geolat_u/360*2*np.pi)
-    # data_v = np.zeros_like(data_u)
-    # da_u = xr.DataArray(data_u, dims=["y", "x"])
-    # da_v = xr.DataArray(data_v, dims=["y", "x"])
-    # filtered_u, filtered_v = filter.apply_to_vector(da_u, da_v, dims=["y", "x"])
-    # xr.testing.assert_allclose(filtered_u, 0.0, atol=1e-12)
-    # xr.testing.assert_allclose(filtered_v, 0.0, atol=1e-12)
+    data_u = np.cos(geolat_u / 360 * 2 * np.pi)
+    data_v = np.zeros_like(data_u)
+    da_u = xr.DataArray(data_u, dims=["y", "x"])
+    da_v = xr.DataArray(data_v, dims=["y", "x"])
+    filtered_u, filtered_v = filter.apply_to_vector(da_u, da_v, dims=["y", "x"])
+    xr.testing.assert_allclose(filtered_u, da_u, atol=1e-12)
+    xr.testing.assert_allclose(filtered_v, da_v, atol=1e-12)
 
     # check that we get an error if we leave out any required grid_vars
     for gv in grid_vars:
