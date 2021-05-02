@@ -249,7 +249,6 @@ def test_viscosity_filter(vector_grid_type_and_input_ds, filter_args):
     filtered_u, filtered_v = filter.apply_to_vector(da_u, da_v, dims=["y", "x"])
 
     # check conservation under solid body rotation: u = cos(lat), v=0;
-    # this test fails due to numerical instabilities
     data_u = np.cos(geolat_u / 360 * 2 * np.pi)
     data_v = np.zeros_like(data_u)
     da_u = xr.DataArray(data_u, dims=["y", "x"])
