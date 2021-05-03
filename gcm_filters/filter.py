@@ -37,7 +37,7 @@ def _taper_target(target_spec: TargetSpec):
                 0,
                 2 * np.pi / (target_spec.transition_width * target_spec.filter_scale),
                 2 * np.pi / target_spec.filter_scale,
-                2 * np.sqrt(target_spec.s_max),
+                8 * np.sqrt(target_spec.s_max),
             ]
         ),
         np.array([1, 1, 0, 0]),
@@ -54,9 +54,7 @@ _target_function = {
 class FilterSpec(NamedTuple):
     n_steps_total: int
     s: Iterable[complex]
-    is_laplacian: Iterable[
-        bool
-    ]  # This is really an array of booleans; not sure what this line should be
+    is_laplacian: Iterable[bool]
 
 
 def _compute_filter_spec(
@@ -74,14 +72,14 @@ def _compute_filter_spec(
             raise ValueError(f"When ndim > 2, you must set n_steps manually")
         if filter_shape == FilterShape.GAUSSIAN:
             if ndim == 1:
-                n_steps = np.ceil(1.3 * filter_scale / dx_min).astype(int)
+                n_steps = np.ceil(0.8 * filter_scale / dx_min).astype(int)
             else:  # ndim==2
-                n_steps = np.ceil(1.8 * filter_scale / dx_min).astype(int)
+                n_steps = np.ceil(1.1 * filter_scale / dx_min).astype(int)
         else:  # Taper
             if ndim == 1:
-                n_steps = np.ceil(4.5 * filter_scale / dx_min).astype(int)
+                n_steps = np.ceil(2.8 * filter_scale / dx_min).astype(int)
             else:  # ndim==2
-                n_steps = np.ceil(6.4 * filter_scale / dx_min).astype(int)
+                n_steps = np.ceil(3.9 * filter_scale / dx_min).astype(int)
 
     # First set up the mass matrix for the Galerkin basis from Shen (SISC95)
     M = (np.pi / 2) * (
@@ -92,9 +90,10 @@ def _compute_filter_spec(
     M[0, 0] = 3 * np.pi / 2
 
     # The range of wavenumbers is 0<=|k|<=sqrt(ndim)*pi/dxMin.
-    # Per the notes, define s=k^2.
+    # However, our 2nd order laplacians only get to sqrt(ndim)*2/dxMin at most.
+    # Per the paper, define s=k^2.
     # Need to rescale to t in [-1,1]: t = (2/sMax)*s -1; s = sMax*(t+1)/2
-    s_max = ndim * (np.pi / dx_min) ** 2
+    s_max = ndim * (2 / dx_min) ** 2
 
     target_spec = TargetSpec(s_max, filter_scale, transition_width)
     F = _target_function[filter_shape](target_spec)
