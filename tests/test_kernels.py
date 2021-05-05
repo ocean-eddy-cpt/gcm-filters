@@ -178,7 +178,7 @@ tripolar_grids = [gt for gt in GridType if gt.name.startswith("TRIPOLAR")]
 
 
 def test_for_antarctica(grid_type_field_and_extra_kwargs):
-    """This test checks that we get an error if southernmost row of wet_mask has entry not equal to zero. """
+    """This test checks that we get an error if southernmost row of wet_mask has entry not equal to zero."""
     grid_type, _, extra_kwargs = grid_type_field_and_extra_kwargs
 
     if grid_type in tripolar_grids:
@@ -193,7 +193,7 @@ def test_for_antarctica(grid_type_field_and_extra_kwargs):
 
 
 def test_tripolar_exchanges(grid_type_field_and_extra_kwargs):
-    """This test checks that Laplacian exchanges across northern boundary seam line of tripolar grid are correct. """
+    """This test checks that Laplacian exchanges across northern boundary seam line of tripolar grid are correct."""
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
 
     if grid_type in tripolar_grids:
