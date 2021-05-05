@@ -31,9 +31,9 @@ def _check_equal_filter_spec(spec1, spec2):
                 n_steps_total=4,
                 s=[
                     8.0 + 0.0j,
-                    1.27354703 + 0.0j,
-                    6.23694479 + 0.0j,
                     3.5988264 + 0.0j,
+                    6.23694479 + 0.0j,
+                    1.27354703 + 0.0j,
                 ],
                 is_laplacian=[True, True, True, True],
             ),
