@@ -145,9 +145,9 @@ def _compute_filter_spec(
     ind_damping = np.argwhere(np.abs(1 - s_max / s) <= 1)
     ind_amplifying = np.argwhere(np.abs(1 - s_max / s) > 1)
     s_damping = s[ind_damping].tolist()  # Damping roots, sorted most to least damping
-    s_amplifying = np.flip(
-        s[ind_amplifying]
-    ).tolist()  # Amplifying roots, sorted most to least amplifying
+    s_amplifying = s[
+        ind_amplifying
+    ].tolist()  # Amplifying roots, sorted least to most amplifying
     s = [x for x in chain(*zip_longest(s_damping, s_amplifying)) if x is not None]
     s = np.array([y for x in s for y in x])
     is_laplacian = np.abs(s.imag / s.real) < root_tolerance
