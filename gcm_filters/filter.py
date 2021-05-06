@@ -226,14 +226,22 @@ class Filter:
                 raise ValueError(f"When ndim > 2, you must set n_steps manually")
             if self.filter_shape == FilterShape.GAUSSIAN:
                 if self.ndim == 1:
-                    self.n_steps = np.ceil(0.8 * self.filter_scale / self.dx_min).astype(int)
+                    self.n_steps = np.ceil(
+                        0.8 * self.filter_scale / self.dx_min
+                    ).astype(int)
                 else:  # ndim==2
-                    self.n_steps = np.ceil(1.1 * self.filter_scale / self.dx_min).astype(int)
+                    self.n_steps = np.ceil(
+                        1.1 * self.filter_scale / self.dx_min
+                    ).astype(int)
             else:  # Taper
                 if self.ndim == 1:
-                    self.n_steps = np.ceil(2.8 * self.filter_scale / self.dx_min).astype(int)
+                    self.n_steps = np.ceil(
+                        2.8 * self.filter_scale / self.dx_min
+                    ).astype(int)
                 else:  # ndim==2
-                    self.n_steps = np.ceil(3.9 * self.filter_scale / self.dx_min).astype(int)
+                    self.n_steps = np.ceil(
+                        3.9 * self.filter_scale / self.dx_min
+                    ).astype(int)
 
         self.filter_spec = _compute_filter_spec(
             self.filter_scale,
