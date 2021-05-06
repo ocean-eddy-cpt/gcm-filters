@@ -1,7 +1,7 @@
 Filter Theory
 =============
 
-The theory behind ``gcm-filters`` is described here at a high level. 
+The theory behind ``gcm-filters`` is described here at a high level.
 For a more detailed treatment, see `Grooms et al. (2021) <https://doi.org/10.1002/essoar.10506591.1>`_.
 
 Filter Scale and Shape
@@ -78,7 +78,7 @@ With :math:`\kappa` the *local* filter scale is :math:`\sqrt{\kappa}\times` ``fi
 For reasons given in `Grooms et al. (2021) <https://doi.org/10.1002/essoar.10506591.1>`_, we require :math:`\kappa\le 1`, and at least one place in the domain where :math:`\kappa = 1`.
 Thus, when using variable :math:`\kappa`, ``filter_scale`` sets the *largest* filter scale in the domain and the local filter scale can be reduced by making :math:`\kappa<1`.
 
-Suppose, for example, that you want the local filter scale to be :math:`L(x,y)`. 
+Suppose, for example, that you want the local filter scale to be :math:`L(x,y)`.
 You can achieve this in ``gcm-filters`` as follows.
 
 1. Set ``filter_scale`` equal to the maximum of :math:`L(x,y)` over the domain. (Call this value :math:`L_{max}`).
