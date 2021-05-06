@@ -67,7 +67,7 @@ How to change the documentation
 
 In order to build the documentation locally you should build and activate the docs environment::
 
-   conda env create -f docs/environment.yml
+   mamba env create -f docs/environment.yml
 
    conda activate gcm-filters-docs
 
