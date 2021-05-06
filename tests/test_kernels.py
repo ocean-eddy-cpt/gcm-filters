@@ -80,7 +80,7 @@ def test_flux_in_y_direction(grid_type_field_and_extra_kwargs):
         # deploy mass at random location away from Antarctica: delta_{j,i}
         delta = np.zeros_like(data)
         ny = np.shape(delta)[0]
-        random_yloc = np.random.randint(5, ny)
+        random_yloc = np.random.randint(5, ny - 2)
         nx = np.shape(delta)[1]
         random_xloc = np.random.randint(0, nx)
         delta[random_yloc, random_xloc] = 1
@@ -133,7 +133,7 @@ def test_flux_in_x_direction(grid_type_field_and_extra_kwargs):
         ny = np.shape(delta)[0]
         random_yloc = np.random.randint(5, ny)
         nx = np.shape(delta)[1]
-        random_xloc = np.random.randint(0, nx)
+        random_xloc = np.random.randint(2, nx - 2)
         delta[random_yloc, random_xloc] = 1
 
         test_kwargs = copy.deepcopy(extra_kwargs)
