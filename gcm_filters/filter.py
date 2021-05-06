@@ -66,20 +66,6 @@ def _compute_filter_spec(
     n_steps=0,
     root_tolerance=1e-8,
 ):
-    # First set number of steps if not supplied by user
-    if n_steps == 0:
-        if ndim > 2:
-            raise ValueError(f"When ndim > 2, you must set n_steps manually")
-        if filter_shape == FilterShape.GAUSSIAN:
-            if ndim == 1:
-                n_steps = np.ceil(0.8 * filter_scale / dx_min).astype(int)
-            else:  # ndim==2
-                n_steps = np.ceil(1.1 * filter_scale / dx_min).astype(int)
-        else:  # Taper
-            if ndim == 1:
-                n_steps = np.ceil(2.8 * filter_scale / dx_min).astype(int)
-            else:  # ndim==2
-                n_steps = np.ceil(3.9 * filter_scale / dx_min).astype(int)
 
     # First set up the mass matrix for the Galerkin basis from Shen (SISC95)
     M = (np.pi / 2) * (
@@ -234,6 +220,28 @@ class Filter:
 
         if self.n_steps < 0:
             raise ValueError("Filter requires N>=0")
+        # set number of steps if not supplied by user
+        if self.n_steps == 0:
+            if self.ndim > 2:
+                raise ValueError(f"When ndim > 2, you must set n_steps manually")
+            if self.filter_shape == FilterShape.GAUSSIAN:
+                if self.ndim == 1:
+                    self.n_steps = np.ceil(
+                        0.8 * self.filter_scale / self.dx_min
+                    ).astype(int)
+                else:  # ndim==2
+                    self.n_steps = np.ceil(
+                        1.1 * self.filter_scale / self.dx_min
+                    ).astype(int)
+            else:  # Taper
+                if self.ndim == 1:
+                    self.n_steps = np.ceil(
+                        2.8 * self.filter_scale / self.dx_min
+                    ).astype(int)
+                else:  # ndim==2
+                    self.n_steps = np.ceil(
+                        3.9 * self.filter_scale / self.dx_min
+                    ).astype(int)
 
         self.filter_spec = _compute_filter_spec(
             self.filter_scale,
