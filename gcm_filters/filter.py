@@ -67,56 +67,6 @@ def _compute_filter_spec(
     n_steps=0,
     root_tolerance=1e-8,
 ):
-    # Get default number of steps
-    if ndim > 2:
-        if n_steps == 0:
-            raise ValueError(f"When ndim > 2, you must set n_steps manually")
-        else:
-            n_steps_default = n_steps  # For ndim>2 we don't have a default
-    if filter_shape == FilterShape.GAUSSIAN:
-        if ndim == 1:
-            n_steps_default = np.ceil(0.8 * filter_scale / dx_min).astype(int)
-        else:  # ndim==2
-            n_steps_default = np.ceil(1.1 * filter_scale / dx_min).astype(int)
-    else:  # Taper
-        if ndim == 1:
-            n_steps_default = np.ceil(2.8 * filter_scale / dx_min).astype(int)
-        else:  # ndim==2
-            n_steps_default = np.ceil(3.9 * filter_scale / dx_min).astype(int)
-
-    # Set n_steps if needed and issue n_step warning, if needed
-    if n_steps == 0:
-        n_steps = n_steps_default
-
-    if n_steps < n_steps_default:
-        warnings.warn(
-            "Warning: You have set n_steps below the default. Results might not be accurate."
-        )
-
-    # Issue numerical stability warning, if needed
-    filter_factor = filter_scale / dx_min
-    if filter_shape == FilterShape.GAUSSIAN:
-        if ndim == 1:
-            if filter_factor >= 67:
-                warnings.warn(
-                    "Warning: Filter scale much larger than grid scale -> numerical instability possible"
-                )
-        elif ndim == 2:
-            if filter_factor >= 77:
-                warnings.warn(
-                    "Warning: Filter scale much larger than grid scale -> numerical instability possible"
-                )
-    else:  # Taper
-        if ndim == 1:
-            if filter_factor >= 19:
-                warnings.warn(
-                    "Warning: Filter scale much larger than grid scale -> numerical instability possible"
-                )
-        elif ndim == 2:
-            if filter_factor >= 20:
-                warnings.warn(
-                    "Warning: Filter scale much larger than grid scale -> numerical instability possible"
-                )
 
     # Set up the mass matrix for the Galerkin basis from Shen (SISC95)
     M = (np.pi / 2) * (
@@ -271,6 +221,57 @@ class Filter:
 
         if self.n_steps < 0:
             raise ValueError("Filter requires N>=0")
+
+        # Get default number of steps
+        filter_factor = self.filter_scale / self.dx_min
+        if self.ndim > 2:
+            if self.n_steps == 0:
+                raise ValueError(f"When ndim > 2, you must set n_steps manually")
+            else:
+                n_steps_default = self.n_steps  # For ndim>2 we don't have a default
+        if self.filter_shape == FilterShape.GAUSSIAN:
+            if self.ndim == 1:
+                n_steps_default = np.ceil(0.8 * filter_factor).astype(int)
+            else:  # ndim==2
+                n_steps_default = np.ceil(1.1 * filter_factor).astype(int)
+        else:  # Taper
+            if self.ndim == 1:
+                n_steps_default = np.ceil(2.8 * filter_factor).astype(int)
+            else:  # ndim==2
+                n_steps_default = np.ceil(3.9 * filter_factor).astype(int)
+
+        # Set n_steps if needed and issue n_step warning, if needed
+        if self.n_steps == 0:
+            self.n_steps = n_steps_default
+
+        if self.n_steps < n_steps_default:
+            warnings.warn(
+                "Warning: You have set n_steps below the default. Results might not be accurate."
+            )
+
+        # Issue numerical stability warning, if needed
+        if self.filter_shape == FilterShape.GAUSSIAN:
+            if self.ndim == 1:
+                if filter_factor >= 67:
+                    warnings.warn(
+                        "Warning: Filter scale much larger than grid scale -> numerical instability possible"
+                    )
+            elif self.ndim == 2:
+                if filter_factor >= 77:
+                    warnings.warn(
+                        "Warning: Filter scale much larger than grid scale -> numerical instability possible"
+                    )
+        else:  # Taper
+            if self.ndim == 1:
+                if filter_factor >= 19:
+                    warnings.warn(
+                        "Warning: Filter scale much larger than grid scale -> numerical instability possible"
+                    )
+            elif self.ndim == 2:
+                if filter_factor >= 20:
+                    warnings.warn(
+                        "Warning: Filter scale much larger than grid scale -> numerical instability possible"
+                    )
 
         self.filter_spec = _compute_filter_spec(
             self.filter_scale,
