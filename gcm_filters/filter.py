@@ -2,13 +2,13 @@
 import enum
 import warnings
 
-from dataclasses import dataclass, field
 from itertools import chain, zip_longest
 from typing import Iterable, NamedTuple
 
 import numpy as np
 import xarray as xr
 
+from dataclasses import dataclass, field
 from scipy import interpolate
 
 from .gpu_compat import get_array_module
@@ -16,6 +16,18 @@ from .kernels import ALL_KERNELS, BaseLaplacian, GridType
 
 
 FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
+
+
+filter_params = {
+    FilterShape.GAUSSIAN: {
+        1: {"n_steps_factor": 0.8, "max_filter_factor": 67},
+        2: {"n_steps_factor": 1.1, "max_filter_factor": 77},
+    },
+    FilterShape.TAPER: {
+        1: {"n_steps_factor": 2.8, "max_filter_factor": 19},
+        2: {"n_steps_factor": 3.9, "max_filter_factor": 20},
+    },
+}
 
 
 class TargetSpec(NamedTuple):
@@ -229,16 +241,11 @@ class Filter:
                 raise ValueError(f"When ndim > 2, you must set n_steps manually")
             else:
                 n_steps_default = self.n_steps  # For ndim>2 we don't have a default
-        if self.filter_shape == FilterShape.GAUSSIAN:
-            if self.ndim == 1:
-                n_steps_default = np.ceil(0.8 * filter_factor).astype(int)
-            else:  # ndim==2
-                n_steps_default = np.ceil(1.1 * filter_factor).astype(int)
-        else:  # Taper
-            if self.ndim == 1:
-                n_steps_default = np.ceil(2.8 * filter_factor).astype(int)
-            else:  # ndim==2
-                n_steps_default = np.ceil(3.9 * filter_factor).astype(int)
+        else:
+            n_steps_default = np.ceil(
+                filter_params[self.filter_shape][self.ndim]["n_steps_factor"]
+                * filter_factor
+            ).astype(int)
 
         # Set n_steps if needed and issue n_step warning, if needed
         if self.n_steps == 0:
@@ -250,28 +257,13 @@ class Filter:
             )
 
         # Issue numerical stability warning, if needed
-        if self.filter_shape == FilterShape.GAUSSIAN:
-            if self.ndim == 1:
-                if filter_factor >= 67:
-                    warnings.warn(
-                        "Warning: Filter scale much larger than grid scale -> numerical instability possible"
-                    )
-            elif self.ndim == 2:
-                if filter_factor >= 77:
-                    warnings.warn(
-                        "Warning: Filter scale much larger than grid scale -> numerical instability possible"
-                    )
-        else:  # Taper
-            if self.ndim == 1:
-                if filter_factor >= 19:
-                    warnings.warn(
-                        "Warning: Filter scale much larger than grid scale -> numerical instability possible"
-                    )
-            elif self.ndim == 2:
-                if filter_factor >= 20:
-                    warnings.warn(
-                        "Warning: Filter scale much larger than grid scale -> numerical instability possible"
-                    )
+        max_filter_factor = filter_params[self.filter_shape][self.ndim][
+            "max_filter_factor"
+        ]
+        if filter_factor >= max_filter_factor:
+            warnings.warn(
+                "Warning: Filter scale much larger than grid scale -> numerical instability possible"
+            )
 
         self.filter_spec = _compute_filter_spec(
             self.filter_scale,
