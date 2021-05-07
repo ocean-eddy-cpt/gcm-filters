@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from itertools import chain, zip_longest
 from typing import Iterable, NamedTuple
 
+import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
@@ -66,6 +67,7 @@ def _compute_filter_spec(
     ndim=2,
     n_steps=0,
     root_tolerance=1e-8,
+    plot_shape=False,
 ):
 
     # Set up the mass matrix for the Galerkin basis from Shen (SISC95)
@@ -108,38 +110,68 @@ def _compute_filter_spec(
     p[n_steps - 1] = -c_hat[n_steps - 3]
     p[n_steps] = -c_hat[n_steps - 2]
 
-    # Get roots of the polynomial
-    r = np.polynomial.chebyshev.chebroots(p)
+    if not plot_shape:
+        # Get roots of the polynomial
+        r = np.polynomial.chebyshev.chebroots(p)
 
-    # convert back to s in [0,sMax]
-    s = s_max / 2 * (r + 1)
-    # Separate out the real and complex roots
-    n_lap_steps = np.size(s[np.where(np.abs(r.imag / r.real) < root_tolerance)])
-    s_l = np.real(s[np.where(np.abs(r.imag / r.real) < root_tolerance)])
-    n_bih_steps = (n_steps - n_lap_steps) // 2
-    s_b_re, indices = np.unique(
-        np.real(s[np.where(np.abs(r.imag / r.real) > root_tolerance)]),
-        return_index=True,
-    )
-    s_b_im = np.imag(s[np.where(np.abs(r.imag / r.real) > root_tolerance)])[indices]
-    s_b = s_b_re + s_b_im * 1j
+        # convert back to s in [0,sMax]
+        s = s_max / 2 * (r + 1)
+        # Separate out the real and complex roots
+        n_lap_steps = np.size(s[np.where(np.abs(r.imag / r.real) < root_tolerance)])
+        s_l = np.real(s[np.where(np.abs(r.imag / r.real) < root_tolerance)])
+        n_bih_steps = (n_steps - n_lap_steps) // 2
+        s_b_re, indices = np.unique(
+            np.real(s[np.where(np.abs(r.imag / r.real) > root_tolerance)]),
+            return_index=True,
+        )
+        s_b_im = np.imag(s[np.where(np.abs(r.imag / r.real) > root_tolerance)])[indices]
+        s_b = s_b_re + s_b_im * 1j
 
-    # Alternate stages that damp and amplify small scales
-    s = np.concatenate((s_l, s_b))
-    n_steps_total = s.shape[0]
-    indices = np.argsort(np.abs(1 - s_max / s))
-    s = s[indices]  # sorted from most damping to most amplifying
-    ind_damping = np.argwhere(np.abs(1 - s_max / s) <= 1)
-    ind_amplifying = np.argwhere(np.abs(1 - s_max / s) > 1)
-    s_damping = s[ind_damping].tolist()  # Damping roots, sorted most to least damping
-    s_amplifying = s[
-        ind_amplifying
-    ].tolist()  # Amplifying roots, sorted least to most amplifying
-    s = [x for x in chain(*zip_longest(s_damping, s_amplifying)) if x is not None]
-    s = np.array([y for x in s for y in x])
-    is_laplacian = np.abs(s.imag / s.real) < root_tolerance
+        # Alternate stages that damp and amplify small scales
+        s = np.concatenate((s_l, s_b))
+        n_steps_total = s.shape[0]
+        indices = np.argsort(np.abs(1 - s_max / s))
+        s = s[indices]  # sorted from most damping to most amplifying
+        ind_damping = np.argwhere(np.abs(1 - s_max / s) <= 1)
+        ind_amplifying = np.argwhere(np.abs(1 - s_max / s) > 1)
+        s_damping = s[
+            ind_damping
+        ].tolist()  # Damping roots, sorted most to least damping
+        s_amplifying = s[
+            ind_amplifying
+        ].tolist()  # Amplifying roots, sorted least to most amplifying
+        s = [x for x in chain(*zip_longest(s_damping, s_amplifying)) if x is not None]
+        s = np.array([y for x in s for y in x])
+        is_laplacian = np.abs(s.imag / s.real) < root_tolerance
 
-    return FilterSpec(n_steps_total, s, is_laplacian)
+        return FilterSpec(n_steps_total, s, is_laplacian)
+    else:
+        # Plot the target filter and the approximate filter
+        x = np.linspace(-1, 1, 10001)
+        k = np.sqrt(s_max * (x + 1) / 2)
+        plt.plot(k, F(x), "g", label="target filter", linewidth=4)
+        plt.plot(
+            k,
+            np.polynomial.chebyshev.chebval(x, p),
+            "m",
+            label="approximation",
+            linewidth=4,
+        )
+        plt.axvline(
+            2 * np.pi / filter_scale,
+            color="k",
+            label="filter cutoff wavenumber",
+            linewidth=2,
+        )
+        plt.xlim(left=0)
+        if filter_scale / dx_min > 10:
+            plt.xlim(right=4 * np.pi / filter_scale)
+        bottom, top = plt.ylim()
+        plt.ylim(bottom=-0.1)
+        plt.ylim(top=1.1)
+        plt.xlabel("Wavenumber k", fontsize=18)
+        plt.grid(True)
+        plt.legend()
 
 
 def _create_filter_func(
@@ -290,6 +322,18 @@ class Filter:
                 f"{list(self.Laplacian.required_grid_args())}"
             )
         self.grid_ds = xr.Dataset({name: da for name, da in self.grid_vars.items()})
+
+    def plot_shape(self):
+        """Plot the shape of the target filter and approximation."""
+        _compute_filter_spec(
+            self.filter_scale,
+            self.dx_min,
+            self.filter_shape,
+            self.transition_width,
+            self.ndim,
+            self.n_steps,
+            plot_shape=True,
+        )
 
     def apply(self, field, dims):
         """Filter a field across the dimensions specified by dims."""
