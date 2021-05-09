@@ -233,28 +233,6 @@ class Filter:
 
         if self.n_steps < 0:
             raise ValueError("Filter requires n_steps >= 0")
-        # set number of steps if not supplied by user
-        if self.n_steps == 0:
-            if self.ndim > 2:
-                raise ValueError(f"When ndim > 2, you must set n_steps manually")
-            if self.filter_shape == FilterShape.GAUSSIAN:
-                if self.ndim == 1:
-                    self.n_steps = np.ceil(
-                        0.8 * self.filter_scale / self.dx_min
-                    ).astype(int)
-                else:  # ndim==2
-                    self.n_steps = np.ceil(
-                        1.1 * self.filter_scale / self.dx_min
-                    ).astype(int)
-            else:  # Taper
-                if self.ndim == 1:
-                    self.n_steps = np.ceil(
-                        2.8 * self.filter_scale / self.dx_min
-                    ).astype(int)
-                else:  # ndim==2
-                    self.n_steps = np.ceil(
-                        3.9 * self.filter_scale / self.dx_min
-                    ).astype(int)
 
         # Get default number of steps
         filter_factor = self.filter_scale / self.dx_min
