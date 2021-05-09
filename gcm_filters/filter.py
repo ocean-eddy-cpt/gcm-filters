@@ -2,13 +2,13 @@
 import enum
 import warnings
 
+from dataclasses import dataclass, field
 from itertools import chain, zip_longest
 from typing import Iterable, NamedTuple
 
 import numpy as np
 import xarray as xr
 
-from dataclasses import dataclass, field
 from scipy import interpolate
 
 from .gpu_compat import get_array_module
@@ -232,7 +232,7 @@ class Filter:
     def __post_init__(self):
 
         if self.n_steps < 0:
-            raise ValueError("Filter requires N>=0")
+            raise ValueError("Filter requires n_steps >= 0")
         # set number of steps if not supplied by user
         if self.n_steps == 0:
             if self.ndim > 2:
