@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import pytest
 import xarray as xr
@@ -7,10 +9,9 @@ from gcm_filters.filter import FilterSpec
 
 
 def _check_equal_filter_spec(spec1, spec2):
-    assert spec1.n_lap_steps == spec2.n_lap_steps
-    assert spec1.n_bih_steps == spec2.n_bih_steps
-    np.testing.assert_allclose(spec1.s_l, spec2.s_l)
-    np.testing.assert_allclose(spec1.s_b, spec2.s_b)
+    assert spec1.n_steps_total == spec2.n_steps_total
+    np.testing.assert_allclose(spec1.s, spec2.s)
+    assert (spec1.is_laplacian == spec2.is_laplacian).all()
 
 
 # These values were just hard copied from my dev environment.
@@ -26,13 +27,33 @@ def _check_equal_filter_spec(spec1, spec2):
                 filter_shape=FilterShape.GAUSSIAN,
                 transition_width=np.pi,
                 ndim=2,
-                n_steps=4,
             ),
             FilterSpec(
-                n_lap_steps=4,
-                s_l=[2.56046256, 8.47349198, 15.22333438, 19.7392088],
-                n_bih_steps=0,
-                s_b=[],
+                n_steps_total=10,
+                s=[
+                    8.0 + 0.0j,
+                    3.42929331 + 0.0j,
+                    7.71587822 + 0.0j,
+                    2.41473596 + 0.0j,
+                    7.18021542 + 0.0j,
+                    1.60752541 + 0.0j,
+                    6.42502377 + 0.0j,
+                    0.81114415 - 0.55260985j,
+                    5.50381534 + 0.0j,
+                    4.48146765 + 0.0j,
+                ],
+                is_laplacian=[
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    False,
+                    True,
+                    True,
+                ],
             ),
         ),
         (
@@ -44,15 +65,13 @@ def _check_equal_filter_spec(spec1, spec2):
                 ndim=1,
             ),
             FilterSpec(
-                n_lap_steps=1,
-                s_l=[9.8696044],
-                n_bih_steps=4,
-                s_b=[
-                    -0.74638043 - 1.24167777j,
-                    3.06062496 - 3.94612205j,
-                    7.80242999 - 3.18038659j,
-                    9.81491354 - 0.44874939j,
+                n_steps_total=3,
+                s=[
+                    5.23887374 - 1.09644141j,
+                    -0.76856043 - 1.32116962j,
+                    3.00058907 - 2.95588288j,
                 ],
+                is_laplacian=[False, False, False],
             ),
         ),
     ],
@@ -70,16 +89,15 @@ def grid_type_and_input_ds(request):
 
     ny, nx = (128, 256)
     data = np.random.rand(ny, nx)
-    da = xr.DataArray(data, dims=["y", "x"])
 
     grid_vars = {}
 
-    if grid_type == GridType.CARTESIAN_WITH_LAND:
+    if grid_type == GridType.REGULAR_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
         grid_vars = {"wet_mask": da_mask}
-    if grid_type == GridType.IRREGULAR_CARTESIAN_WITH_LAND:
+    if grid_type == GridType.IRREGULAR_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
@@ -95,13 +113,35 @@ def grid_type_and_input_ds(request):
             "kappa_s": da_grid,
             "kappa_w": da_grid,
         }
+    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND:
+        mask_data = np.ones_like(data)
+        mask_data[: (ny // 2), : (nx // 2)] = 0
+        mask_data[0, :] = 0  #  Antarctica
+        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
+        grid_vars = {"wet_mask": da_mask}
+    if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
+        mask_data = np.ones_like(data)
+        mask_data[: (ny // 2), : (nx // 2)] = 0
+        mask_data[0, :] = 0  #  Antarctica
+        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
+        grid_data = np.ones_like(data)
+        da_grid = xr.DataArray(grid_data, dims=["y", "x"])
+        grid_vars = {
+            "wet_mask": da_mask,
+            "dxe": da_grid,
+            "dye": da_grid,
+            "dxn": da_grid,
+            "dyn": da_grid,
+            "tarea": da_grid,
+        }
+    da = xr.DataArray(data, dims=["y", "x"])
 
     return grid_type, da, grid_vars
 
 
 @pytest.mark.parametrize(
     "filter_args",
-    [dict(filter_scale=1.0, dx_min=1.0, n_steps=10, filter_shape=FilterShape.TAPER)],
+    [dict(filter_scale=3.0, dx_min=1.0, n_steps=0, filter_shape=FilterShape.GAUSSIAN)],
 )
 def test_filter(grid_type_and_input_ds, filter_args):
     grid_type, da, grid_vars = grid_type_and_input_ds
@@ -110,7 +150,10 @@ def test_filter(grid_type_and_input_ds, filter_args):
 
     # check conservation
     # this would need to be replaced by a proper area-weighted integral
-    xr.testing.assert_allclose(da.sum(), filtered.sum())
+    da_sum = da.sum()
+    filtered_sum = filtered.sum()
+
+    xr.testing.assert_allclose(da_sum, filtered_sum)
 
     # check variance reduction
     assert (filtered ** 2).sum() < (da ** 2).sum()
@@ -122,3 +165,20 @@ def test_filter(grid_type_and_input_ds, filter_args):
             filter = Filter(
                 grid_type=grid_type, grid_vars=grid_vars_missing, **filter_args
             )
+
+    bad_filter_args = copy.deepcopy(filter_args)
+    # check that we get an error if ndim > 2 and n_steps = 0
+    bad_filter_args["ndim"] = 3
+    bad_filter_args["n_steps"] = 0
+    with pytest.raises(ValueError, match=r"When ndim > 2, you .*"):
+        filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
+    # check that we get a warning if n_steps < n_steps_default
+    bad_filter_args["ndim"] = 2
+    bad_filter_args["n_steps"] = 3
+    with pytest.warns(UserWarning, match=r"Warning: You have set n_steps .*"):
+        filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
+    # check that we get a warning if numerical instability possible
+    bad_filter_args["n_steps"] = 0
+    bad_filter_args["filter_scale"] = 1000
+    with pytest.warns(UserWarning, match=r"Warning: Filter scale much larger .*"):
+        filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)

@@ -12,10 +12,27 @@ from .gpu_compat import ArrayType, get_array_module
 
 # not married to the term "Cartesian"
 GridType = enum.Enum(
-    "GridType", ["CARTESIAN", "CARTESIAN_WITH_LAND", "IRREGULAR_CARTESIAN_WITH_LAND"]
+    "GridType",
+    [
+        "REGULAR",
+        "REGULAR_WITH_LAND",
+        "IRREGULAR_WITH_LAND",
+        "TRIPOLAR_REGULAR_WITH_LAND",
+        "TRIPOLAR_POP_WITH_LAND",
+    ],
 )
 
 ALL_KERNELS = {}  # type: Dict[GridType, Any]
+
+
+def _prepare_tripolar_exchanges(field):
+    """Auxiliary function that prepares T-field for northern boundary exchanges on tripolar grid"""
+    np = get_array_module(field)
+
+    folded = field[..., [-1], :]  # grab northernmost row
+    folded = folded[..., ::-1]  # mirror it
+    field_extended = np.concatenate((field, folded), axis=-2)  # append it
+    return field_extended
 
 
 @dataclass
@@ -34,7 +51,7 @@ class BaseLaplacian(ABC):
 
 
 @dataclass
-class CartesianLaplacian(BaseLaplacian):
+class RegularLaplacian(BaseLaplacian):
     """Laplacian for regularly spaced Cartesian grids."""
 
     def __call__(self, field: ArrayType):
@@ -48,11 +65,11 @@ class CartesianLaplacian(BaseLaplacian):
         )
 
 
-ALL_KERNELS[GridType.CARTESIAN] = CartesianLaplacian
+ALL_KERNELS[GridType.REGULAR] = RegularLaplacian
 
 
 @dataclass
-class CartesianLaplacianWithLandMask(BaseLaplacian):
+class RegularLaplacianWithLandMask(BaseLaplacian):
     """Laplacian for regularly spaced Cartesian grids with land mask.
 
     Attributes
@@ -90,7 +107,7 @@ class CartesianLaplacianWithLandMask(BaseLaplacian):
         return out
 
 
-ALL_KERNELS[GridType.CARTESIAN_WITH_LAND] = CartesianLaplacianWithLandMask
+ALL_KERNELS[GridType.REGULAR_WITH_LAND] = RegularLaplacianWithLandMask
 
 
 @dataclass
@@ -140,30 +157,160 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
             self.wet_mask * np.roll(self.wet_mask, -1, axis=-2) * self.kappa_s
         )
 
+        # derive wet mask for western cell edge from wet_mask at T points via
+        # w_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j,i-1)
+        # note: wet_mask(j,i-1) corresponds to np.roll(wet_mask, +1, axis=-1)
+        self.w_wet_mask = self.wet_mask * np.roll(self.wet_mask, 1, axis=-1)
+
+        # derive wet mask for southern cell edge from wet_mask at T points via
+        # s_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j-1,i)
+        # note: wet_mask(j-1,i) corresponds to np.roll(wet_mask, +1, axis=-2)
+        self.s_wet_mask = self.wet_mask * np.roll(self.wet_mask, 1, axis=-2)
+
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
 
         out = np.nan_to_num(field)
 
         wflux = (
-            (out - np.roll(out, -1, axis=-1)) / self.dxw * self.dyw
+            (out - np.roll(out, 1, axis=-1)) / self.dxw * self.dyw
         )  # flux across western cell edge
         sflux = (
-            (out - np.roll(out, -1, axis=-2)) / self.dys * self.dxs
+            (out - np.roll(out, 1, axis=-2)) / self.dys * self.dxs
         )  # flux across southern cell edge
 
         wflux = wflux * self.w_wet_mask  # no-flux boundary condition
         sflux = sflux * self.s_wet_mask  # no-flux boundary condition
 
-        out = np.roll(wflux, 1, axis=-1) - wflux + np.roll(sflux, 1, axis=-2) - sflux
+        out = np.roll(wflux, -1, axis=-1) - wflux + np.roll(sflux, -1, axis=-2) - sflux
 
         out = out / self.area
         return out
 
 
-ALL_KERNELS[
-    GridType.IRREGULAR_CARTESIAN_WITH_LAND
-] = IrregularCartesianLaplacianWithLandMask
+ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularLaplacianWithLandMask
+
+
+@dataclass
+class TripolarRegularLaplacianTpoint(BaseLaplacian):
+    """Laplacian for fields defined at T-points on POP tripolar grid geometry with land mask, but assuming that dx = dy = 1
+
+    Attributes
+    ----------
+    wet_mask: Mask array, 1 for ocean, 0 for land
+    """
+
+    wet_mask: ArrayType
+
+    def __post_init__(self):
+        np = get_array_module(self.wet_mask)
+
+        # check that southernmost row of wet mask has only zeros
+        if self.wet_mask[..., 0, :].any():
+            raise AssertionError("Wet mask requires zeros in southernmost row")
+
+        wet_mask_extended = _prepare_tripolar_exchanges(self.wet_mask)
+        self.wet_fac = (
+            np.roll(wet_mask_extended, -1, axis=-1)
+            + np.roll(wet_mask_extended, 1, axis=-1)
+            + np.roll(wet_mask_extended, -1, axis=-2)
+            + np.roll(wet_mask_extended, 1, axis=-2)
+        )  # todo: inherit this operation from CartesianLaplacianWithLandMask
+
+    def __call__(self, field: ArrayType):
+        np = get_array_module(field)
+
+        data = np.nan_to_num(field)  # set all nans to zero
+        data = self.wet_mask * data
+        data = _prepare_tripolar_exchanges(data)
+
+        out = (
+            -self.wet_fac * data
+            + np.roll(data, -1, axis=-1)
+            + np.roll(data, 1, axis=-1)
+            + np.roll(data, -1, axis=-2)
+            + np.roll(data, 1, axis=-2)
+        )  # todo: inherit this operation from CartesianLaplacianWithLandMask
+
+        out = out[..., :-1, :]  # disregard appended row
+
+        out = self.wet_mask * out
+        return out
+
+
+ALL_KERNELS[GridType.TRIPOLAR_REGULAR_WITH_LAND] = TripolarRegularLaplacianTpoint
+
+
+@dataclass
+class POPTripolarLaplacianTpoint(BaseLaplacian):
+    """Laplacian for irregularly spaced Cartesian grids with land mask.
+
+    Attributes
+    ----------
+    wet_mask: Mask array, 1 for ocean, 0 for land; can be obtained via xr.where(KMT>0, 1, 0)
+    dxe: x-spacing centered at eastern T-cell edge, provided by model diagnostic HUS(nlat, nlon)
+    dye: y-spacing centered at eastern  T-cell edge, provided by model diagnostic HTE(nlat, nlon)
+    dxn: x-spacing centered at northern T-cell edge, provided by model diagnostic HTN(nlat, nlon)
+    dyn: y-spacing centered at northern T-cell edge, provided by model diagnostic HUW(nlat, nlon)
+    tarea: cell area, provided by model diagnostic TAREA(nlat, nlon)
+    """
+
+    wet_mask: ArrayType
+    dxe: ArrayType
+    dye: ArrayType
+    dxn: ArrayType
+    dyn: ArrayType
+    tarea: ArrayType
+
+    def __post_init__(self):
+        np = get_array_module(self.wet_mask)
+
+        # check that southernmost row of wet mask has only zeros
+        if self.wet_mask[..., 0, :].any():
+            raise AssertionError("Wet mask requires zeros in southernmost row")
+
+        # prepare grid information for northern boundary exchanges
+        self.dxe = _prepare_tripolar_exchanges(self.dxe)
+        self.dye = _prepare_tripolar_exchanges(self.dye)
+        self.dxn = _prepare_tripolar_exchanges(self.dxn)
+        self.dyn = _prepare_tripolar_exchanges(self.dyn)
+        self.wet_mask = _prepare_tripolar_exchanges(self.wet_mask)
+
+        # derive wet mask for eastern cell edge from wet_mask at T points via
+        # e_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j,i+1)
+        # note: wet_mask(j,i+1) corresponds to np.roll(wet_mask, -1, axis=-1)
+        self.e_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-1)
+
+        # derive wet mask for northern cell edge from wet_mask at T points via
+        # n_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j+1,i)
+        # note: wet_mask(j+1,i) corresponds to np.roll(wet_mask, -1, axis=-2)
+        self.n_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2)
+
+    def __call__(self, field: ArrayType):
+        np = get_array_module(field)
+        data = np.nan_to_num(field)  # set all nans to zero
+
+        # prepare data for northern boundary exchanges
+        data = _prepare_tripolar_exchanges(data)
+
+        eflux = (
+            (np.roll(data, -1, axis=-1) - data) / self.dxe * self.dye
+        )  # flux across eastern T-cell edge
+        nflux = (
+            (np.roll(data, -1, axis=-2) - data) / self.dyn * self.dxn
+        )  # flux across northern T-cell edge
+
+        eflux = eflux * self.e_wet_mask  # no-flux boundary condition
+        nflux = nflux * self.n_wet_mask  # no-flux boundary condition
+
+        out = eflux - np.roll(eflux, 1, axis=-1) + nflux - np.roll(nflux, 1, axis=-2)
+
+        out = out[..., :-1, :]  # disregard appended row
+        out = out / self.tarea
+        return out
+
+
+ALL_KERNELS[GridType.TRIPOLAR_POP_WITH_LAND] = POPTripolarLaplacianTpoint
 
 
 def required_grid_vars(grid_type: GridType):
