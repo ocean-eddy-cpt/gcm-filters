@@ -52,9 +52,12 @@ If the filter scale is much larger than the grid scale, many steps are required.
 Also, the Taper filter requires more steps than the Gaussian filter for the same ``filter_scale``.
 
 The code allows users to set their own number of steps ``n_steps``.
-The minimum number of steps is 3, and biharmonic steps count as 2, so with ``n_steps`` = 3 you might get one Laplacian plus one biharmonic step, or three Laplacian steps.
+The minimum number of steps is 3; if ``n_steps`` is not set by the user, or if it is set to a value less than 3, the code automatically changes ``n_steps`` to the default value.
+If the number of steps is set too low the filter will not behave as expected: it may not have the right shape or the right length scale.
+
+Biharmonic steps are counted as 2 steps because their cost is approximately twice as much as a laplacian step.
+So with ``n_steps`` = 3 you might get one Laplacian plus one biharmonic step, or three Laplacian steps.
 (The user cannot choose how ``n_steps`` is split between Laplacian and Biharmonic steps; that split is set internally in the code.)
-If the number of steps is too low the filter will not behave as expected: it may not have the right shape or the right length scale.
 
 Once a filter object has been constructed, the method ``plot_shape`` can be used to plot the shape of the target filter and the approximate filter.
 This can be particularly useful if the user is trying to reduce ``n_steps`` from its default value without introducing sigificant errors.
