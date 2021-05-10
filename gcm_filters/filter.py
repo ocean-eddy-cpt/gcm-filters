@@ -231,8 +231,8 @@ class Filter:
 
     def __post_init__(self):
 
-        if self.n_steps < 0:
-            raise ValueError("Filter requires n_steps >= 0")
+        if self.n_steps < 3:
+            raise ValueError("Filter requires n_steps >= 3")
 
         # Get default number of steps
         filter_factor = self.filter_scale / self.dx_min
