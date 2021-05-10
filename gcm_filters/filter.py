@@ -2,13 +2,13 @@
 import enum
 import warnings
 
+from dataclasses import dataclass, field
 from itertools import chain, zip_longest
 from typing import Iterable, NamedTuple
 
 import numpy as np
 import xarray as xr
 
-from dataclasses import dataclass, field
 from scipy import interpolate
 
 from .gpu_compat import get_array_module
@@ -231,35 +231,10 @@ class Filter:
 
     def __post_init__(self):
 
-        if self.n_steps < 0:
-            raise ValueError("Filter requires N>=0")
-        # set number of steps if not supplied by user
-        if self.n_steps == 0:
-            if self.ndim > 2:
-                raise ValueError(f"When ndim > 2, you must set n_steps manually")
-            if self.filter_shape == FilterShape.GAUSSIAN:
-                if self.ndim == 1:
-                    self.n_steps = np.ceil(
-                        0.8 * self.filter_scale / self.dx_min
-                    ).astype(int)
-                else:  # ndim==2
-                    self.n_steps = np.ceil(
-                        1.1 * self.filter_scale / self.dx_min
-                    ).astype(int)
-            else:  # Taper
-                if self.ndim == 1:
-                    self.n_steps = np.ceil(
-                        2.8 * self.filter_scale / self.dx_min
-                    ).astype(int)
-                else:  # ndim==2
-                    self.n_steps = np.ceil(
-                        3.9 * self.filter_scale / self.dx_min
-                    ).astype(int)
-
         # Get default number of steps
         filter_factor = self.filter_scale / self.dx_min
         if self.ndim > 2:
-            if self.n_steps == 0:
+            if self.n_steps < 3:
                 raise ValueError(f"When ndim > 2, you must set n_steps manually")
             else:
                 n_steps_default = self.n_steps  # For ndim>2 we don't have a default
@@ -270,12 +245,13 @@ class Filter:
             ).astype(int)
 
         # Set n_steps if needed and issue n_step warning, if needed
-        if self.n_steps == 0:
+        if self.n_steps < 3:
             self.n_steps = n_steps_default
 
         if self.n_steps < n_steps_default:
             warnings.warn(
-                "Warning: You have set n_steps below the default. Results might not be accurate."
+                "Warning: You have set n_steps below the default. Results might not be accurate.",
+                UserWarning,
             )
 
         # Issue numerical stability warning, if needed
@@ -284,7 +260,8 @@ class Filter:
         ]
         if filter_factor >= max_filter_factor:
             warnings.warn(
-                "Warning: Filter scale much larger than grid scale -> numerical instability possible"
+                "Warning: Filter scale much larger than grid scale -> numerical instability possible",
+                UserWarning,
             )
 
         self.filter_spec = _compute_filter_spec(

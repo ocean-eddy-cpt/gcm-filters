@@ -14,12 +14,12 @@ repos:
     - id: file-contents-sorter
       files: requirements-dev.txt
 
-- repo: https://gitlab.com/pycqa/flake8
-  rev: 3.9.1
-  hooks:
-    - id: flake8
-      exclude: docs/source/conf.py
-      args: [--max-line-length=105, --ignore=E203,E501,W503, --select=select=C,E,F,W,B,B950]
+#- repo: https://gitlab.com/pycqa/flake8
+#  rev: 3.9.1
+#  hooks:
+#    - id: flake8
+#      exclude: docs/source/conf.py
+#      args: [--max-line-length=105, --ignore=E203,E501,W503, --select=select=C,E,F,W,B,B950]
 
 - repo: https://github.com/pre-commit/mirrors-isort
   rev: v5.8.0
