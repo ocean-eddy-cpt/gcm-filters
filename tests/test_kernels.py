@@ -202,7 +202,7 @@ def test_tripolar_exchanges(grid_type_field_and_extra_kwargs):
 
         delta = np.zeros_like(data)
         nx = np.shape(delta)[1]
-        random_loc = np.random.randint(0, nx)
+        random_loc = np.random.randint(1, nx // 2 - 2)
         delta[-1, random_loc] = 1  # deploy mass at northern boundary
 
         diffused = laplacian(delta)
