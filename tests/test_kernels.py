@@ -202,8 +202,9 @@ def test_tripolar_exchanges(grid_type_field_and_extra_kwargs):
 
         delta = np.zeros_like(data)
         nx = np.shape(delta)[1]
-        random_loc = np.random.randint(0, nx)
-        delta[-1, random_loc] = 1  # deploy mass at northern boundary
+        # deploy mass at northern boundary, away from boundaries and pivot point in middle
+        random_loc = np.random.randint(1, nx // 2 - 2)
+        delta[-1, random_loc] = 1
 
         diffused = laplacian(delta)
         # check that delta function gets diffused isotropically across northern boundary
