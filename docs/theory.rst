@@ -32,7 +32,7 @@ The default is ``transition_width`` = :math:`\pi`.
 Larger values reduce the cost and the likelihood of producing negative values from positive data, but make the filter less scale-selective.
 
 Filter Steps
--------------
+------------
 
 The filter goes through several steps to produce the final filtered field.
 There are two different kinds of steps: "Laplacian" and "Biharmonic" steps.
@@ -56,11 +56,24 @@ The minimum number of steps is 3, and biharmonic steps count as 2, so with ``n_s
 (The user cannot choose how ``n_steps`` is split between Laplacian and Biharmonic steps; that split is set internally in the code.)
 If the number of steps is too low the filter will not behave as expected: it may not have the right shape or the right length scale.
 
+Once a filter object has been constructed, the method ``plot_shape`` can be used to plot the shape of the target filter and the approximate filter.
+This can be particularly useful if the user is trying to reduce ``n_steps`` from its default value without introducing sigificant errors.
+``plot_shape`` does not plot the shape of the filter *kernel*.
+Instead, it plots the shape in "Fourier" space.
+Length scales are related to wavelengths by :math:`\ell = 2\pi/k`.
+The filter leaves large scales unchanged, so ``plot_shape`` shows values close to 1 for small :math:`k`.
+The filter damps out small scales, so ``plot_shape`` shows values close to 0 for large :math:`k`.
+The tutorial gives examples of using ``plot_shape`` and interpreting the resulting plots.
+
+Numerical Stability
+-------------------
+
 When the filter scale is much larger than the grid scale the filter can become unstable to roundoff errors.
 The usual manifestation of these roundoff errors is high-amplitude small-scale noise in the filtered field.
 (This problem is worse for the Taper filter than the Gaussian filter.)
 In such cases users might elect to *coarsen* their data before filtering, i.e. to reduce the resolution of the input data before applying the filter.
 This has the effect of increasing the grid size, and thus decreasing the gap between the filter scale and the grid scale.
+The user can also try reducing `n_steps`, but must not reduce it too much or the resulting filter will not behave as expected.
 The only other option is to use a different approach to filtering, not based on ``gcm-filters``.
 
 Spatially-Varying Filter Scale
