@@ -231,13 +231,10 @@ class Filter:
 
     def __post_init__(self):
 
-        if self.n_steps < 3:
-            raise ValueError("Filter requires n_steps >= 3")
-
         # Get default number of steps
         filter_factor = self.filter_scale / self.dx_min
         if self.ndim > 2:
-            if self.n_steps == 0:
+            if self.n_steps < 3:
                 raise ValueError(f"When ndim > 2, you must set n_steps manually")
             else:
                 n_steps_default = self.n_steps  # For ndim>2 we don't have a default
@@ -248,7 +245,7 @@ class Filter:
             ).astype(int)
 
         # Set n_steps if needed and issue n_step warning, if needed
-        if self.n_steps == 0:
+        if self.n_steps < 3:
             self.n_steps = n_steps_default
 
         if self.n_steps < n_steps_default:
