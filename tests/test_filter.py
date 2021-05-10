@@ -171,6 +171,7 @@ def grid_type_and_input_ds(request):
 def test_filter(grid_type_and_input_ds, filter_args):
     grid_type, da, grid_vars = grid_type_and_input_ds
     filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **filter_args)
+    filter.plot_shape()
     filtered = filter.apply(da, dims=["y", "x"])
 
     # check conservation

@@ -284,7 +284,7 @@ class Filter:
             )
         self.grid_ds = xr.Dataset({name: da for name, da in self.grid_vars.items()})
 
-    def plot_shape(self):
+    def plot_shape(self, ax=None):
         """Plot the shape of the target filter and approximation."""
         import matplotlib.pyplot as plt
 
@@ -294,29 +294,30 @@ class Filter:
         F = _target_function[self.filter_shape](target_spec)
         x = np.linspace(-1, 1, 10001)
         k = np.sqrt(s_max * (x + 1) / 2)
-        plt.plot(k, F(x), "g", label="target filter", linewidth=4)
-        plt.plot(
+        if ax is None:
+            fig, ax = plt.subplots()
+        ax.plot(k, F(x), "g", label="target filter", linewidth=4)
+        ax.plot(
             k,
             np.polynomial.chebyshev.chebval(x, self.filter_spec.p),
             "m",
             label="approximation",
             linewidth=4,
         )
-        plt.axvline(
+        ax.axvline(
             2 * np.pi / self.filter_scale,
             color="k",
             label="filter cutoff wavenumber",
             linewidth=2,
         )
-        plt.xlim(left=0)
+        ax.set_xlim(left=0)
         if self.filter_scale / self.dx_min > 10:
-            plt.xlim(right=4 * np.pi / self.filter_scale)
-        bottom, top = plt.ylim()
-        plt.ylim(bottom=-0.1)
-        plt.ylim(top=1.1)
-        plt.xlabel("Wavenumber k", fontsize=18)
-        plt.grid(True)
-        plt.legend()
+            ax.set_xlim(right=4 * np.pi / self.filter_scale)
+        ax.set_ylim(bottom=-0.1)
+        ax.set_ylim(top=1.1)
+        ax.set_xlabel("Wavenumber k", fontsize=18)
+        ax.grid(True)
+        ax.legend()
 
     def apply(self, field, dims):
         """Filter a field across the dimensions specified by dims."""
