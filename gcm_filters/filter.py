@@ -253,7 +253,8 @@ class Filter:
 
         if self.n_steps < n_steps_default:
             warnings.warn(
-                "Warning: You have set n_steps below the default. Results might not be accurate."
+                "Warning: You have set n_steps below the default. Results might not be accurate.",
+                UserWarning,
             )
 
         # Issue numerical stability warning, if needed
@@ -262,7 +263,8 @@ class Filter:
         ]
         if filter_factor >= max_filter_factor:
             warnings.warn(
-                "Warning: Filter scale much larger than grid scale -> numerical instability possible"
+                "Warning: Filter scale much larger than grid scale -> numerical instability possible",
+                UserWarning,
             )
 
         self.filter_spec = _compute_filter_spec(
