@@ -54,6 +54,8 @@ def _check_equal_filter_spec(spec1, spec2):
                     True,
                     True,
                 ],
+                s_max=0,
+                p=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             ),
         ),
         (
@@ -72,6 +74,8 @@ def _check_equal_filter_spec(spec1, spec2):
                     3.00058907 - 2.95588288j,
                 ],
                 is_laplacian=[False, False, False],
+                s_max=0,
+                p=[0, 0, 0],
             ),
         ),
     ],
