@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import pytest
 import xarray as xr
@@ -25,17 +27,33 @@ def _check_equal_filter_spec(spec1, spec2):
                 filter_shape=FilterShape.GAUSSIAN,
                 transition_width=np.pi,
                 ndim=2,
-                n_steps=4,
             ),
             FilterSpec(
-                n_steps_total=4,
+                n_steps_total=10,
                 s=[
                     8.0 + 0.0j,
-                    3.5988264 + 0.0j,
-                    6.23694479 + 0.0j,
-                    1.27354703 + 0.0j,
+                    3.42929331 + 0.0j,
+                    7.71587822 + 0.0j,
+                    2.41473596 + 0.0j,
+                    7.18021542 + 0.0j,
+                    1.60752541 + 0.0j,
+                    6.42502377 + 0.0j,
+                    0.81114415 - 0.55260985j,
+                    5.50381534 + 0.0j,
+                    4.48146765 + 0.0j,
                 ],
-                is_laplacian=[True, True, True, True],
+                is_laplacian=[
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    False,
+                    True,
+                    True,
+                ],
             ),
         ),
         (
@@ -121,7 +139,7 @@ def grid_type_and_input_ds(request):
 
 @pytest.mark.parametrize(
     "filter_args",
-    [dict(filter_scale=1.0, dx_min=1.0, n_steps=10, filter_shape=FilterShape.TAPER)],
+    [dict(filter_scale=3.0, dx_min=1.0, n_steps=0, filter_shape=FilterShape.GAUSSIAN)],
 )
 def test_filter(grid_type_and_input_ds, filter_args):
     grid_type, da, grid_vars = grid_type_and_input_ds
@@ -145,3 +163,20 @@ def test_filter(grid_type_and_input_ds, filter_args):
             filter = Filter(
                 grid_type=grid_type, grid_vars=grid_vars_missing, **filter_args
             )
+
+    bad_filter_args = copy.deepcopy(filter_args)
+    # check that we get an error if ndim > 2 and n_steps = 0
+    bad_filter_args["ndim"] = 3
+    bad_filter_args["n_steps"] = 0
+    with pytest.raises(ValueError, match=r"When ndim > 2, you .*"):
+        filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
+    # check that we get a warning if n_steps < n_steps_default
+    bad_filter_args["ndim"] = 2
+    bad_filter_args["n_steps"] = 3
+    with pytest.warns(UserWarning, match=r"Warning: You have set n_steps .*"):
+        filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
+    # check that we get a warning if numerical instability possible
+    bad_filter_args["n_steps"] = 0
+    bad_filter_args["filter_scale"] = 1000
+    with pytest.warns(UserWarning, match=r"Warning: Filter scale much larger .*"):
+        filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
