@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from itertools import chain, zip_longest
 from typing import Iterable, NamedTuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
@@ -287,6 +286,8 @@ class Filter:
 
     def plot_shape(self):
         """Plot the shape of the target filter and approximation."""
+        import matplotlib.pyplot as plt
+
         # Plot the target filter and the approximate filter
         s_max = self.filter_spec.s_max
         target_spec = TargetSpec(s_max, self.filter_scale, self.transition_width)
