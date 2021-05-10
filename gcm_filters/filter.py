@@ -2,13 +2,13 @@
 import enum
 import warnings
 
+from dataclasses import dataclass, field
 from itertools import chain, zip_longest
 from typing import Iterable, NamedTuple
 
 import numpy as np
 import xarray as xr
 
-from dataclasses import dataclass, field
 from scipy import interpolate
 
 from .gpu_compat import get_array_module
