@@ -1,5 +1,6 @@
 """Main Filter class."""
 import enum
+import warnings
 
 from dataclasses import dataclass, field
 from itertools import chain, zip_longest
@@ -15,6 +16,18 @@ from .kernels import ALL_KERNELS, BaseLaplacian, GridType
 
 
 FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
+
+
+filter_params = {
+    FilterShape.GAUSSIAN: {
+        1: {"n_steps_factor": 0.8, "max_filter_factor": 67},
+        2: {"n_steps_factor": 1.1, "max_filter_factor": 77},
+    },
+    FilterShape.TAPER: {
+        1: {"n_steps_factor": 2.8, "max_filter_factor": 19},
+        2: {"n_steps_factor": 3.9, "max_filter_factor": 20},
+    },
+}
 
 
 class TargetSpec(NamedTuple):
@@ -67,7 +80,7 @@ def _compute_filter_spec(
     root_tolerance=1e-8,
 ):
 
-    # First set up the mass matrix for the Galerkin basis from Shen (SISC95)
+    # Set up the mass matrix for the Galerkin basis from Shen (SISC95)
     M = (np.pi / 2) * (
         2 * np.eye(n_steps - 1)
         - np.diag(np.ones(n_steps - 3), 2)
@@ -218,30 +231,38 @@ class Filter:
 
     def __post_init__(self):
 
-        if self.n_steps < 0:
-            raise ValueError("Filter requires N>=0")
-        # set number of steps if not supplied by user
-        if self.n_steps == 0:
-            if self.ndim > 2:
+        # Get default number of steps
+        filter_factor = self.filter_scale / self.dx_min
+        if self.ndim > 2:
+            if self.n_steps < 3:
                 raise ValueError(f"When ndim > 2, you must set n_steps manually")
-            if self.filter_shape == FilterShape.GAUSSIAN:
-                if self.ndim == 1:
-                    self.n_steps = np.ceil(
-                        0.8 * self.filter_scale / self.dx_min
-                    ).astype(int)
-                else:  # ndim==2
-                    self.n_steps = np.ceil(
-                        1.1 * self.filter_scale / self.dx_min
-                    ).astype(int)
-            else:  # Taper
-                if self.ndim == 1:
-                    self.n_steps = np.ceil(
-                        2.8 * self.filter_scale / self.dx_min
-                    ).astype(int)
-                else:  # ndim==2
-                    self.n_steps = np.ceil(
-                        3.9 * self.filter_scale / self.dx_min
-                    ).astype(int)
+            else:
+                n_steps_default = self.n_steps  # For ndim>2 we don't have a default
+        else:
+            n_steps_default = np.ceil(
+                filter_params[self.filter_shape][self.ndim]["n_steps_factor"]
+                * filter_factor
+            ).astype(int)
+
+        # Set n_steps if needed and issue n_step warning, if needed
+        if self.n_steps < 3:
+            self.n_steps = n_steps_default
+
+        if self.n_steps < n_steps_default:
+            warnings.warn(
+                "Warning: You have set n_steps below the default. Results might not be accurate.",
+                UserWarning,
+            )
+
+        # Issue numerical stability warning, if needed
+        max_filter_factor = filter_params[self.filter_shape][self.ndim][
+            "max_filter_factor"
+        ]
+        if filter_factor >= max_filter_factor:
+            warnings.warn(
+                "Warning: Filter scale much larger than grid scale -> numerical instability possible",
+                UserWarning,
+            )
 
         self.filter_spec = _compute_filter_spec(
             self.filter_scale,
