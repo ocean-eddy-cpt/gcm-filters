@@ -116,8 +116,8 @@ class IrregularLaplacianWithLandMask(BaseLaplacian):
        It is possible to vary the filter scale over the domain by
        introducing a nondimensional "diffusivity" (attributes kappa_w and kappa_s).
        For reasons given in Grooms et al. (2021) https://doi.org/10.1002/essoar.10506591.1,
-       We require that both kappa_w and kappa_s values must be <= 1 and that at least one
-       place in the domain must have kappa_s = kappa_w = 1. Otherwise the filter's scale will
+       we require that both kappa_w and kappa_s values must be <= 1 and that at least one
+       of them is set to 1 somewhere in the domain. Otherwise the filter's scale will
        not be equal to filter_scale anywhere in the domain.
 
     Attributes
@@ -129,10 +129,10 @@ class IrregularLaplacianWithLandMask(BaseLaplacian):
     dys: y-spacing centered at southern cell edge
     area: cell area
     kappa_w: zonal diffusivity centered at western cell edge, values must be <= 1, and at
-             least one place in the domain must have kappa_w = 1
+             least one place in the domain must have kappa_w = 1 if kappa_s < 1.
 
     kappa_s: meridional diffusivity centered at southern cell edge, values must be <= 1, and at
-             least one place in the domain must have kappa_s = 1
+             least one place in the domain must have kappa_s = 1 if kappa_w < 1.
     """
 
     wet_mask: ArrayType
@@ -159,16 +159,10 @@ class IrregularLaplacianWithLandMask(BaseLaplacian):
                 f"Please make sure all kappa_s are <=1."
             )
 
-        if not np.any(self.kappa_w == 1.0):
+        if not (np.any(self.kappa_w == 1.0) or np.any(self.kappa_s == 1.0)):
             raise ValueError(
-                f"At least one place in the domain must have kappa_w = 1.0. therwise the filter's scale will"
-                f"not be equal to filter_scale anywhere in the domain."
-            )
-
-        if not np.any(self.kappa_s == 1.0):
-            raise ValueError(
-                f"At least one place in the domain must have kappa_s = 1.0. therwise the filter's scale will"
-                f"not be equal to filter_scale anywhere in the domain."
+                f"At least one place in the domain must have either kappa_w = 1.0 or kappa_s = 1."
+                f"Otherwise the filter's scale will not be equal to filter_scale anywhere in the domain."
             )
 
         self.w_wet_mask = (
