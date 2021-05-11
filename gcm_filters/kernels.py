@@ -111,7 +111,7 @@ ALL_KERNELS[GridType.REGULAR_WITH_LAND] = RegularLaplacianWithLandMask
 
 
 @dataclass
-class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
+class IrregularLaplacianWithLandMask(BaseLaplacian):
     """Laplacian for irregularly spaced Cartesian grids with land mask.
        It is possible to vary the filter scale over the domain by
        introducing a nondimensional "diffusivity" (attributes kappa_w and kappa_s).
@@ -209,7 +209,7 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
         return out
 
 
-ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularCartesianLaplacianWithLandMask
+ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularLaplacianWithLandMask
 
 
 @dataclass
