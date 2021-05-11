@@ -77,7 +77,7 @@ The usual manifestation of these roundoff errors is high-amplitude small-scale n
 In such cases user has a few options to try to regain stability.
 
 1. If the data being filtered is single-precision, it might help to promote it to double precision (or higher) before filtering.
-2. The user can also try reducing `n_steps`, but must not reduce it too much or the resulting filter will not behave as expected. 
+2. The user can also try reducing `n_steps`, but must not reduce it too much or the resulting filter will not behave as expected.
 3. Users might elect to *coarsen* their data before filtering, i.e. to reduce the resolution of the input data before applying the filter. This has the effect of increasing the grid size, and thus decreasing the gap between the filter scale and the grid scale.
 4. The final option is simply to use a different approach to filtering, not based on ``gcm-filters``.
 
