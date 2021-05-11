@@ -113,6 +113,10 @@ ALL_KERNELS[GridType.REGULAR_WITH_LAND] = RegularLaplacianWithLandMask
 @dataclass
 class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
     """Laplacian for irregularly spaced Cartesian grids with land mask.
+       It is possible to vary the filter scale over the domain by
+       introducing a nondimensional "diffusivity" (attributes kappa_w and kappa_s).
+       For reasons given in Grooms et al. (2021) https://doi.org/10.1002/essoar.10506591.1,
+       We require that both kappa_w and kappa_s values must be <= 1.
 
     Attributes
     ----------
@@ -122,8 +126,8 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
     dxs: x-spacing centered at southern cell edge
     dys: y-spacing centered at southern cell edge
     area: cell area
-    kappa_w: zonal diffusivity centered at western cell edge, values must be <= 1.
-    kappa_s: meridional diffusivity centered at southern cell edge, values must be <= 1.
+    kappa_w: zonal nondimensional diffusivity centered at western cell edge, values must be <= 1.
+    kappa_s: meridional nondimensional diffusivity centered at southern cell edge, values must be <= 1.
     """
 
     wet_mask: ArrayType
@@ -188,7 +192,7 @@ class IrregularCartesianLaplacianWithLandMask(BaseLaplacian):
         return out
 
 
-ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularLaplacianWithLandMask
+ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularCartesianLaplacianWithLandMask
 
 
 @dataclass

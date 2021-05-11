@@ -49,10 +49,10 @@ def grid_type_field_and_extra_kwargs(request):
 
 
 def test_for_large_kappas(grid_type_field_and_extra_kwargs):
-    """This test checks that we get an error if either kappa_s or kappa_w are > 1. """
+    """This test checks that we get an error if either kappa_s or kappa_w are > 1."""
     grid_type, _, extra_kwargs = grid_type_field_and_extra_kwargs
 
-    if grid_type == GridType.IRREGULAR_CARTESIAN_WITH_LAND:
+    if grid_type == GridType.IRREGULAR_WITH_LAND:
         ny, nx = np.shape(extra_kwargs["wet_mask"])
         random_yloc = np.random.randint(0, ny)
         random_xloc = np.random.randint(0, nx)
