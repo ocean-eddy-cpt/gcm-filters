@@ -71,6 +71,28 @@ def test_for_large_kappas(grid_type_field_and_extra_kwargs):
             laplacian = LaplacianClass(**bad_kwargs)
 
 
+def test_for_kappas_not_equal_to_one(grid_type_field_and_extra_kwargs):
+    """This test checks that we get an error if either kappa_s or kappa_w are not
+    set to 1.0 anythere in the domain"""
+
+    grid_type, _, extra_kwargs = grid_type_field_and_extra_kwargs
+
+    if grid_type == GridType.IRREGULAR_WITH_LAND:
+        bad_kwargs = copy.deepcopy(extra_kwargs)
+        bad_kwargs["kappa_w"][:, :] = 0.5
+
+        LaplacianClass = ALL_KERNELS[grid_type]
+        with pytest.raises(ValueError, match=r"At least one place*"):
+            laplacian = LaplacianClass(**bad_kwargs)
+
+        # restore good value in kappa_w and set bad value in kappa_s
+        bad_kwargs = copy.deepcopy(extra_kwargs)
+        bad_kwargs["kappa_s"][:, :] = 0.5
+
+        with pytest.raises(ValueError, match=r"At least one place*"):
+            laplacian = LaplacianClass(**bad_kwargs)
+
+
 def test_conservation(grid_type_field_and_extra_kwargs):
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
     LaplacianClass = ALL_KERNELS[grid_type]
