@@ -68,6 +68,8 @@ class FilterSpec(NamedTuple):
     n_steps_total: int
     s: Iterable[complex]
     is_laplacian: Iterable[bool]
+    s_max: float
+    p: Iterable[float]
 
 
 def _compute_filter_spec(
@@ -151,7 +153,7 @@ def _compute_filter_spec(
     s = np.array([y for x in s for y in x])
     is_laplacian = np.abs(s.imag / s.real) < root_tolerance
 
-    return FilterSpec(n_steps_total, s, is_laplacian)
+    return FilterSpec(n_steps_total, s, is_laplacian, s_max, p)
 
 
 def _create_filter_func(
@@ -281,6 +283,41 @@ class Filter:
                 f"{list(self.Laplacian.required_grid_args())}"
             )
         self.grid_ds = xr.Dataset({name: da for name, da in self.grid_vars.items()})
+
+    def plot_shape(self, ax=None):
+        """Plot the shape of the target filter and approximation."""
+        import matplotlib.pyplot as plt
+
+        # Plot the target filter and the approximate filter
+        s_max = self.filter_spec.s_max
+        target_spec = TargetSpec(s_max, self.filter_scale, self.transition_width)
+        F = _target_function[self.filter_shape](target_spec)
+        x = np.linspace(-1, 1, 10001)
+        k = np.sqrt(s_max * (x + 1) / 2)
+        if ax is None:
+            fig, ax = plt.subplots()
+        ax.plot(k, F(x), "g", label="target filter", linewidth=4)
+        ax.plot(
+            k,
+            np.polynomial.chebyshev.chebval(x, self.filter_spec.p),
+            "m",
+            label="approximation",
+            linewidth=4,
+        )
+        ax.axvline(
+            2 * np.pi / self.filter_scale,
+            color="k",
+            label="filter cutoff wavenumber",
+            linewidth=2,
+        )
+        ax.set_xlim(left=0)
+        if self.filter_scale / self.dx_min > 10:
+            ax.set_xlim(right=4 * np.pi / self.filter_scale)
+        ax.set_ylim(bottom=-0.1)
+        ax.set_ylim(top=1.1)
+        ax.set_xlabel("Wavenumber k", fontsize=18)
+        ax.grid(True)
+        ax.legend()
 
     def apply(self, field, dims):
         """Filter a field across the dimensions specified by dims."""

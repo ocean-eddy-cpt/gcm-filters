@@ -12,6 +12,8 @@ def _check_equal_filter_spec(spec1, spec2):
     assert spec1.n_steps_total == spec2.n_steps_total
     np.testing.assert_allclose(spec1.s, spec2.s)
     assert (spec1.is_laplacian == spec2.is_laplacian).all()
+    assert spec1.s_max == spec2.s_max
+    np.testing.assert_allclose(spec1.p, spec2.p, rtol=1e-07, atol=1e-07)
 
 
 # These values were just hard copied from my dev environment.
@@ -54,6 +56,21 @@ def _check_equal_filter_spec(spec1, spec2):
                     True,
                     True,
                 ],
+                s_max=8.0,
+                p=[
+                    0.09887381,
+                    -0.19152534,
+                    0.1748326,
+                    -0.14975371,
+                    0.12112337,
+                    -0.09198484,
+                    0.0662522,
+                    -0.04479323,
+                    0.02895827,
+                    -0.0173953,
+                    0.00995974,
+                    -0.00454758,
+                ],
             ),
         ),
         (
@@ -72,6 +89,16 @@ def _check_equal_filter_spec(spec1, spec2):
                     3.00058907 - 2.95588288j,
                 ],
                 is_laplacian=[False, False, False],
+                s_max=4.0,
+                p=[
+                    0.83380304,
+                    -0.23622724,
+                    -0.06554041,
+                    0.01593978,
+                    0.00481014,
+                    -0.00495532,
+                    0.00168445,
+                ],
             ),
         ),
     ],
@@ -144,6 +171,7 @@ def grid_type_and_input_ds(request):
 def test_filter(grid_type_and_input_ds, filter_args):
     grid_type, da, grid_vars = grid_type_and_input_ds
     filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **filter_args)
+    filter.plot_shape()
     filtered = filter.apply(da, dims=["y", "x"])
 
     # check conservation
