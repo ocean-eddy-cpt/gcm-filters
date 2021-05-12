@@ -67,6 +67,7 @@ Length scales are related to wavelengths by :math:`\ell = 2\pi/k`.
 The filter leaves large scales unchanged, so ``plot_shape`` shows values close to 1 for small :math:`k`.
 The filter damps out small scales, so ``plot_shape`` shows values close to 0 for large :math:`k`.
 The tutorial gives examples of using ``plot_shape`` and interpreting the resulting plots.
+:doc:`tutorial` has example using the ``plot_shape`` method.
 
 Numerical Stability
 -------------------
@@ -80,6 +81,8 @@ In such cases user has a few options to try to regain stability.
 2. The user can also try reducing `n_steps`, but must not reduce it too much or the resulting filter will not behave as expected.
 3. Users might elect to *coarsen* their data before filtering, i.e. to reduce the resolution of the input data before applying the filter. This has the effect of increasing the grid size, and thus decreasing the gap between the filter scale and the grid scale.
 4. The final option is simply to use a different approach to filtering, not based on ``gcm-filters``.
+
+:doc:`tutorial_numerical_instability` has an example of numerical instability, as well as examples of avoiding the instability by increasing the precision and coarsening the data.
 
 Spatially-Varying Filter Scale
 ------------------------------
@@ -113,3 +116,23 @@ Just like in the previous section, we require that each of these two :math:`\kap
 Suppose, for example, that you want to filter with a scale of 60 in the grid-x direction and a scale of 30 in the grid-y direction.
 Then you would set ``filter_scale`` =  60, with :math:`\kappa_x = 1` to get a filter scale of 60 in the grid-x direction.
 Next, to get a filter scale of 30 in the grid-y direction you would set :math:`\kappa_y=1/4`.
+
+:doc:`tutorial_irregular_grid` has an example of an alternative method designed specifically for the case where the user wants to set the local filter scale equal to the local grid scale to achieve a fixed "coarsening" factor.
+This can be achieved using the anisotropic diffusion described above, but it can also be achieved in a more efficient computational manner as follows.
+
+1. Multiply the unfiltered data by the local grid cell area.
+2. Apply the filter *as if* the grid scale were uniform, i.e. tell the filter that the grid spacings are all equal to 1.
+3. Divide the resulting field by the local grid cell area.
+
+This somewhat ad hoc method is not equivalent to the one described above, but in practice it yields very similar results and is often significantly faster.
+
+Filtering Vectors
+-----------------
+
+In Cartesian geometry the Laplacian of a vector field can be obtained by taking the Laplacian of each component of the vector field, so vector fields can be filtered as described in the foregoing sections.
+On smooth manifolds, the Laplacian of a vector field is not the same as the Laplacian of each component of the vector field.
+Users may wish to use a vector Laplacian to filter vector fields.
+The filter is constructed in exactly the same way; the only difference is in how the Laplacian is defined.
+Rather than taking a scalar field and returning a scalar field, the vector Laplacian takes a vector field as input and returns a vector field.
+To distinguish this from the scalar Laplacian, we refer to the filter based on a scalar Laplacian as a "diffusion-based" filter and the filter based on a vector Laplacian as a "viscosity-based" filter.
+**Insert a link to the example of viscosity-based filtering**
