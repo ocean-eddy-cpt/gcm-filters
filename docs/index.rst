@@ -15,6 +15,7 @@ for performing smoothing of gridded fields. MORE HERE
    theory
    tutorial
    tutorial_irregular_grid
+   tutorial_numerical_instability
    api
    how_to_contribute
 
