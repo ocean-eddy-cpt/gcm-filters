@@ -15,6 +15,7 @@ for performing smoothing of gridded fields. MORE HERE
    theory
    tutorial
    tutorial_filter_types
+   tutorial_GPU
    tutorial_numerical_instability
    api
    how_to_contribute
