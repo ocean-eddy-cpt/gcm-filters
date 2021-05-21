@@ -17,6 +17,6 @@ codecov:
 
  ignore:
    - "setup.py"
-   - "tests/*"
-   - "gcm-filters/__init__.py"
-   - "gcm-filters/_version.py"
+   - "tests"
+   - "**/__init__.py"
+   - "**/_version.py"
