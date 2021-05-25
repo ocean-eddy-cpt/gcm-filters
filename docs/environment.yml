@@ -19,4 +19,4 @@ dependencies:
     - sphinx-copybutton
     - sphinxcontrib-srclinks
     - myst-parser
-    - myst-nb
+    - myst-nb=0.12.2
