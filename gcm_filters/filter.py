@@ -307,7 +307,7 @@ class Filter:
         if not issubclass(self.Laplacian, BaseScalarLaplacian):
             raise ValueError(
                 f"Provided Laplacian {self.Laplacian} is a vector Laplacian. "
-                f"The .apply method is only suitable for scalar Laplacians."
+                f"The ``.apply`` method is only suitable for scalar Laplacians."
             )
 
         filter_func = _create_filter_func(self.filter_spec, self.Laplacian)
@@ -330,7 +330,7 @@ class Filter:
         if not issubclass(self.Laplacian, BaseVectorLaplacian):
             raise ValueError(
                 f"Provided Laplacian {self.Laplacian} is a scalar Laplacian. "
-                f"The .apply_to_vector method is only suitable for vector Laplacians."
+                f"The ``.apply_to_vector`` method is only suitable for vector Laplacians."
             )
 
         filter_func_vec = _create_filter_func_vec(self.filter_spec, self.Laplacian)
