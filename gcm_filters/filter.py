@@ -294,6 +294,7 @@ class Filter:
 
         # check that we have all the required grid aguments
         self.Laplacian = ALL_KERNELS[self.grid_type]
+
         if not set(self.Laplacian.required_grid_args()) == set(self.grid_vars):
             raise ValueError(
                 f"Provided `grid_vars` {list(self.grid_vars)} do not match expected "
@@ -302,7 +303,12 @@ class Filter:
         self.grid_ds = xr.Dataset({name: da for name, da in self.grid_vars.items()})
 
     def apply(self, field, dims):
-        """Filter a field across the dimensions specified by dims."""
+        """Filter a field with scalar Laplacian across the dimensions specified by dims."""
+        if not issubclass(self.Laplacian, BaseScalarLaplacian):
+            raise ValueError(
+                f"Provided Laplacian {self.Laplacian} is a vector Laplacian. "
+                f"The .apply method is only suitable for scalar Laplacians."
+            )
 
         filter_func = _create_filter_func(self.filter_spec, self.Laplacian)
         grid_args = [self.grid_ds[name] for name in self.Laplacian.required_grid_args()]
@@ -320,7 +326,12 @@ class Filter:
         return field_smooth
 
     def apply_to_vector(self, ufield, vfield, dims):
-        """Filter a vector field across the dimensions specified by dims."""
+        """Filter a vector field with vector Laplacian across the dimensions specified by dims."""
+        if not issubclass(self.Laplacian, BaseVectorLaplacian):
+            raise ValueError(
+                f"Provided Laplacian {self.Laplacian} is a scalar Laplacian. "
+                f"The .apply_to_vector method is only suitable for vector Laplacians."
+            )
 
         filter_func_vec = _create_filter_func_vec(self.filter_spec, self.Laplacian)
         grid_args = [self.grid_ds[name] for name in self.Laplacian.required_grid_args()]
