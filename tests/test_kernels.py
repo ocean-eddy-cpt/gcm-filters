@@ -305,6 +305,28 @@ def test_conservation_under_solid_body_rotation(
     np.testing.assert_allclose(res_v, 0.0, atol=1e-12)
 
 
+def test_zero_area(vector_grid_type_field_and_extra_kwargs):
+    """This test checks that if area_u, area_v contain zeros, the Laplacian will not blow up
+    due to division by zero."""
+
+    grid_type, data_u, data_v, extra_kwargs, _ = vector_grid_type_field_and_extra_kwargs
+    test_kwargs = copy.deepcopy(extra_kwargs)
+    # fill area_u, area_v with zeros over land; e.g., you will find that in MOM6 model output
+    test_kwargs["area_u"] = np.where(
+        extra_kwargs["wet_mask_t"] > 0, test_kwargs["area_u"], 0
+    )
+    test_kwargs["area_v"] = np.where(
+        extra_kwargs["wet_mask_t"] > 0, test_kwargs["area_v"], 0
+    )
+    LaplacianClass = ALL_KERNELS[grid_type]
+    laplacian = LaplacianClass(**test_kwargs)
+    res_u, res_v = laplacian(data_u, data_v)
+    assert np.any(np.isinf(res_u)) == False
+    assert np.any(np.isnan(res_u)) == False
+    assert np.any(np.isinf(res_v)) == False
+    assert np.any(np.isnan(res_v)) == False
+
+
 def test_required_vector_grid_vars(vector_grid_type_field_and_extra_kwargs):
     grid_type, _, _, extra_kwargs, _ = vector_grid_type_field_and_extra_kwargs
     grid_vars = required_grid_vars(grid_type)
