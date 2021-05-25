@@ -350,12 +350,8 @@ class VectorLaplacian(BaseLaplacian):
         self.dy2q = self.dyBu * self.dyBu
 
         # compute reciprocal of areas while avoiding division by zero
-        self.recip_area_u = np.divide(
-            1, self.area_u, out=np.zeros_like(self.area_u), where=self.area_u != 0
-        )
-        self.recip_area_v = np.divide(
-            1, self.area_v, out=np.zeros_like(self.area_v), where=self.area_v != 0
-        )
+        self.recip_area_u = np.where(self.area_u > 0, 1 / self.area_u, 0)
+        self.recip_area_v = np.where(self.area_v > 0, 1 / self.area_v, 0)
 
     def __call__(self, ufield: ArrayType, vfield: ArrayType):
         np = get_array_module(ufield)
