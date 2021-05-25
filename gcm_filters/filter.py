@@ -11,7 +11,7 @@ import xarray as xr
 from scipy import interpolate
 
 from .gpu_compat import get_array_module
-from .kernels import ALL_KERNELS, BaseLaplacian, GridType
+from .kernels import ALL_KERNELS, BaseScalarLaplacian, BaseVectorLaplacian, GridType
 
 
 FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
@@ -158,7 +158,7 @@ def _compute_filter_spec(
 
 def _create_filter_func(
     filter_spec: FilterSpec,
-    Laplacian: BaseLaplacian,
+    Laplacian: BaseScalarLaplacian,
 ):
     """Returns a function whose first argument is the field to be filtered
     and whose subsequent arguments are the require grid variables
@@ -193,7 +193,7 @@ def _create_filter_func(
 
 def _create_filter_func_vec(
     filter_spec: FilterSpec,
-    Laplacian: BaseLaplacian,
+    Laplacian: BaseVectorLaplacian,
 ):
     """Returns a function whose first two arguments are the vector components of the field to be filtered
     and whose subsequent arguments are the require grid variables

@@ -37,7 +37,7 @@ def _prepare_tripolar_exchanges(field):
 
 
 @dataclass
-class BaseLaplacian(ABC):
+class BaseScalarLaplacian(ABC):
     def __call__(self, field):
         pass  # pragma: no cover
 
@@ -52,7 +52,22 @@ class BaseLaplacian(ABC):
 
 
 @dataclass
-class RegularLaplacian(BaseLaplacian):
+class BaseVectorLaplacian(ABC):
+    def __call__(self, ufield, vfield):
+        pass  # pragma: no cover
+
+    # change to property when we are using python 3.9
+    # https://stackoverflow.com/questions/128573/using-property-on-classmethods
+    @classmethod
+    def required_grid_args(self):
+        try:
+            return list(self.__annotations__)
+        except AttributeError:
+            return []
+
+
+@dataclass
+class RegularLaplacian(BaseScalarLaplacian):
     """̵Laplacian for regularly spaced Cartesian grids."""
 
     def __call__(self, field: ArrayType):
@@ -70,7 +85,7 @@ ALL_KERNELS[GridType.REGULAR] = RegularLaplacian
 
 
 @dataclass
-class RegularLaplacianWithLandMask(BaseLaplacian):
+class RegularLaplacianWithLandMask(BaseScalarLaplacian):
     """̵Laplacian for regularly spaced Cartesian grids with land mask.
 
     Attributes
@@ -112,7 +127,7 @@ ALL_KERNELS[GridType.REGULAR_WITH_LAND] = RegularLaplacianWithLandMask
 
 
 @dataclass
-class IrregularLaplacianWithLandMask(BaseLaplacian):
+class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
     """̵Laplacian for irregularly spaced Cartesian grids with land mask.
 
     Attributes
@@ -178,7 +193,7 @@ ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularLaplacianWithLandMask
 
 
 @dataclass
-class TripolarRegularLaplacianTpoint(BaseLaplacian):
+class TripolarRegularLaplacianTpoint(BaseScalarLaplacian):
     """̵Laplacian for fields defined at T-points on POP tripolar grid geometry with land mask, but assuming that dx = dy = 1
 
     Attributes
@@ -228,7 +243,7 @@ ALL_KERNELS[GridType.TRIPOLAR_REGULAR_WITH_LAND] = TripolarRegularLaplacianTpoin
 
 
 @dataclass
-class POPTripolarLaplacianTpoint(BaseLaplacian):
+class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
     """̵Laplacian for irregularly spaced Cartesian grids with land mask.
 
     Attributes
@@ -300,7 +315,7 @@ ALL_KERNELS[GridType.TRIPOLAR_POP_WITH_LAND] = POPTripolarLaplacianTpoint
 
 
 @dataclass
-class VectorLaplacian(BaseLaplacian):
+class CgridVectorLaplacian(BaseVectorLaplacian):
     """̵Vector Laplacian on C-Grid.
 
     Attributes
@@ -405,7 +420,7 @@ class VectorLaplacian(BaseLaplacian):
         return (u_component, v_component)
 
 
-ALL_KERNELS[GridType.VECTOR_C_GRID] = VectorLaplacian
+ALL_KERNELS[GridType.VECTOR_C_GRID] = CgridVectorLaplacian
 
 
 def required_grid_vars(grid_type: GridType):
