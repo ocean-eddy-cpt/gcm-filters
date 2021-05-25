@@ -67,7 +67,9 @@ def test_filter_spec(filter_args, expected_filter_spec):
     # TODO: check other properties of filter_spec?
 
 
-vector_grids = [gt for gt in GridType if gt.name.startswith("VECTOR")]
+# define (for now: hard-code) which grids are associated with vector Laplacians
+vector_grids = [gt for gt in GridType if gt.name in {"VECTOR_C_GRID"}]
+# all remaining grids are for scalar Laplacians
 scalar_grids = [gt for gt in GridType if gt not in vector_grids]
 
 
