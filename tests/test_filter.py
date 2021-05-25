@@ -221,8 +221,12 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
     # this would need to be replaced by a proper area-weighted integral
     da_sum = da.sum()
     filtered_sum = filtered.sum()
-
     xr.testing.assert_allclose(da_sum, filtered_sum)
+
+    # check that we get an error if we pass scalar Laplacian to .apply_to vector,
+    # where the latter method is for vector Laplacians only
+    with pytest.raises(ValueError, match=r"Provided Laplacian *"):
+        filtered_u, filtered_v = filter.apply_to_vector(da, da, dims=["y", "x"])
 
     # check variance reduction
     assert (filtered ** 2).sum() < (da ** 2).sum()
@@ -256,6 +260,11 @@ def test_viscosity_filter(vector_grid_type_and_input_ds, filter_args):
     filtered_u, filtered_v = filter.apply_to_vector(da_u, da_v, dims=["y", "x"])
     xr.testing.assert_allclose(filtered_u, da_u, atol=1e-12)
     xr.testing.assert_allclose(filtered_v, da_v, atol=1e-12)
+
+    # check that we get an error if we pass vector Laplacian to .apply, where
+    # the latter method is for scalar Laplacians only
+    with pytest.raises(ValueError, match=r"Provided Laplacian *"):
+        filtered_u = filter.apply(da_u, dims=["y", "x"])
 
     # check that we get an error if we leave out any required grid_vars
     for gv in grid_vars:
