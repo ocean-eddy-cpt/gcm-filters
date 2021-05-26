@@ -90,7 +90,7 @@ def test_flux_in_y_direction(grid_type_field_and_extra_kwargs):
         # deploy mass at random location away from Antarctica: delta_{j,i}
         delta = np.zeros_like(data)
         ny = np.shape(delta)[0]
-        random_yloc = np.random.randint(5, ny)
+        random_yloc = np.random.randint(5, ny - 2)
         nx = np.shape(delta)[1]
         random_xloc = np.random.randint(0, nx)
         delta[random_yloc, random_xloc] = 1
@@ -143,7 +143,7 @@ def test_flux_in_x_direction(grid_type_field_and_extra_kwargs):
         ny = np.shape(delta)[0]
         random_yloc = np.random.randint(5, ny)
         nx = np.shape(delta)[1]
-        random_xloc = np.random.randint(0, nx)
+        random_xloc = np.random.randint(2, nx - 2)
         delta[random_yloc, random_xloc] = 1
 
         test_kwargs = copy.deepcopy(extra_kwargs)
@@ -188,7 +188,7 @@ tripolar_grids = [gt for gt in GridType if gt.name.startswith("TRIPOLAR")]
 
 
 def test_for_antarctica(grid_type_field_and_extra_kwargs):
-    """This test checks that we get an error if southernmost row of wet_mask has entry not equal to zero. """
+    """This test checks that we get an error if southernmost row of wet_mask has entry not equal to zero."""
     grid_type, _, extra_kwargs = grid_type_field_and_extra_kwargs
 
     if grid_type in tripolar_grids:
@@ -203,7 +203,7 @@ def test_for_antarctica(grid_type_field_and_extra_kwargs):
 
 
 def test_tripolar_exchanges(grid_type_field_and_extra_kwargs):
-    """This test checks that Laplacian exchanges across northern boundary seam line of tripolar grid are correct. """
+    """This test checks that Laplacian exchanges across northern boundary seam line of tripolar grid are correct."""
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
 
     if grid_type in tripolar_grids:
@@ -212,8 +212,9 @@ def test_tripolar_exchanges(grid_type_field_and_extra_kwargs):
 
         delta = np.zeros_like(data)
         nx = np.shape(delta)[1]
-        random_loc = np.random.randint(0, nx)
-        delta[-1, random_loc] = 1  # deploy mass at northern boundary
+        # deploy mass at northern boundary, away from boundaries and pivot point in middle
+        random_loc = np.random.randint(1, nx // 2 - 2)
+        delta[-1, random_loc] = 1
 
         diffused = laplacian(delta)
         # check that delta function gets diffused isotropically across northern boundary

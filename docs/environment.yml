@@ -4,7 +4,7 @@ dependencies:
   - numpy
   - scipy
   - xarray
-  - scipy
+  - matplotlib
   - numpydoc
   - sphinx
   - ipython

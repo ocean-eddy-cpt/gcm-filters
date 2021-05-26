@@ -61,3 +61,24 @@ until all checks pass.
 
 
 Once you got everything to pass, you can stage and commit your changes and push them to the remote github repository.
+
+How to change the documentation
+-------------------------------
+
+In order to build the documentation locally you should build and activate the docs environment::
+
+   mamba env create -f docs/environment.yml
+
+   conda activate gcm-filters-docs
+
+Then navigate to the docs folder and build the docs locally with::
+
+   cd docs
+
+   make html
+
+Once that is done you can open the created html files in `docs/_build/index.html` with your webbrowser::
+
+   open _build/index.html
+
+You can then edit and rebuild the docs until you are satisfied and submit a PR as usual.

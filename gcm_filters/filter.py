@@ -1,5 +1,6 @@
 """Main Filter class."""
 import enum
+import warnings
 
 from dataclasses import dataclass, field
 from itertools import chain, zip_longest
@@ -15,6 +16,18 @@ from .kernels import ALL_KERNELS, BaseScalarLaplacian, BaseVectorLaplacian, Grid
 
 
 FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
+
+
+filter_params = {
+    FilterShape.GAUSSIAN: {
+        1: {"n_steps_factor": 0.8, "max_filter_factor": 67},
+        2: {"n_steps_factor": 1.1, "max_filter_factor": 77},
+    },
+    FilterShape.TAPER: {
+        1: {"n_steps_factor": 2.8, "max_filter_factor": 19},
+        2: {"n_steps_factor": 3.9, "max_filter_factor": 20},
+    },
+}
 
 
 class TargetSpec(NamedTuple):
@@ -37,7 +50,7 @@ def _taper_target(target_spec: TargetSpec):
                 0,
                 2 * np.pi / (target_spec.transition_width * target_spec.filter_scale),
                 2 * np.pi / target_spec.filter_scale,
-                2 * np.sqrt(target_spec.s_max),
+                8 * np.sqrt(target_spec.s_max),
             ]
         ),
         np.array([1, 1, 0, 0]),
@@ -54,9 +67,9 @@ _target_function = {
 class FilterSpec(NamedTuple):
     n_steps_total: int
     s: Iterable[complex]
-    is_laplacian: Iterable[
-        bool
-    ]  # This is really an array of booleans; not sure what this line should be
+    is_laplacian: Iterable[bool]
+    s_max: float
+    p: Iterable[float]
 
 
 def _compute_filter_spec(
@@ -68,22 +81,8 @@ def _compute_filter_spec(
     n_steps=0,
     root_tolerance=1e-8,
 ):
-    # First set number of steps if not supplied by user
-    if n_steps == 0:
-        if ndim > 2:
-            raise ValueError(f"When ndim > 2, you must set n_steps manually")
-        if filter_shape == FilterShape.GAUSSIAN:
-            if ndim == 1:
-                n_steps = np.ceil(1.3 * filter_scale / dx_min).astype(int)
-            else:  # ndim==2
-                n_steps = np.ceil(1.8 * filter_scale / dx_min).astype(int)
-        else:  # Taper
-            if ndim == 1:
-                n_steps = np.ceil(4.5 * filter_scale / dx_min).astype(int)
-            else:  # ndim==2
-                n_steps = np.ceil(6.4 * filter_scale / dx_min).astype(int)
 
-    # First set up the mass matrix for the Galerkin basis from Shen (SISC95)
+    # Set up the mass matrix for the Galerkin basis from Shen (SISC95)
     M = (np.pi / 2) * (
         2 * np.eye(n_steps - 1)
         - np.diag(np.ones(n_steps - 3), 2)
@@ -92,9 +91,10 @@ def _compute_filter_spec(
     M[0, 0] = 3 * np.pi / 2
 
     # The range of wavenumbers is 0<=|k|<=sqrt(ndim)*pi/dxMin.
-    # Per the notes, define s=k^2.
+    # However, our 2nd order laplacians only get to sqrt(ndim)*2/dxMin at most.
+    # Per the paper, define s=k^2.
     # Need to rescale to t in [-1,1]: t = (2/sMax)*s -1; s = sMax*(t+1)/2
-    s_max = ndim * (np.pi / dx_min) ** 2
+    s_max = ndim * (2 / dx_min) ** 2
 
     target_spec = TargetSpec(s_max, filter_scale, transition_width)
     F = _target_function[filter_shape](target_spec)
@@ -146,14 +146,14 @@ def _compute_filter_spec(
     ind_damping = np.argwhere(np.abs(1 - s_max / s) <= 1)
     ind_amplifying = np.argwhere(np.abs(1 - s_max / s) > 1)
     s_damping = s[ind_damping].tolist()  # Damping roots, sorted most to least damping
-    s_amplifying = np.flip(
-        s[ind_amplifying]
-    ).tolist()  # Amplifying roots, sorted most to least amplifying
+    s_amplifying = s[
+        ind_amplifying
+    ].tolist()  # Amplifying roots, sorted least to most amplifying
     s = [x for x in chain(*zip_longest(s_damping, s_amplifying)) if x is not None]
     s = np.array([y for x in s for y in x])
     is_laplacian = np.abs(s.imag / s.real) < root_tolerance
 
-    return FilterSpec(n_steps_total, s, is_laplacian)
+    return FilterSpec(n_steps_total, s, is_laplacian, s_max, p)
 
 
 def _create_filter_func(
@@ -280,8 +280,38 @@ class Filter:
 
     def __post_init__(self):
 
-        if self.n_steps < 0:
-            raise ValueError("Filter requires N>=0")
+        # Get default number of steps
+        filter_factor = self.filter_scale / self.dx_min
+        if self.ndim > 2:
+            if self.n_steps < 3:
+                raise ValueError(f"When ndim > 2, you must set n_steps manually")
+            else:
+                n_steps_default = self.n_steps  # For ndim>2 we don't have a default
+        else:
+            n_steps_default = np.ceil(
+                filter_params[self.filter_shape][self.ndim]["n_steps_factor"]
+                * filter_factor
+            ).astype(int)
+
+        # Set n_steps if needed and issue n_step warning, if needed
+        if self.n_steps < 3:
+            self.n_steps = n_steps_default
+
+        if self.n_steps < n_steps_default:
+            warnings.warn(
+                "Warning: You have set n_steps below the default. Results might not be accurate.",
+                UserWarning,
+            )
+
+        # Issue numerical stability warning, if needed
+        max_filter_factor = filter_params[self.filter_shape][self.ndim][
+            "max_filter_factor"
+        ]
+        if filter_factor >= max_filter_factor:
+            warnings.warn(
+                "Warning: Filter scale much larger than grid scale -> numerical instability possible",
+                UserWarning,
+            )
 
         self.filter_spec = _compute_filter_spec(
             self.filter_scale,
@@ -301,6 +331,41 @@ class Filter:
                 f"{list(self.Laplacian.required_grid_args())}"
             )
         self.grid_ds = xr.Dataset({name: da for name, da in self.grid_vars.items()})
+
+    def plot_shape(self, ax=None):
+        """Plot the shape of the target filter and approximation."""
+        import matplotlib.pyplot as plt
+
+        # Plot the target filter and the approximate filter
+        s_max = self.filter_spec.s_max
+        target_spec = TargetSpec(s_max, self.filter_scale, self.transition_width)
+        F = _target_function[self.filter_shape](target_spec)
+        x = np.linspace(-1, 1, 10001)
+        k = np.sqrt(s_max * (x + 1) / 2)
+        if ax is None:
+            fig, ax = plt.subplots()
+        ax.plot(k, F(x), "g", label="target filter", linewidth=4)
+        ax.plot(
+            k,
+            np.polynomial.chebyshev.chebval(x, self.filter_spec.p),
+            "m",
+            label="approximation",
+            linewidth=4,
+        )
+        ax.axvline(
+            2 * np.pi / self.filter_scale,
+            color="k",
+            label="filter cutoff wavenumber",
+            linewidth=2,
+        )
+        ax.set_xlim(left=0)
+        if self.filter_scale / self.dx_min > 10:
+            ax.set_xlim(right=4 * np.pi / self.filter_scale)
+        ax.set_ylim(bottom=-0.1)
+        ax.set_ylim(top=1.1)
+        ax.set_xlabel("Wavenumber k", fontsize=18)
+        ax.grid(True)
+        ax.legend()
 
     def apply(self, field, dims):
         """Filter a field with scalar Laplacian across the dimensions specified by dims."""
