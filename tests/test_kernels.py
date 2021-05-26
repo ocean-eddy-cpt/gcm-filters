@@ -6,7 +6,13 @@ import pytest
 from gcm_filters.kernels import ALL_KERNELS, GridType, required_grid_vars
 
 
-@pytest.fixture(scope="module", params=list(GridType))
+# define (for now: hard-code) which grids are associated with vector Laplacians
+vector_grids = [gt for gt in GridType if gt.name in {"VECTOR_C_GRID"}]
+# all remaining grids are for scalar Laplacians
+scalar_grids = [gt for gt in GridType if gt not in vector_grids]
+
+################## Scalar Laplacian tests ##############################################
+@pytest.fixture(scope="module", params=scalar_grids)
 def grid_type_field_and_extra_kwargs(request):
     grid_type = request.param
     ny, nx = (128, 256)
@@ -27,6 +33,8 @@ def grid_type_field_and_extra_kwargs(request):
         extra_kwargs["dxs"] = grid_data
         extra_kwargs["dys"] = grid_data
         extra_kwargs["area"] = grid_data
+        extra_kwargs["kappa_w"] = grid_data
+        extra_kwargs["kappa_s"] = grid_data
     if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
@@ -43,16 +51,18 @@ def grid_type_field_and_extra_kwargs(request):
         extra_kwargs["dxn"] = grid_data
         extra_kwargs["dyn"] = grid_data
         extra_kwargs["tarea"] = grid_data
+
     return grid_type, data, extra_kwargs
 
 
 def test_conservation(grid_type_field_and_extra_kwargs):
+    """ This test checks that scalar Laplacians preserve the area integral."""
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
+
     LaplacianClass = ALL_KERNELS[grid_type]
     laplacian = LaplacianClass(**extra_kwargs)
-    diffused = laplacian(data)
-    res = diffused.sum()  # integrate over full domain
-    np.testing.assert_allclose(res, 0.0, atol=1e-12)
+    res = laplacian(data)
+    np.testing.assert_allclose(res.sum(), 0.0, atol=1e-12)
 
 
 def test_required_grid_vars(grid_type_field_and_extra_kwargs):
@@ -61,7 +71,7 @@ def test_required_grid_vars(grid_type_field_and_extra_kwargs):
     assert set(grid_vars) == set(extra_kwargs)
 
 
-################## Irregular grid tests ##############################################
+################## Irregular grid tests for scalar Laplacians ##############################################
 # Irregular grids are grids that allow spatially varying dx, dy
 
 # The following definition of irregular_grids is hard coded; maybe a better definition
@@ -173,7 +183,7 @@ def test_flux_in_x_direction(grid_type_field_and_extra_kwargs):
         )
 
 
-################## Tripolar grid tests ##############################################
+################## Tripolar grid tests for scalar Laplacians ##############################################
 tripolar_grids = [gt for gt in GridType if gt.name.startswith("TRIPOLAR")]
 
 
@@ -212,3 +222,115 @@ def test_tripolar_exchanges(grid_type_field_and_extra_kwargs):
         np.testing.assert_allclose(
             diffused[-2, random_loc], diffused[-1, nx - random_loc - 1], atol=1e-12
         )
+
+
+#################### Vector Laplacian tests ########################################
+
+
+@pytest.fixture(scope="module", params=vector_grids)
+def vector_grid_type_field_and_extra_kwargs(request):
+    grid_type = request.param
+    ny, nx = (128, 256)
+
+    extra_kwargs = {}
+    if grid_type == GridType.VECTOR_C_GRID:
+        # construct spherical coordinate system similar to MOM6 NeverWorld2 grid
+        # define latitudes and longitudes
+        lat_min = -70
+        lat_max = 70
+        lat_u = np.linspace(
+            lat_min + 0.5 * (lat_max - lat_min) / ny,
+            lat_max - 0.5 * (lat_max - lat_min) / ny,
+            ny,
+        )
+        lat_v = np.linspace(lat_min + (lat_max - lat_min) / ny, lat_max, ny)
+        lon_min = 0
+        lon_max = 60
+        lon_u = np.linspace(lon_min + (lon_max - lon_min) / nx, lon_max, nx)
+        lon_v = np.linspace(
+            lon_min + 0.5 * (lon_max - lon_min) / nx,
+            lon_max - 0.5 * (lon_max - lon_min) / nx,
+            nx,
+        )
+        (geolon_u, geolat_u) = np.meshgrid(lon_u, lat_u)
+        (geolon_v, geolat_v) = np.meshgrid(lon_v, lat_v)
+        # radius of a random planet smaller than Earth
+        R = 6378000 * np.random.rand(1)
+        # dx varies spatially
+        extra_kwargs["dxCu"] = R * np.cos(geolat_u / 360 * 2 * np.pi)
+        extra_kwargs["dxCv"] = R * np.cos(geolat_v / 360 * 2 * np.pi)
+        extra_kwargs["dxBu"] = extra_kwargs["dxCv"] + np.roll(
+            extra_kwargs["dxCv"], -1, axis=1
+        )
+        extra_kwargs["dxT"] = extra_kwargs["dxCu"] + np.roll(
+            extra_kwargs["dxCu"], 1, axis=1
+        )
+        # dy is set constant, equal to dx at the equator
+        dy = np.max(extra_kwargs["dxCu"]) * np.ones((ny, nx))
+        extra_kwargs["dyCu"] = dy
+        extra_kwargs["dyCv"] = dy
+        extra_kwargs["dyBu"] = dy
+        extra_kwargs["dyT"] = dy
+        # compute grid cell areas
+        extra_kwargs["area_u"] = extra_kwargs["dxCu"] * extra_kwargs["dyCu"]
+        extra_kwargs["area_v"] = extra_kwargs["dxCv"] * extra_kwargs["dyCv"]
+        # set isotropic and anisotropic kappas
+        extra_kwargs["kappa_iso"] = np.ones((ny, nx))
+        extra_kwargs["kappa_aniso"] = np.ones((ny, nx))
+        # put a big island in the middle
+        mask_data = np.ones((ny, nx))
+        mask_data[: (ny // 2), : (nx // 2)] = 0
+        extra_kwargs["wet_mask_t"] = mask_data
+        extra_kwargs["wet_mask_q"] = mask_data
+
+    data_u = np.random.rand(ny, nx)
+    data_v = np.random.rand(ny, nx)
+
+    return grid_type, data_u, data_v, extra_kwargs, geolat_u
+
+
+def test_conservation_under_solid_body_rotation(
+    vector_grid_type_field_and_extra_kwargs,
+):
+    """This test checks that vector Laplacians are invariant under solid body rotations:
+    a corollary of conserving angular momentum."""
+
+    grid_type, _, _, extra_kwargs, geolat_u = vector_grid_type_field_and_extra_kwargs
+
+    # u = cos(lat), v=0 is solid body rotation
+    data_u = np.cos(geolat_u / 360 * 2 * np.pi)
+    data_v = np.zeros_like(data_u)
+
+    LaplacianClass = ALL_KERNELS[grid_type]
+    laplacian = LaplacianClass(**extra_kwargs)
+    res_u, res_v = laplacian(data_u, data_v)
+    np.testing.assert_allclose(res_u, 0.0, atol=1e-12)
+    np.testing.assert_allclose(res_v, 0.0, atol=1e-12)
+
+
+def test_zero_area(vector_grid_type_field_and_extra_kwargs):
+    """This test checks that if area_u, area_v contain zeros, the Laplacian will not blow up
+    due to division by zero."""
+
+    grid_type, data_u, data_v, extra_kwargs, _ = vector_grid_type_field_and_extra_kwargs
+    test_kwargs = copy.deepcopy(extra_kwargs)
+    # fill area_u, area_v with zeros over land; e.g., you will find that in MOM6 model output
+    test_kwargs["area_u"] = np.where(
+        extra_kwargs["wet_mask_t"] > 0, test_kwargs["area_u"], 0
+    )
+    test_kwargs["area_v"] = np.where(
+        extra_kwargs["wet_mask_t"] > 0, test_kwargs["area_v"], 0
+    )
+    LaplacianClass = ALL_KERNELS[grid_type]
+    laplacian = LaplacianClass(**test_kwargs)
+    res_u, res_v = laplacian(data_u, data_v)
+    assert np.any(np.isinf(res_u)) == False
+    assert np.any(np.isnan(res_u)) == False
+    assert np.any(np.isinf(res_v)) == False
+    assert np.any(np.isnan(res_v)) == False
+
+
+def test_required_vector_grid_vars(vector_grid_type_field_and_extra_kwargs):
+    grid_type, _, _, extra_kwargs, _ = vector_grid_type_field_and_extra_kwargs
+    grid_vars = required_grid_vars(grid_type)
+    assert set(grid_vars) == set(extra_kwargs)
