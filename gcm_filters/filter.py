@@ -12,7 +12,7 @@ import xarray as xr
 from scipy import interpolate
 
 from .gpu_compat import get_array_module
-from .kernels import ALL_KERNELS, BaseLaplacian, GridType
+from .kernels import ALL_KERNELS, BaseScalarLaplacian, BaseVectorLaplacian, GridType
 
 
 FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
@@ -158,7 +158,7 @@ def _compute_filter_spec(
 
 def _create_filter_func(
     filter_spec: FilterSpec,
-    Laplacian: BaseLaplacian,
+    Laplacian: BaseScalarLaplacian,
 ):
     """Returns a function whose first argument is the field to be filtered
     and whose subsequent arguments are the require grid variables
@@ -189,6 +189,53 @@ def _create_filter_func(
         return field_bar
 
     return filter_func
+
+
+def _create_filter_func_vec(
+    filter_spec: FilterSpec,
+    Laplacian: BaseVectorLaplacian,
+):
+    """Returns a function whose first two arguments are the vector components of the field to be filtered
+    and whose subsequent arguments are the require grid variables
+    """
+
+    def filter_func_vec(ufield, vfield, *args):
+        # these next steps are a kind of hack we have to turn keyword arugments into regular arguments
+        # the reason for doing this is that Xarray's apply_ufunc machinery works a lot better
+        # with regular arguments
+        assert len(args) == len(Laplacian.required_grid_args())
+        grid_vars = {k: v for k, v in zip(Laplacian.required_grid_args(), args)}
+        laplacian = Laplacian(**grid_vars)
+        np = get_array_module(ufield)
+        ufield_bar = ufield.copy()  # Initalize the filtering process
+        vfield_bar = vfield.copy()  # Initalize the filtering process
+        for i in range(filter_spec.n_steps_total):
+            if filter_spec.is_laplacian[i]:
+                s_l = np.real(filter_spec.s[i])
+                (utendency, vtendency) = laplacian(
+                    ufield_bar, vfield_bar
+                )  # Compute Laplacian
+                ufield_bar += (1 / s_l) * utendency  # Update filtered ufield
+                vfield_bar += (1 / s_l) * vtendency  # Update filtered vfield
+            else:
+                s_b = filter_spec.s[i]
+                (utemp_l, vtemp_l) = laplacian(
+                    ufield_bar, vfield_bar
+                )  # Compute Laplacian
+                (utemp_b, vtemp_b) = laplacian(
+                    utemp_l, vtemp_l
+                )  # Compute Biharmonic (apply Laplacian twice)
+                ufield_bar += (
+                    utemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
+                    + utemp_b * 1 / np.abs(s_b) ** 2
+                )
+                vfield_bar += (
+                    vtemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
+                    + vtemp_b * 1 / np.abs(s_b) ** 2
+                )
+        return (ufield_bar, vfield_bar)
+
+    return filter_func_vec
 
 
 @dataclass
@@ -277,6 +324,7 @@ class Filter:
 
         # check that we have all the required grid aguments
         self.Laplacian = ALL_KERNELS[self.grid_type]
+
         if not set(self.Laplacian.required_grid_args()) == set(self.grid_vars):
             raise ValueError(
                 f"Provided `grid_vars` {list(self.grid_vars)} do not match expected "
@@ -320,7 +368,12 @@ class Filter:
         ax.legend()
 
     def apply(self, field, dims):
-        """Filter a field across the dimensions specified by dims."""
+        """Filter a field with scalar Laplacian across the dimensions specified by dims."""
+        if not issubclass(self.Laplacian, BaseScalarLaplacian):
+            raise ValueError(
+                f"Provided Laplacian {self.Laplacian} is a vector Laplacian. "
+                f"The ``.apply`` method is only suitable for scalar Laplacians."
+            )
 
         filter_func = _create_filter_func(self.filter_spec, self.Laplacian)
         grid_args = [self.grid_ds[name] for name in self.Laplacian.required_grid_args()]
@@ -336,3 +389,27 @@ class Filter:
             dask="parallelized",
         )
         return field_smooth
+
+    def apply_to_vector(self, ufield, vfield, dims):
+        """Filter a vector field with vector Laplacian across the dimensions specified by dims."""
+        if not issubclass(self.Laplacian, BaseVectorLaplacian):
+            raise ValueError(
+                f"Provided Laplacian {self.Laplacian} is a scalar Laplacian. "
+                f"The ``.apply_to_vector`` method is only suitable for vector Laplacians."
+            )
+
+        filter_func_vec = _create_filter_func_vec(self.filter_spec, self.Laplacian)
+        grid_args = [self.grid_ds[name] for name in self.Laplacian.required_grid_args()]
+        assert len(dims) == 2
+        n_args = 2 + len(grid_args)
+        (ufield_smooth, vfield_smooth) = xr.apply_ufunc(
+            filter_func_vec,
+            ufield,
+            vfield,
+            *grid_args,
+            input_core_dims=n_args * [dims],
+            output_core_dims=2 * [dims],
+            output_dtypes=[ufield.dtype, vfield.dtype],
+            dask="parallelized",
+        )
+        return (ufield_smooth, vfield_smooth)
