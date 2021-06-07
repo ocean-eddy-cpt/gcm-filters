@@ -135,4 +135,4 @@ Users may wish to use a vector Laplacian to filter vector fields.
 The filter is constructed in exactly the same way; the only difference is in how the Laplacian is defined.
 Rather than taking a scalar field and returning a scalar field, the vector Laplacian takes a vector field as input and returns a vector field.
 To distinguish this from the scalar Laplacian, we refer to the filter based on a scalar Laplacian as a "diffusion-based" filter and the filter based on a vector Laplacian as a "viscosity-based" filter.
-**Insert a link to the example of viscosity-based filtering**
+:doc:`tutorial_vector_laplacian` has examples of viscosity-based filtering.
