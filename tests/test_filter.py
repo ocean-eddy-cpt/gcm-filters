@@ -284,7 +284,7 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
             filter = Filter(
                 grid_type=grid_type, grid_vars=grid_vars_missing, **filter_args
             )
-            
+
     bad_filter_args = copy.deepcopy(filter_args)
     # check that we get an error if ndim > 2 and n_steps = 0
     bad_filter_args["ndim"] = 3
@@ -301,7 +301,7 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
     bad_filter_args["filter_scale"] = 1000
     with pytest.warns(UserWarning, match=r"Warning: Filter scale much larger .*"):
         filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
-        
+
 
 #################### Visosity-based filter tests ########################################
 @pytest.mark.parametrize(
