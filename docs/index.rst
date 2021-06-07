@@ -16,6 +16,7 @@ for performing smoothing of gridded fields. MORE HERE
    tutorial
    tutorial_irregular_grid
    tutorial_vector_laplacian
+   tutorial_tripole_grid
    tutorial_numerical_instability
    api
    how_to_contribute
