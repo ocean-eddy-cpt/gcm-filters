@@ -66,8 +66,7 @@ Instead, it plots the shape in "Fourier" space.
 Length scales are related to wavelengths by :math:`\ell = 2\pi/k`.
 The filter leaves large scales unchanged, so ``plot_shape`` shows values close to 1 for small :math:`k`.
 The filter damps out small scales, so ``plot_shape`` shows values close to 0 for large :math:`k`.
-The tutorial gives examples of using ``plot_shape`` and interpreting the resulting plots.
-:doc:`tutorial` has example using the ``plot_shape`` method.
+The :doc:`tutorial` gives examples of using ``plot_shape`` and interpreting the resulting plots.
 
 Numerical Stability
 -------------------
