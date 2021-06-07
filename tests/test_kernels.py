@@ -56,7 +56,7 @@ def grid_type_field_and_extra_kwargs(request):
 
 
 def test_conservation(grid_type_field_and_extra_kwargs):
-    """ This test checks that scalar Laplacians preserve the area integral."""
+    """This test checks that scalar Laplacians preserve the area integral."""
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
 
     LaplacianClass = ALL_KERNELS[grid_type]
