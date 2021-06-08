@@ -14,7 +14,7 @@ for performing smoothing of gridded fields. MORE HERE
 
    theory
    tutorial
-   tutorial_irregular_grid
+   tutorial_filter_types
    tutorial_tripole_grid
    tutorial_numerical_instability
    api

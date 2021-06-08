@@ -66,8 +66,7 @@ Instead, it plots the shape in "Fourier" space.
 Length scales are related to wavelengths by :math:`\ell = 2\pi/k`.
 The filter leaves large scales unchanged, so ``plot_shape`` shows values close to 1 for small :math:`k`.
 The filter damps out small scales, so ``plot_shape`` shows values close to 0 for large :math:`k`.
-The tutorial gives examples of using ``plot_shape`` and interpreting the resulting plots.
-:doc:`tutorial` has example using the ``plot_shape`` method.
+The :doc:`tutorial` gives examples of using ``plot_shape`` and interpreting the resulting plots.
 
 Numerical Stability
 -------------------
@@ -105,6 +104,8 @@ You can achieve this in ``gcm-filters`` as follows.
 1. Set ``filter_scale`` equal to the maximum of :math:`L(x,y)` over the domain. (Call this value :math:`L_{max}`).
 2. Set :math:`\kappa` equal to :math:`L(x,y)^2/L_{max}^2`.
 
+The :doc:`tutorial_filter_types` has examples of filtering with spatially-varying filter scale.
+
 Anisotropic Filtering
 ---------------------
 
@@ -117,7 +118,7 @@ Suppose, for example, that you want to filter with a scale of 60 in the grid-x d
 Then you would set ``filter_scale`` =  60, with :math:`\kappa_x = 1` to get a filter scale of 60 in the grid-x direction.
 Next, to get a filter scale of 30 in the grid-y direction you would set :math:`\kappa_y=1/4`.
 
-:doc:`tutorial_irregular_grid` has an example of an alternative method designed specifically for the case where the user wants to set the local filter scale equal to the local grid scale to achieve a fixed "coarsening" factor.
+The :doc:`tutorial_filter_types` has examples of anisotropic filtering. The same tutorial also shows methods designed specifically for the case where the user wants to set the local filter scale equal to the local grid scale to achieve a fixed "coarsening" factor.
 This can be achieved using the anisotropic diffusion described above, but it can also be achieved in a more efficient computational manner as follows.
 
 1. Multiply the unfiltered data by the local grid cell area.
