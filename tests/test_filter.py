@@ -125,6 +125,10 @@ def grid_type_and_input_ds(request):
 
     grid_vars = {}
 
+    if grid_type == GridType.REGULAR:
+        area = np.meshgrid(1.0 + np.random.rand(nx), 1.0 + np.random.rand(ny))
+        da_area = xr.DataArray(area, dims=["y", "x"])
+        grid_vars = {"area": da_area}
     if grid_type == GridType.REGULAR_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
@@ -284,7 +288,7 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
             filter = Filter(
                 grid_type=grid_type, grid_vars=grid_vars_missing, **filter_args
             )
-            
+
     bad_filter_args = copy.deepcopy(filter_args)
     # check that we get an error if ndim > 2 and n_steps = 0
     bad_filter_args["ndim"] = 3
@@ -301,7 +305,7 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
     bad_filter_args["filter_scale"] = 1000
     with pytest.warns(UserWarning, match=r"Warning: Filter scale much larger .*"):
         filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
-        
+
 
 #################### Visosity-based filter tests ########################################
 @pytest.mark.parametrize(

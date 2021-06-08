@@ -19,6 +19,9 @@ def grid_type_field_and_extra_kwargs(request):
     data = np.random.rand(ny, nx)
 
     extra_kwargs = {}
+    if grid_type == GridType.REGULAR:
+        area = np.meshgrid(1.0 + np.random.rand(nx), 1.0 + np.random.rand(ny))
+        extra_kwargs["area"] = area
     if grid_type == GridType.REGULAR_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
@@ -56,7 +59,7 @@ def grid_type_field_and_extra_kwargs(request):
 
 
 def test_conservation(grid_type_field_and_extra_kwargs):
-    """ This test checks that scalar Laplacians preserve the area integral."""
+    """This test checks that scalar Laplacians preserve the area integral."""
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
 
     LaplacianClass = ALL_KERNELS[grid_type]

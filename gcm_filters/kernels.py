@@ -68,7 +68,14 @@ class BaseVectorLaplacian(ABC):
 
 @dataclass
 class RegularLaplacian(BaseScalarLaplacian):
-    """̵Laplacian for regularly spaced Cartesian grids."""
+    """̵Laplacian for regularly spaced Cartesian grids.
+
+    Attributes
+    ----------
+    area: cell area
+    """
+
+    area: ArrayType
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
