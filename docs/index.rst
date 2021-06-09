@@ -17,6 +17,7 @@ for performing smoothing of gridded fields. MORE HERE
    tutorial_GPU
    tutorial_filter_types
    tutorial_tripole_grid
+   tutorial_vector_laplacian
    tutorial_numerical_instability
    api
    how_to_contribute
