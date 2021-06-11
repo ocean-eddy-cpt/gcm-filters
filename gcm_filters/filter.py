@@ -292,9 +292,10 @@ class Filter:
         if issubclass(self.Laplacian, BaseScalarRegularLaplacian):
             if self.dx_min != 1:
                 warnings.warn(
-                    f"Provided Laplacian is for simple fixed factor filtering, "
-                    f"where area-weighted field is filtered on a regular grid with dx = dy = 1 "
-                    f"--> dx_min is set to 1"
+                    "Provided Laplacian is for simple fixed factor filtering, "
+                    "where area-weighted field is filtered on a regular grid with dx = dy = 1 "
+                    "--> dx_min is set to 1",
+                    stacklevel=2
                 )
                 self.dx_min = 1
 
@@ -317,7 +318,8 @@ class Filter:
 
         if self.n_steps < n_steps_default:
             warnings.warn(
-                "You have set n_steps below the default. Results might not be accurate."
+                "You have set n_steps below the default. Results might not be accurate.",
+                stacklevel=2
             )
 
         # Issue numerical stability warning, if needed
@@ -326,7 +328,8 @@ class Filter:
         ]
         if filter_factor >= max_filter_factor:
             warnings.warn(
-                "Filter scale much larger than grid scale -> numerical instability possible"
+                "Filter scale much larger than grid scale -> numerical instability possible",
+                stacklevel=2
             )
 
         self.filter_spec = _compute_filter_spec(
