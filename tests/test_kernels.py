@@ -28,6 +28,8 @@ def grid_type_field_and_extra_kwargs(request):
         area = 0.5 + np.random.rand(ny, nx)
         extra_kwargs["area"] = area
     if grid_type == GridType.REGULAR_WITH_LAND:
+        area = 0.5 + np.random.rand(ny, nx)
+        extra_kwargs["area"] = area
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         extra_kwargs["wet_mask"] = mask_data
@@ -44,6 +46,8 @@ def grid_type_field_and_extra_kwargs(request):
         extra_kwargs["kappa_w"] = grid_data
         extra_kwargs["kappa_s"] = grid_data
     if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND:
+        area = 0.5 + np.random.rand(ny, nx)
+        extra_kwargs["area"] = area
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         mask_data[0, :] = 0  #  Antarctica
