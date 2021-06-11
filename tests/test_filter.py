@@ -29,6 +29,7 @@ def _check_equal_filter_spec(spec1, spec2):
                 filter_shape=FilterShape.GAUSSIAN,
                 transition_width=np.pi,
                 ndim=2,
+                grid_vars={"area": xr.DataArray(np.ones((5, 10)), dims=["y", "x"])},
             ),
             FilterSpec(
                 n_steps_total=10,
@@ -80,6 +81,7 @@ def _check_equal_filter_spec(spec1, spec2):
                 filter_shape=FilterShape.TAPER,
                 transition_width=np.pi,
                 ndim=1,
+                grid_vars={"area": xr.DataArray(np.ones((5, 10)), dims=["y", "x"])},
             ),
             FilterSpec(
                 n_steps_total=3,
@@ -126,7 +128,7 @@ def grid_type_and_input_ds(request):
     grid_vars = {}
 
     if grid_type == GridType.REGULAR:
-        area = np.meshgrid(1.0 + np.random.rand(nx), 1.0 + np.random.rand(ny))
+        area = 0.5 + np.random.rand(ny, nx)
         da_area = xr.DataArray(area, dims=["y", "x"])
         grid_vars = {"area": da_area}
     if grid_type == GridType.REGULAR_WITH_LAND:
