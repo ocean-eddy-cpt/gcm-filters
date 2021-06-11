@@ -270,9 +270,13 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
     filtered = filter.apply(da, dims=["y", "x"])
 
     # check conservation
-    # this would need to be replaced by a proper area-weighted integral
-    da_sum = da.sum()
-    filtered_sum = filtered.sum()
+    area = 1
+    for k, v in grid_vars.items():
+        if "area" in k:
+            area = v
+            break
+    da_sum = (da * area).sum()
+    filtered_sum = (filtered * area).sum()
     xr.testing.assert_allclose(da_sum, filtered_sum)
 
     # check that we get an error if we pass scalar Laplacian to .apply_to vector,

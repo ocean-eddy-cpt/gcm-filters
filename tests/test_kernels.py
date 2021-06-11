@@ -3,7 +3,12 @@ import copy
 import numpy as np
 import pytest
 
-from gcm_filters.kernels import ALL_KERNELS, GridType, required_grid_vars
+from gcm_filters.kernels import (
+    ALL_KERNELS,
+    BaseScalarLaplacian,
+    GridType,
+    required_grid_vars,
+)
 
 
 # define (for now: hard-code) which grids are associated with vector Laplacians
@@ -20,7 +25,7 @@ def grid_type_field_and_extra_kwargs(request):
 
     extra_kwargs = {}
     if grid_type == GridType.REGULAR:
-        area = np.meshgrid(1.0 + np.random.rand(nx), 1.0 + np.random.rand(ny))
+        area = 0.5 + np.random.rand(ny, nx)
         extra_kwargs["area"] = area
     if grid_type == GridType.REGULAR_WITH_LAND:
         mask_data = np.ones_like(data)
@@ -64,7 +69,17 @@ def test_conservation(grid_type_field_and_extra_kwargs):
 
     LaplacianClass = ALL_KERNELS[grid_type]
     laplacian = LaplacianClass(**extra_kwargs)
-    res = laplacian(data)
+    area = 1
+    # - Laplacians that belong to BaseScalarSimpleLaplacian class
+    #   act on (transformed) regular grid with dx = dy = 1
+    # - Laplacians that belong to BaseScalarLaplacian class
+    #   act on potentially irregular grid --> need area information
+    if issubclass(LaplacianClass, BaseScalarLaplacian):
+        for k, v in extra_kwargs.items():
+            if "area" in k:
+                area = v
+                break
+    res = laplacian(data) * area
     np.testing.assert_allclose(res.sum(), 0.0, atol=1e-12)
 
 
