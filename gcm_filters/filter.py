@@ -369,7 +369,7 @@ class Filter:
 
     def apply(self, field, dims):
         """Filter a field with scalar Laplacian across the dimensions specified by dims."""
-        if not issubclass(self.Laplacian, BaseScalarLaplacian):
+        if issubclass(self.Laplacian, BaseVectorLaplacian):
             raise ValueError(
                 f"Provided Laplacian {self.Laplacian} is a vector Laplacian. "
                 f"The ``.apply`` method is only suitable for scalar Laplacians."
