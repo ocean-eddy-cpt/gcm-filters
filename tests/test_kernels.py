@@ -37,14 +37,14 @@ def grid_type_field_and_extra_kwargs(request):
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         extra_kwargs["wet_mask"] = mask_data
-        grid_data = np.ones_like(data)
+        grid_data = 0.5 + np.random.rand(ny, nx)
         extra_kwargs["dxw"] = grid_data
         extra_kwargs["dyw"] = grid_data
         extra_kwargs["dxs"] = grid_data
         extra_kwargs["dys"] = grid_data
-        extra_kwargs["area"] = grid_data
-        extra_kwargs["kappa_w"] = grid_data
-        extra_kwargs["kappa_s"] = grid_data
+        extra_kwargs["area"] = grid_data * grid_data
+        extra_kwargs["kappa_w"] = np.ones_like(data)
+        extra_kwargs["kappa_s"] = np.ones_like(data)
     if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND:
         area = 0.5 + np.random.rand(ny, nx)
         extra_kwargs["area"] = area
@@ -57,12 +57,12 @@ def grid_type_field_and_extra_kwargs(request):
         mask_data[: (ny // 2), : (nx // 2)] = 0
         mask_data[0, :] = 0  #  Antarctica
         extra_kwargs["wet_mask"] = mask_data
-        grid_data = np.ones_like(data)
+        grid_data = 0.5 + np.random.rand(ny, nx)
         extra_kwargs["dxe"] = grid_data
         extra_kwargs["dye"] = grid_data
         extra_kwargs["dxn"] = grid_data
         extra_kwargs["dyn"] = grid_data
-        extra_kwargs["tarea"] = grid_data
+        extra_kwargs["tarea"] = grid_data * grid_data
 
     return grid_type, data, extra_kwargs
 

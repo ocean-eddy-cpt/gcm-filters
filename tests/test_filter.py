@@ -142,17 +142,20 @@ def grid_type_and_input_ds(request):
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-        grid_data = np.ones_like(data)
+        grid_data = 0.5 + np.random.rand(ny, nx)
         da_grid = xr.DataArray(grid_data, dims=["y", "x"])
+        da_area = xr.DataArray(grid_data * grid_data, dims=["y", "x"])
+        da_kappa = xr.DataArray(np.ones_like(data), dims=["y", "x"])
+
         grid_vars = {
             "wet_mask": da_mask,
             "dxw": da_grid,
             "dyw": da_grid,
             "dxs": da_grid,
             "dys": da_grid,
-            "area": da_grid,
-            "kappa_w": da_grid,
-            "kappa_s": da_grid,
+            "area": da_area,
+            "kappa_w": da_kappa,
+            "kappa_s": da_kappa,
         }
     if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND:
         area = 0.5 + np.random.rand(ny, nx)
@@ -167,15 +170,16 @@ def grid_type_and_input_ds(request):
         mask_data[: (ny // 2), : (nx // 2)] = 0
         mask_data[0, :] = 0  #  Antarctica
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-        grid_data = np.ones_like(data)
+        grid_data = 0.5 + np.random.rand(ny, nx)
         da_grid = xr.DataArray(grid_data, dims=["y", "x"])
+        da_area = xr.DataArray(grid_data * grid_data, dims=["y", "x"])
         grid_vars = {
             "wet_mask": da_mask,
             "dxe": da_grid,
             "dye": da_grid,
             "dxn": da_grid,
             "dyn": da_grid,
-            "tarea": da_grid,
+            "tarea": da_area,
         }
 
     da = xr.DataArray(data, dims=["y", "x"])
