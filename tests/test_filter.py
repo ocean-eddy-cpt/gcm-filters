@@ -116,6 +116,11 @@ def test_filter_spec(filter_args, expected_filter_spec):
 vector_grids = [gt for gt in GridType if gt.name in {"VECTOR_C_GRID"}]
 # all remaining grids are for scalar Laplacians
 scalar_grids = [gt for gt in GridType if gt not in vector_grids]
+scalar_regular_grids = [
+    gt
+    for gt in GridType
+    if gt.name in {"REGULAR", "REGULAR_WITH_LAND", "TRIPOLAR_REGULAR_WITH_LAND"}
+]
 
 
 @pytest.fixture(scope="module", params=scalar_grids)
@@ -312,13 +317,19 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
     # check that we get a warning if n_steps < n_steps_default
     bad_filter_args["ndim"] = 2
     bad_filter_args["n_steps"] = 3
-    with pytest.warns(UserWarning, match=r"Warning: You have set n_steps .*"):
+    with pytest.warns(UserWarning, match=r"You have set n_steps .*"):
         filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
     # check that we get a warning if numerical instability possible
     bad_filter_args["n_steps"] = 0
     bad_filter_args["filter_scale"] = 1000
-    with pytest.warns(UserWarning, match=r"Warning: Filter scale much larger .*"):
+    with pytest.warns(UserWarning, match=r"Filter scale much larger .*"):
         filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
+    # check that we get a warning if we pass dx_min != 1 to a regular scalar Laplacian
+    if grid_type in scalar_regular_grids:
+        bad_filter_args["filter_scale"] = 3  # restore good value for filter scale
+        bad_filter_args["dx_min"] = 3
+        with pytest.warns(UserWarning, match=r"Provided Laplacian .*"):
+            filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
 
 
 #################### Visosity-based filter tests ########################################
