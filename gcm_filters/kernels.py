@@ -52,6 +52,30 @@ class BaseScalarLaplacian(ABC):
 
 
 @dataclass
+class BaseScalarRegularLaplacian(ABC):
+    """̵Base class for Laplacians on regularly spaced Cartesian grids.
+
+    Attributes
+    ----------
+    area: cell area
+    """
+
+    area: ArrayType
+
+    def __call__(self, field):
+        pass  # pragma: no cover
+
+    # change to property when we are using python 3.9
+    # https://stackoverflow.com/questions/128573/using-property-on-classmethods
+    @classmethod
+    def required_grid_args(self):
+        try:
+            return list(self.__annotations__)
+        except AttributeError:
+            return []
+
+
+@dataclass
 class BaseVectorLaplacian(ABC):
     def __call__(self, ufield, vfield):
         pass  # pragma: no cover
@@ -67,15 +91,8 @@ class BaseVectorLaplacian(ABC):
 
 
 @dataclass
-class RegularLaplacian(BaseScalarLaplacian):
-    """̵Laplacian for regularly spaced Cartesian grids.
-
-    Attributes
-    ----------
-    area: cell area
-    """
-
-    area: ArrayType
+class RegularLaplacian(BaseScalarRegularLaplacian):
+    """̵Laplacian for regularly spaced Cartesian grids."""
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
