@@ -288,14 +288,13 @@ class Filter:
 
         self.Laplacian = ALL_KERNELS[self.grid_type]
 
-        # Determine whether this is simple fixed factor filter
+        # Determine whether this is simple fixed factor filter; in that case we need dx_min = 1
         if issubclass(self.Laplacian, BaseScalarRegularLaplacian):
-            # simple fixed factor filtering uses dx_min = 1 because grid is assumed as uniform
-            # with dx=dy=1
             if self.dx_min != 1:
                 warnings.warn(
                     f"Provided Laplacian {self.Laplacian} is for simple fixed factor filtering, "
-                    f"where filtering is performed on a regular grid --> dx_min is set to 1"
+                    f"where area-weighted field is filtered on a regular grid with dx = dy = 1 "
+                    f"--> dx_min is set to 1"
                 )
                 self.dx_min = 1
 
@@ -318,8 +317,8 @@ class Filter:
 
         if self.n_steps < n_steps_default:
             warnings.warn(
-                "Warning: You have set n_steps below the default. Results might not be accurate.",
-                UserWarning,
+                "You have set n_steps below the default. Results might not be accurate.",
+                category=UserWarning,
             )
 
         # Issue numerical stability warning, if needed
@@ -328,8 +327,8 @@ class Filter:
         ]
         if filter_factor >= max_filter_factor:
             warnings.warn(
-                "Warning: Filter scale much larger than grid scale -> numerical instability possible",
-                UserWarning,
+                "Filter scale much larger than grid scale -> numerical instability possible",
+                category=UserWarning,
             )
 
         self.filter_spec = _compute_filter_spec(
