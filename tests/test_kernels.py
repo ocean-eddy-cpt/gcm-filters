@@ -209,9 +209,40 @@ def test_flux_in_x_direction(grid_type_field_and_extra_kwargs):
 tripolar_grids = [gt for gt in GridType if gt.name.startswith("TRIPOLAR")]
 
 
-def test_for_antarctica(grid_type_field_and_extra_kwargs):
+@pytest.fixture(scope="module", params=tripolar_grids)
+# the following test data mirrors a regular grid because
+# these are the assumptions of test_tripolar_exchanges
+def tripolar_grid_type_field_and_extra_kwargs(request):
+    grid_type = request.param
+    ny, nx = (128, 256)
+    data = np.random.rand(ny, nx)
+
+    extra_kwargs = {}
+    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND:
+        area = np.ones_like(data)
+        extra_kwargs["area"] = area
+        mask_data = np.ones_like(data)
+        mask_data[: (ny // 2), : (nx // 2)] = 0
+        mask_data[0, :] = 0  #  Antarctica
+        extra_kwargs["wet_mask"] = mask_data
+    if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
+        mask_data = np.ones_like(data)
+        mask_data[: (ny // 2), : (nx // 2)] = 0
+        mask_data[0, :] = 0  #  Antarctica
+        extra_kwargs["wet_mask"] = mask_data
+        grid_data = np.ones_like(data)
+        extra_kwargs["dxe"] = grid_data
+        extra_kwargs["dye"] = grid_data
+        extra_kwargs["dxn"] = grid_data
+        extra_kwargs["dyn"] = grid_data
+        extra_kwargs["tarea"] = grid_data * grid_data
+
+    return grid_type, data, extra_kwargs
+
+
+def test_for_antarctica(tripolar_grid_type_field_and_extra_kwargs):
     """This test checks that we get an error if southernmost row of wet_mask has entry not equal to zero."""
-    grid_type, _, extra_kwargs = grid_type_field_and_extra_kwargs
+    grid_type, _, extra_kwargs = tripolar_grid_type_field_and_extra_kwargs
 
     if grid_type in tripolar_grids:
         nx = np.shape(extra_kwargs["wet_mask"])[1]
@@ -224,9 +255,9 @@ def test_for_antarctica(grid_type_field_and_extra_kwargs):
             laplacian = LaplacianClass(**bad_kwargs)
 
 
-def test_tripolar_exchanges(grid_type_field_and_extra_kwargs):
+def test_tripolar_exchanges(tripolar_grid_type_field_and_extra_kwargs):
     """This test checks that Laplacian exchanges across northern boundary seam line of tripolar grid are correct."""
-    grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
+    grid_type, data, extra_kwargs = tripolar_grid_type_field_and_extra_kwargs
 
     if grid_type in tripolar_grids:
         LaplacianClass = ALL_KERNELS[grid_type]
@@ -238,9 +269,12 @@ def test_tripolar_exchanges(grid_type_field_and_extra_kwargs):
         random_loc = np.random.randint(1, nx // 2 - 2)
         delta[-1, random_loc] = 1
 
+        regular_kwargs = copy.deepcopy(extra_kwargs)
+        regular_kwargs["wet_mask"][0, random_loc] = 1
+
         diffused = laplacian(delta)
-        # check that delta function gets diffused isotropically across northern boundary
-        # this would need to be replaced once we provide irregular grid data in fixture
+        # check that delta function gets diffused isotropically across northern boundary;
+        # this assumes regular grid data in fixture
         np.testing.assert_allclose(
             diffused[-2, random_loc], diffused[-1, nx - random_loc - 1], atol=1e-12
         )
