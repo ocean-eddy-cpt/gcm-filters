@@ -268,7 +268,7 @@ class Filter:
     grid_type : GridType
         what sort of grid we are dealing with
     grid_vars : dict
-        dictionary of extra parameters used to initialize the grid laplacian
+        dictionary of extra parameters used to initialize the grid Laplacian
 
     Attributes
     ----------
