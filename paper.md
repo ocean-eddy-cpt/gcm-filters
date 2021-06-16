@@ -6,9 +6,11 @@ tags:
   - climate modeling
   - fluid dynamics
 authors:
-  - TBD
+  - name: TBD
+    affiliation: 1
 affiliations:
-  - TBD
+  - name: TBD
+    index: 1
 date: 16 June 2021
 bibliography: paper.bib
 
