@@ -27,7 +27,6 @@ Finally, the filter shape -- currently: Gaussian or Taper -- determines how shar
 # Statement of Need
 
 Spatial filtering is commonly used as a scientific tool for analyzing gridded data. An example of an existing spatial filtering tool in python is SciPy's [@2020SciPy-NMeth] ndimage.gaussian_filter function, implemented as a sequence of convolution filters. While being a valuable tool for image processing (or blurring), SciPy's Gaussian filter is of limited use for GCM data; it assumes a regular and rectangular Cartesian grid, employs a simple boundary condition, and the definition of filter scale and shape have little flexibility. The python package Gcm-filters is specificially designed to filter GCM data, and seeks to solve a number of challenges for the user:
-
 1. GCM data comes on irregular curvilinear grids with spatially varying grid-cell geometry.
 2. Continental boundaries require careful / special treatment when filtering ocean GCM output.
 3. Earth Science applications benefit from configurable filters, where the definition of filter scale and shape is flexible.
