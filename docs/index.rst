@@ -19,7 +19,7 @@ for performing smoothing of gridded fields. MORE HERE
    tutorial_tripole_grid
    tutorial_vector_laplacian
    tutorial_numerical_instability
-   api
+   API Reference <api>
    how_to_contribute
 
 
