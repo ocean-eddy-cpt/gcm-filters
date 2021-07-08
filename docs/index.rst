@@ -4,22 +4,28 @@
    contain the root `toctree` directive.
 
 GCM Filters: Diffusion-based Spatial Filtering of Gridded Data from General Circulation Models
-===========
+===============================================================================================
 
-GCM-Filters is a python package that allows users to perform spatial filtering analysis in an easy, flexible and efficient way. The package implements the filtering method that was introduced by `Grooms et al. (2021) <https://doi.org/10.1002/essoar.10506591.1>`_. The filtering algorithm is analogous to smoothing via diffusion; hence the name diffusion-based filters. GCM-Filters is designed to work with gridded data that is produced by General Circulation Models (GCMs) of ocean, weather, and climate.
+**GCM-Filters** is a python package that performs spatial filtering analysis in an easy, flexible and efficient way.
+The GCM-Filters algorithm applies a discrete Laplacian to smooth a field through an iterative process that resembles diffusion (see :doc:`theory` or `Grooms et al., 2021 <https://doi.org/10.1002/essoar.10506591.1>`_).
+The package is specifically designed to work with gridded data that is produced by General Circulation Models (GCMs) of ocean, weather, and climate.
+Such GCM data comes on complex curvilinear grids, whose geometry is respected by the GCM-Filters Laplacians.
 
+Contents
+--------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    theory
-   tutorial
-   tutorial_GPU
-   tutorial_filter_types
-   tutorial_tripole_grid
-   tutorial_vector_laplacian
-   tutorial_numerical_instability
-   API Reference <api>
+   basic_filtering
+   dask
+   gpu
+   examples/example_filter_types
+   examples/example_tripole_grid
+   examples/example_vector_laplacian
+   examples/example_numerical_instability
+   api
    how_to_contribute
 
 
