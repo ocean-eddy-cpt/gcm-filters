@@ -10,7 +10,6 @@ from typing import Any, Dict
 from .gpu_compat import ArrayType, get_array_module
 
 
-# not married to the term "Cartesian"
 GridType = enum.Enum(
     "GridType",
     [
@@ -38,6 +37,32 @@ def _prepare_tripolar_exchanges(field):
 
 @dataclass
 class BaseScalarLaplacian(ABC):
+    """̵Base class for scalar Laplacians."""
+
+    def __call__(self, field):
+        pass  # pragma: no cover
+
+    # change to property when we are using python 3.9
+    # https://stackoverflow.com/questions/128573/using-property-on-classmethods
+    @classmethod
+    def required_grid_args(self):
+        try:
+            return list(self.__annotations__)
+        except AttributeError:
+            return []
+
+
+@dataclass
+class BaseScalarRegularLaplacian(ABC):
+    """̵Base class for scalar Laplacians on regularly spaced Cartesian grids.
+
+    Attributes
+    ----------
+    area: cell area
+    """
+
+    area: ArrayType
+
     def __call__(self, field):
         pass  # pragma: no cover
 
@@ -53,6 +78,8 @@ class BaseScalarLaplacian(ABC):
 
 @dataclass
 class BaseVectorLaplacian(ABC):
+    """Base class for vector Laplacians."""
+
     def __call__(self, ufield, vfield):
         pass  # pragma: no cover
 
@@ -67,8 +94,15 @@ class BaseVectorLaplacian(ABC):
 
 
 @dataclass
-class RegularLaplacian(BaseScalarLaplacian):
-    """̵Laplacian for regularly spaced Cartesian grids."""
+class RegularLaplacian(BaseScalarRegularLaplacian):
+    """̵Laplacian for regularly spaced Cartesian grids.
+
+    Attributes
+    ----------
+    area: cell area
+    """
+
+    area: ArrayType
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
@@ -85,19 +119,20 @@ ALL_KERNELS[GridType.REGULAR] = RegularLaplacian
 
 
 @dataclass
-class RegularLaplacianWithLandMask(BaseScalarLaplacian):
+class RegularLaplacianWithLandMask(BaseScalarRegularLaplacian):
     """̵Laplacian for regularly spaced Cartesian grids with land mask.
 
     Attributes
     ----------
+    area: cell area
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
 
+    area: ArrayType
     wet_mask: ArrayType
 
     def __post_init__(self):
         np = get_array_module(self.wet_mask)
-
         self.wet_fac = (
             np.roll(self.wet_mask, -1, axis=-1)
             + np.roll(self.wet_mask, 1, axis=-1)
@@ -193,14 +228,16 @@ ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularLaplacianWithLandMask
 
 
 @dataclass
-class TripolarRegularLaplacianTpoint(BaseScalarLaplacian):
+class TripolarRegularLaplacianTpoint(BaseScalarRegularLaplacian):
     """̵Laplacian for fields defined at T-points on POP tripolar grid geometry with land mask, but assuming that dx = dy = 1
 
     Attributes
     ----------
+    area: cell area
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
 
+    area: ArrayType
     wet_mask: ArrayType
 
     def __post_init__(self):

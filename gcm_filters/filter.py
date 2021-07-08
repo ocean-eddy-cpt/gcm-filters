@@ -12,7 +12,13 @@ import xarray as xr
 from scipy import interpolate
 
 from .gpu_compat import get_array_module
-from .kernels import ALL_KERNELS, BaseScalarLaplacian, BaseVectorLaplacian, GridType
+from .kernels import (
+    ALL_KERNELS,
+    BaseScalarLaplacian,
+    BaseScalarRegularLaplacian,
+    BaseVectorLaplacian,
+    GridType,
+)
 
 
 FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
@@ -262,7 +268,7 @@ class Filter:
     grid_type : GridType
         what sort of grid we are dealing with
     grid_vars : dict
-        dictionary of extra parameters used to initialize the grid laplacian
+        dictionary of extra parameters used to initialize the grid Laplacian
 
     Attributes
     ----------
@@ -279,6 +285,19 @@ class Filter:
     grid_vars: dict = field(default_factory=dict, repr=False)
 
     def __post_init__(self):
+
+        self.Laplacian = ALL_KERNELS[self.grid_type]
+
+        # Determine whether this is simple fixed factor filter; in that case we need dx_min = 1
+        if issubclass(self.Laplacian, BaseScalarRegularLaplacian):
+            if self.dx_min != 1:
+                warnings.warn(
+                    "Provided Laplacian is for simple fixed factor filtering, "
+                    "where area-weighted field is filtered on a regular grid with dx = dy = 1 "
+                    "--> dx_min is set to 1",
+                    stacklevel=2,
+                )
+                self.dx_min = 1
 
         # Get default number of steps
         filter_factor = self.filter_scale / self.dx_min
@@ -299,8 +318,8 @@ class Filter:
 
         if self.n_steps < n_steps_default:
             warnings.warn(
-                "Warning: You have set n_steps below the default. Results might not be accurate.",
-                UserWarning,
+                "You have set n_steps below the default. Results might not be accurate.",
+                stacklevel=2,
             )
 
         # Issue numerical stability warning, if needed
@@ -309,8 +328,8 @@ class Filter:
         ]
         if filter_factor >= max_filter_factor:
             warnings.warn(
-                "Warning: Filter scale much larger than grid scale -> numerical instability possible",
-                UserWarning,
+                "Filter scale much larger than grid scale -> numerical instability possible",
+                stacklevel=2,
             )
 
         self.filter_spec = _compute_filter_spec(
@@ -323,7 +342,6 @@ class Filter:
         )
 
         # check that we have all the required grid aguments
-        self.Laplacian = ALL_KERNELS[self.grid_type]
 
         if not set(self.Laplacian.required_grid_args()) == set(self.grid_vars):
             raise ValueError(
@@ -369,11 +387,14 @@ class Filter:
 
     def apply(self, field, dims):
         """Filter a field with scalar Laplacian across the dimensions specified by dims."""
-        if not issubclass(self.Laplacian, BaseScalarLaplacian):
+        if issubclass(self.Laplacian, BaseVectorLaplacian):
             raise ValueError(
                 f"Provided Laplacian {self.Laplacian} is a vector Laplacian. "
                 f"The ``.apply`` method is only suitable for scalar Laplacians."
             )
+        if issubclass(self.Laplacian, BaseScalarRegularLaplacian):
+            # simple fixed factor filtering multiplies field by area before filtering
+            field = field * self.grid_ds["area"]
 
         filter_func = _create_filter_func(self.filter_spec, self.Laplacian)
         grid_args = [self.grid_ds[name] for name in self.Laplacian.required_grid_args()]
@@ -388,6 +409,10 @@ class Filter:
             output_dtypes=[field.dtype],
             dask="parallelized",
         )
+        if issubclass(self.Laplacian, BaseScalarRegularLaplacian):
+            # simple fixed factor filtering divides filtered field by area
+            field_smooth = field_smooth / self.grid_ds["area"]
+
         return field_smooth
 
     def apply_to_vector(self, ufield, vfield, dims):

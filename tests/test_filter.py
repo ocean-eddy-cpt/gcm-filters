@@ -29,6 +29,7 @@ def _check_equal_filter_spec(spec1, spec2):
                 filter_shape=FilterShape.GAUSSIAN,
                 transition_width=np.pi,
                 ndim=2,
+                grid_vars={"area": xr.DataArray(np.ones((5, 10)), dims=["y", "x"])},
             ),
             FilterSpec(
                 n_steps_total=10,
@@ -80,6 +81,7 @@ def _check_equal_filter_spec(spec1, spec2):
                 filter_shape=FilterShape.TAPER,
                 transition_width=np.pi,
                 ndim=1,
+                grid_vars={"area": xr.DataArray(np.ones((5, 10)), dims=["y", "x"])},
             ),
             FilterSpec(
                 n_steps_total=3,
@@ -114,6 +116,11 @@ def test_filter_spec(filter_args, expected_filter_spec):
 vector_grids = [gt for gt in GridType if gt.name in {"VECTOR_C_GRID"}]
 # all remaining grids are for scalar Laplacians
 scalar_grids = [gt for gt in GridType if gt not in vector_grids]
+scalar_regular_grids = [
+    gt
+    for gt in GridType
+    if gt.name in {"REGULAR", "REGULAR_WITH_LAND", "TRIPOLAR_REGULAR_WITH_LAND"}
+]
 
 
 @pytest.fixture(scope="module", params=scalar_grids)
@@ -125,47 +132,59 @@ def grid_type_and_input_ds(request):
 
     grid_vars = {}
 
+    if grid_type == GridType.REGULAR:
+        area = 0.5 + np.random.rand(ny, nx)
+        da_area = xr.DataArray(area, dims=["y", "x"])
+        grid_vars = {"area": da_area}
     if grid_type == GridType.REGULAR_WITH_LAND:
+        area = 0.5 + np.random.rand(ny, nx)
+        da_area = xr.DataArray(area, dims=["y", "x"])
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-        grid_vars = {"wet_mask": da_mask}
+        grid_vars = {"area": da_area, "wet_mask": da_mask}
     if grid_type == GridType.IRREGULAR_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-        grid_data = np.ones_like(data)
+        grid_data = 0.5 + np.random.rand(ny, nx)
         da_grid = xr.DataArray(grid_data, dims=["y", "x"])
+        da_area = xr.DataArray(grid_data * grid_data, dims=["y", "x"])
+        da_kappa = xr.DataArray(np.ones_like(data), dims=["y", "x"])
+
         grid_vars = {
             "wet_mask": da_mask,
             "dxw": da_grid,
             "dyw": da_grid,
             "dxs": da_grid,
             "dys": da_grid,
-            "area": da_grid,
-            "kappa_w": da_grid,
-            "kappa_s": da_grid,
+            "area": da_area,
+            "kappa_w": da_kappa,
+            "kappa_s": da_kappa,
         }
     if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND:
+        area = 0.5 + np.random.rand(ny, nx)
+        da_area = xr.DataArray(area, dims=["y", "x"])
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         mask_data[0, :] = 0  #  Antarctica
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-        grid_vars = {"wet_mask": da_mask}
+        grid_vars = {"area": da_area, "wet_mask": da_mask}
     if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         mask_data[0, :] = 0  #  Antarctica
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-        grid_data = np.ones_like(data)
+        grid_data = 0.5 + np.random.rand(ny, nx)
         da_grid = xr.DataArray(grid_data, dims=["y", "x"])
+        da_area = xr.DataArray(grid_data * grid_data, dims=["y", "x"])
         grid_vars = {
             "wet_mask": da_mask,
             "dxe": da_grid,
             "dye": da_grid,
             "dxn": da_grid,
             "dyn": da_grid,
-            "tarea": da_grid,
+            "tarea": da_area,
         }
 
     da = xr.DataArray(data, dims=["y", "x"])
@@ -264,9 +283,13 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
     filtered = filter.apply(da, dims=["y", "x"])
 
     # check conservation
-    # this would need to be replaced by a proper area-weighted integral
-    da_sum = da.sum()
-    filtered_sum = filtered.sum()
+    area = 1
+    for k, v in grid_vars.items():
+        if "area" in k:
+            area = v
+            break
+    da_sum = (da * area).sum()
+    filtered_sum = (filtered * area).sum()
     xr.testing.assert_allclose(da_sum, filtered_sum)
 
     # check that we get an error if we pass scalar Laplacian to .apply_to vector,
@@ -294,13 +317,19 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
     # check that we get a warning if n_steps < n_steps_default
     bad_filter_args["ndim"] = 2
     bad_filter_args["n_steps"] = 3
-    with pytest.warns(UserWarning, match=r"Warning: You have set n_steps .*"):
+    with pytest.warns(UserWarning, match=r"You have set n_steps .*"):
         filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
     # check that we get a warning if numerical instability possible
     bad_filter_args["n_steps"] = 0
     bad_filter_args["filter_scale"] = 1000
-    with pytest.warns(UserWarning, match=r"Warning: Filter scale much larger .*"):
+    with pytest.warns(UserWarning, match=r"Filter scale much larger .*"):
         filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
+    # check that we get a warning if we pass dx_min != 1 to a regular scalar Laplacian
+    if grid_type in scalar_regular_grids:
+        bad_filter_args["filter_scale"] = 3  # restore good value for filter scale
+        bad_filter_args["dx_min"] = 3
+        with pytest.warns(UserWarning, match=r"Provided Laplacian .*"):
+            filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
 
 
 #################### Visosity-based filter tests ########################################
