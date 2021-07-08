@@ -14,9 +14,11 @@ GridType = enum.Enum(
     "GridType",
     [
         "REGULAR",
+        "TRANSFORMED_TO_REGULAR",
         "REGULAR_WITH_LAND",
+        "TRANSFORMED_TO_REGULAR_WITH_LAND",
         "IRREGULAR_WITH_LAND",
-        "TRIPOLAR_REGULAR_WITH_LAND",
+        "TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND",
         "TRIPOLAR_POP_WITH_LAND",
         "VECTOR_C_GRID",
     ],
@@ -53,8 +55,12 @@ class BaseScalarLaplacian(ABC):
 
 
 @dataclass
-class BaseScalarRegularLaplacian(ABC):
-    """̵Base class for scalar Laplacians on regularly spaced Cartesian grids.
+class BaseScalarLaplacianWithArea(ABC):
+    """̵Base class for scalar Laplacians that are for simple fixed factor filtering. Simple
+    fixed factor filtering operates on a uniform Cartesian grid with dx=dy=1 that is being transformed
+    from the original locally orthogonal grid. In practice, the coordinate transformation is reflected
+    by a multiplication / division by the cell area of the original grid. Note that this occurs at the
+    filter level, rather than the Laplacian level.
 
     Attributes
     ----------
@@ -94,15 +100,8 @@ class BaseVectorLaplacian(ABC):
 
 
 @dataclass
-class RegularLaplacian(BaseScalarRegularLaplacian):
-    """̵Laplacian for regularly spaced Cartesian grids.
-
-    Attributes
-    ----------
-    area: cell area
-    """
-
-    area: ArrayType
+class RegularLaplacian(BaseScalarLaplacian):
+    """̵Scalar Laplacian for regularly spaced Cartesian grids."""
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
@@ -119,16 +118,42 @@ ALL_KERNELS[GridType.REGULAR] = RegularLaplacian
 
 
 @dataclass
-class RegularLaplacianWithLandMask(BaseScalarRegularLaplacian):
-    """̵Laplacian for regularly spaced Cartesian grids with land mask.
+class RegularLaplacianWithArea(BaseScalarLaplacianWithArea):
+    """̵Scalar Laplacian operating on regularly spaced Cartesian grid with dx=dy=1 that is
+    being transformed from a locally orthogonal grid. In practice, the coordinate transformation
+    is reflected by a multiplication / division by the cell area of the original grid. Note
+    that this occurs at the filter level, rather than the Laplacian level.
 
     Attributes
     ----------
-    area: cell area
-    wet_mask: Mask array, 1 for ocean, 0 for land
+    area: cell area of original grid
     """
 
     area: ArrayType
+
+    def __call__(self, field: ArrayType):
+        np = get_array_module(field)
+        return (
+            -4 * field
+            + np.roll(field, -1, axis=-1)
+            + np.roll(field, 1, axis=-1)
+            + np.roll(field, -1, axis=-2)
+            + np.roll(field, 1, axis=-2)
+        )
+
+
+ALL_KERNELS[GridType.TRANSFORMED_TO_REGULAR] = RegularLaplacianWithArea
+
+
+@dataclass
+class RegularLaplacianWithLandMask(BaseScalarLaplacian):
+    """̵Scalar Laplacian for regularly spaced Cartesian grids with land mask.
+
+    Attributes
+    ----------
+    wet_mask: Mask array, 1 for ocean, 0 for land
+    """
+
     wet_mask: ArrayType
 
     def __post_init__(self):
@@ -162,8 +187,56 @@ ALL_KERNELS[GridType.REGULAR_WITH_LAND] = RegularLaplacianWithLandMask
 
 
 @dataclass
+class RegularLaplacianWithLandMaskAndArea(BaseScalarLaplacianWithArea):
+    """̵Scalar Laplacian operating on regularly spaced Cartesian grid with dx=dy=1 that is
+    being transformed from a locally orthogonal grid with land. In practice, the coordinate
+    transformation is reflected by a multiplication / division by the cell area of the original
+    grid. Note that this occurs at the filter level, rather than the Laplacian level.
+
+    Attributes
+    ----------
+    area: cell area of original grid
+    wet_mask: Mask array, 1 for ocean, 0 for land
+    """
+
+    area: ArrayType
+    wet_mask: ArrayType
+
+    def __post_init__(self):
+        np = get_array_module(self.wet_mask)
+        self.wet_fac = (
+            np.roll(self.wet_mask, -1, axis=-1)
+            + np.roll(self.wet_mask, 1, axis=-1)
+            + np.roll(self.wet_mask, -1, axis=-2)
+            + np.roll(self.wet_mask, 1, axis=-2)
+        )
+
+    def __call__(self, field: ArrayType):
+        np = get_array_module(field)
+
+        out = np.nan_to_num(field)  # set all nans to zero
+        out = self.wet_mask * out
+
+        out = (
+            -self.wet_fac * out
+            + np.roll(out, -1, axis=-1)
+            + np.roll(out, 1, axis=-1)
+            + np.roll(out, -1, axis=-2)
+            + np.roll(out, 1, axis=-2)
+        )
+
+        out = self.wet_mask * out
+        return out
+
+
+ALL_KERNELS[
+    GridType.TRANSFORMED_TO_REGULAR_WITH_LAND
+] = RegularLaplacianWithLandMaskAndArea
+
+
+@dataclass
 class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
-    """̵Laplacian for irregularly spaced Cartesian grids with land mask.
+    """̵Scalar Laplacian for locally orthogonal grids with land mask.
 
     Attributes
     ----------
@@ -228,12 +301,16 @@ ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularLaplacianWithLandMask
 
 
 @dataclass
-class TripolarRegularLaplacianTpoint(BaseScalarRegularLaplacian):
-    """̵Laplacian for fields defined at T-points on POP tripolar grid geometry with land mask, but assuming that dx = dy = 1
+class TripolarRegularLaplacianTpoint(BaseScalarLaplacianWithArea):
+    """̵Scalar Laplacian operating on regularly spaced Cartesian grid with dx=dy=1 that is
+    being transformed from a locally orthogonal grid with land and a tripole boundary
+    condition. In practice, the coordinate transformation is reflected by a multiplication /
+    division by the cell area of the original grid. Note that this occurs at the filter level,
+    rather than the Laplacian level.
 
     Attributes
     ----------
-    area: cell area
+    area: cell area or original grid
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
 
@@ -276,21 +353,25 @@ class TripolarRegularLaplacianTpoint(BaseScalarRegularLaplacian):
         return out
 
 
-ALL_KERNELS[GridType.TRIPOLAR_REGULAR_WITH_LAND] = TripolarRegularLaplacianTpoint
+ALL_KERNELS[
+    GridType.TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND
+] = TripolarRegularLaplacianTpoint
 
 
 @dataclass
 class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
-    """̵Laplacian for irregularly spaced Cartesian grids with land mask.
+    """̵Scalar Laplacian for locally orthogonal grid with land mask and tripole boundary condition,
+    as for example used in the global POP configuration. This Laplacian works for scalar fields
+    located at T-points.
 
     Attributes
     ----------
     wet_mask: Mask array, 1 for ocean, 0 for land; can be obtained via xr.where(KMT>0, 1, 0)
-    dxe: x-spacing centered at eastern T-cell edge, provided by model diagnostic HUS(nlat, nlon)
-    dye: y-spacing centered at eastern  T-cell edge, provided by model diagnostic HTE(nlat, nlon)
-    dxn: x-spacing centered at northern T-cell edge, provided by model diagnostic HTN(nlat, nlon)
-    dyn: y-spacing centered at northern T-cell edge, provided by model diagnostic HUW(nlat, nlon)
-    tarea: cell area, provided by model diagnostic TAREA(nlat, nlon)
+    dxe: x-spacing centered at eastern T-cell edge, provided by POP model diagnostic HUS(nlat, nlon)
+    dye: y-spacing centered at eastern  T-cell edge, provided by POP model diagnostic HTE(nlat, nlon)
+    dxn: x-spacing centered at northern T-cell edge, provided by POP model diagnostic HTN(nlat, nlon)
+    dyn: y-spacing centered at northern T-cell edge, provided by POP model diagnostic HUW(nlat, nlon)
+    tarea: cell area, provided by POP model diagnostic TAREA(nlat, nlon)
     """
 
     wet_mask: ArrayType
