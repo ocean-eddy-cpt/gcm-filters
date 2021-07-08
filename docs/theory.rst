@@ -15,13 +15,19 @@ The filter shape can be thought of in terms of the kernel of a convolution filte
 .. math:: \bar{f} = \int G(x - x')f(x') dx'
 
 where :math:`f` is the function being filtered, :math:`G` is the filter kernel, and :math:`x'` is a dummy integration variable.
-This package currently has two filter shapes: ``GAUSSIAN`` and ``TAPER``.
-For the Gaussian filter the ``filter_scale`` equals :math:`\sqrt{12}\times` the standard deviation of the Gaussian.
+This package currently has two filter shapes to choose from: ``GAUSSIAN`` and ``TAPER``.
+
+.. ipython:: python
+
+    import gcm_filters
+    list(gcm_filters.FilterShape)
+
+For the ``GAUSSIAN`` filter the ``filter_scale`` equals :math:`\sqrt{12}\times` the standard deviation of the Gaussian.
 \I.e. if you want to use a Gaussian filter with standard deviation L, then you should set ``filter_scale`` equal to L :math:`\times\sqrt{12}`.
 This strange-seeming choice makes the Gaussian kernel have the same effect on large scales as a boxcar filter of width ``filter_scale``.
 Thus ``filter_scale`` can be thought of as the "coarse grid scale" of the filtered field.
 
-The definition of the "Taper" filter is more complex, but the ``filter_scale`` has the same meaning: it corresponds to the width of a qualitatively-similar boxcar filter.
+The definition of the ``TAPER`` filter is more complex, but the ``filter_scale`` has the same meaning: it corresponds to the width of a qualitatively-similar boxcar filter.
 The Taper filter is more scale-selective than the Gaussian filter; it does a better job of leaving scales larger than the filter scale unchanged, and removing scales smaller than the filter scale.
 The drawback is that it requires higher computational cost for the same filter scale, and can produce negative values for the filtered field even when the unfiltered field is positive.
 

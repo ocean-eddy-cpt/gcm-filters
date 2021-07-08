@@ -1,26 +1,8 @@
-Basic Filtering
-===============
+Grid Types and Filter Object
+============================
 
 The core object in GCM-Filters is the ``gcm_filters.Filter`` object.
 When creating a ``gcm_filters.Filter`` object, we need to specify how we want to smooth the data, including the filter scale, filter shape, and all relevant grid parameters.
-
-Filter scale
-------------
-
-The ``filter_scale`` is the target length scale of the filter. That is, the filter keeps scales larger than the ``filter_scale``, and smoothes out scales smaller than the ``filter_scale``. The ``filter_scale`` can be either constant in space or spatially-varying.
-
-Filter shape
-------------
-
-The ``filter_shape`` determines how sharply the filter separates scales above and below the ``filter_scale``.
-The possible options for the ``filter_shape`` are enumerated as follows:
-
-.. ipython:: python
-
-    import gcm_filters
-    list(gcm_filters.FilterShape)
-
-A filter with a Taper shape is more scale-selective than a filter with a Gaussian shape. For more details on filter shapes, read this.
 
 Grid types
 ----------
@@ -79,8 +61,6 @@ So if we use this grid type, we have to include a ``wet_mask`` grid variable. Th
     mask_data[(ny // 4):(3 * ny // 4), (nx // 4):(3 * nx // 4)] = 0
     wet_mask = xr.DataArray(mask_data, dims=['y', 'x'])
 
-    area_data = np.ones((ny, nx))
-    area = xr.DataArray(area_data, dims=['y', 'x'])
 
 Creating the Filter Object
 --------------------------
@@ -92,14 +72,12 @@ Creating the Filter Object
         dx_min=1,
         filter_shape=gcm_filters.FilterShape.TAPER,
         grid_type=gcm_filters.GridType.REGULAR_WITH_LAND,
-        grid_vars={'wet_mask': wet_mask, 'area': area}
+        grid_vars={'wet_mask': wet_mask}
     )
     filter
 
 The string representation for the filter object in the last line includes some of the parameters it was initiliazed with, to help us keep track of what we are doing.
 
-Plotting the filter shape
--------------------------
 
 Applying the Filter
 -------------------
