@@ -24,10 +24,14 @@ def grid_type_field_and_extra_kwargs(request):
     data = np.random.rand(ny, nx)
 
     extra_kwargs = {}
-    if grid_type == GridType.REGULAR:
+    if grid_type == GridType.TRANSFORMED_TO_REGULAR:
         area = 0.5 + np.random.rand(ny, nx)
         extra_kwargs["area"] = area
     if grid_type == GridType.REGULAR_WITH_LAND:
+        mask_data = np.ones_like(data)
+        mask_data[: (ny // 2), : (nx // 2)] = 0
+        extra_kwargs["wet_mask"] = mask_data
+    if grid_type == GridType.TRANSFORMED_TO_REGULAR_WITH_LAND:
         area = 0.5 + np.random.rand(ny, nx)
         extra_kwargs["area"] = area
         mask_data = np.ones_like(data)
@@ -45,7 +49,7 @@ def grid_type_field_and_extra_kwargs(request):
         extra_kwargs["area"] = grid_data * grid_data
         extra_kwargs["kappa_w"] = np.ones_like(data)
         extra_kwargs["kappa_s"] = np.ones_like(data)
-    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND:
+    if grid_type == GridType.TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND:
         area = 0.5 + np.random.rand(ny, nx)
         extra_kwargs["area"] = area
         mask_data = np.ones_like(data)
@@ -74,7 +78,7 @@ def test_conservation(grid_type_field_and_extra_kwargs):
     LaplacianClass = ALL_KERNELS[grid_type]
     laplacian = LaplacianClass(**extra_kwargs)
     area = 1
-    # - Laplacians that belong to BaseScalarSimpleLaplacian class
+    # - Laplacians that belong to BaseScalarLaplacianWithArea class
     #   act on (transformed) regular grid with dx = dy = 1
     # - Laplacians that belong to BaseScalarLaplacian class
     #   act on potentially irregular grid --> need area information
@@ -218,7 +222,7 @@ def tripolar_grid_type_field_and_extra_kwargs(request):
     data = np.random.rand(ny, nx)
 
     extra_kwargs = {}
-    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND:
+    if grid_type == GridType.TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND:
         area = np.ones_like(data)
         extra_kwargs["area"] = area
         mask_data = np.ones_like(data)

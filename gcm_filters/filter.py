@@ -15,7 +15,7 @@ from .gpu_compat import get_array_module
 from .kernels import (
     ALL_KERNELS,
     BaseScalarLaplacian,
-    BaseScalarRegularLaplacian,
+    BaseScalarLaplacianWithArea,
     BaseVectorLaplacian,
     GridType,
 )
@@ -289,7 +289,7 @@ class Filter:
         self.Laplacian = ALL_KERNELS[self.grid_type]
 
         # Determine whether this is simple fixed factor filter; in that case we need dx_min = 1
-        if issubclass(self.Laplacian, BaseScalarRegularLaplacian):
+        if issubclass(self.Laplacian, BaseScalarLaplacianWithArea):
             if self.dx_min != 1:
                 warnings.warn(
                     "Provided Laplacian is for simple fixed factor filtering, "
@@ -392,7 +392,7 @@ class Filter:
                 f"Provided Laplacian {self.Laplacian} is a vector Laplacian. "
                 f"The ``.apply`` method is only suitable for scalar Laplacians."
             )
-        if issubclass(self.Laplacian, BaseScalarRegularLaplacian):
+        if issubclass(self.Laplacian, BaseScalarLaplacianWithArea):
             # simple fixed factor filtering multiplies field by area before filtering
             field = field * self.grid_ds["area"]
 
@@ -409,7 +409,7 @@ class Filter:
             output_dtypes=[field.dtype],
             dask="parallelized",
         )
-        if issubclass(self.Laplacian, BaseScalarRegularLaplacian):
+        if issubclass(self.Laplacian, BaseScalarLaplacianWithArea):
             # simple fixed factor filtering divides filtered field by area
             field_smooth = field_smooth / self.grid_ds["area"]
 
