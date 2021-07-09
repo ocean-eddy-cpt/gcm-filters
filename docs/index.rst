@@ -20,7 +20,6 @@ Contents
 
    theory
    basic_filtering
-   dask
    gpu
    examples/example_filter_types
    examples/example_tripole_grid

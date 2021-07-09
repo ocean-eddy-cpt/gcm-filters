@@ -21,6 +21,7 @@ The currently implemented grid types are:
 
 .. ipython:: python
 
+    import gcm_filters
     list(gcm_filters.GridType)
 
 This list will grow as we implement more Laplacians.
@@ -75,7 +76,6 @@ Each grid type from the above two tables has different *grid variables* that mus
 
 .. ipython:: python
 
-    import gcm_filters
     gcm_filters.required_grid_vars(gcm_filters.GridType.REGULAR_WITH_LAND)
 
 ``wet_mask`` is a binary array representing the topography on our grid. Here the convention is that the array is 1 in the ocean (“wet points”) and 0 on land (“dry points”).
@@ -156,3 +156,29 @@ Let's visualize what the filter did.
 
     @savefig data_filtered.png
     da_filtered.isel(time=0).plot()
+
+
+Using Dask
+-----------
+
+Up to now, we have filtered "eagerly"; when we called ``.apply``, the results were computed immediately and stored in memory.
+``GCM-Filters`` is also designed to work seamlessly with Dask array inputs. With `dask <https://dask.org/>`, we can filter "lazily", deferring the filter computations and possibly executing them in parallel.
+We can do this with our synthetic data by converting it to dask.
+
+.. ipython:: python
+
+   da_masked = da.where(wet_mask)
+
+We now filter our data lazily.
+
+.. ipython:: python
+    da_filtered_lazy = filter.apply(da_dask, dims=['y', 'x'])
+    da_filtered_lazy
+
+Nothing has actually been computed yet.
+We can trigger computation as follows:
+
+.. ipython:: python
+    %time da_filtered_computed = da_filtered_lazy.compute()
+
+Here we got a very modest speedup because our example data are not big enough to really see a big performance benefit here.
