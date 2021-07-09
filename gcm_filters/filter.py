@@ -246,9 +246,9 @@ def _create_filter_func_vec(
 
 @dataclass
 class Filter:
-    """A class for applying diffusion-based smoothing filters to gridded data.
+    """A class for applying diffusion-based filtering to gridded data.
 
-    ̦Parameters
+    Parameters
     ----------
     filter_scale : float
         The target length of the filter
@@ -258,12 +258,13 @@ class Filter:
         Number of total steps in the filter. (A biharmonic step counts as two steps.)
         ``n_steps < 3`` means the number of steps is chosen automatically
     filter_shape : FilterShape
-        - ``FilterShape.GAUSSIAN``: The target filter has a Gaussian kernel with standard deviation ``filter_scale / \sqrt(12)``
+        - ``FilterShape.GAUSSIAN``: The target filter has target length scale ``filter_scale``. This is realized by a Gaussian kernel
+          with standard deviation ``filter_scale / sqrt(12)``.
         - ``FilterShape.TAPER``: The target filter has target length scale ``filter_scale``. Scales smaller than ``filter_scale``
           are zeroed out. Scales larger than a threshold value are left as-is. The threshold value is larger than ``filter_scale``
-          and depends on ``transition_width``. In between is a smooth transition.
+          and depends on ``transition_width``. Between the threshold value and ``filter_scale`` is a smooth transition
     transition_width : float, optional
-        Width of the transition region in the "Taper" filter. Default is ``pi``.
+        Width of the transition region in the ``TAPER`` filter. Default is ``pi``
     ndim : int, optional
          Laplacian is applied on a grid of dimension ndim
     grid_type : GridType
