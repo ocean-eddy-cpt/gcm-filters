@@ -434,7 +434,8 @@ ALL_KERNELS[GridType.TRIPOLAR_POP_WITH_LAND] = POPTripolarLaplacianTpoint
 
 @dataclass
 class CgridVectorLaplacian(BaseVectorLaplacian):
-    """̵Vector Laplacian on C-Grid.
+    """̵Vector Laplacian on C-Grid. Follows the implementation for viscosity operators
+    on C-grids suggested by Griffies and Hallberg, 2000.
 
     Attributes
     ----------
@@ -451,7 +452,7 @@ class CgridVectorLaplacian(BaseVectorLaplacian):
     area_u: U-cell area
     area_v: V-cell area
     kappa_iso: isotropic viscosity
-    kappa_aniso: anisotropic viscosity aligned with x-direction
+    kappa_aniso: additive anisotropic viscosity aligned with x-direction
     """
 
     wet_mask_t: ArrayType
