@@ -1,17 +1,12 @@
-Grid Types and Filter Object
-============================
-
-The core object in GCM-Filters is the ``gcm_filters.Filter`` object.
-When creating a ``gcm_filters.Filter`` object, we need to specify how we want to smooth the data, including the filter scale, filter shape, and all relevant grid parameters.
-
-Grid types
-----------
+Grid Types
+==========
 
 To define a filter, we need to pick a grid and associated Laplacian that matches our data.
 The currently implemented grid types are:
 
 .. ipython:: python
 
+    import gcm_filters
     list(gcm_filters.GridType)
 
 This list will grow as we implement more Laplacians.
@@ -64,6 +59,9 @@ So if we use this grid type, we have to include a ``wet_mask`` grid variable. Th
 
 Creating the Filter Object
 --------------------------
+The core object in GCM-Filters is the ``gcm_filters.Filter`` object.
+When creating a ``gcm_filters.Filter`` object, we need to specify how we want to smooth the data, including the filter scale, filter shape, and all relevant grid parameters.
+
 
 .. ipython:: python
 

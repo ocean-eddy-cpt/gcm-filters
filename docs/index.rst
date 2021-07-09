@@ -18,7 +18,7 @@ Contents
    :maxdepth: 1
 
    theory
-   basic_filtering
+   grid_types
    dask
    gpu
    examples/example_filter_types
