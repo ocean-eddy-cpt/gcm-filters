@@ -9,7 +9,7 @@ GCM Filters: Diffusion-based Spatial Filtering of Gridded Data from General Circ
 **GCM-Filters** is a python package that performs spatial filtering analysis in an easy, flexible and efficient way.
 The GCM-Filters algorithm applies a discrete Laplacian to smooth a field through an iterative process that resembles diffusion (see :doc:`theory` or `Grooms et al., 2021 <https://doi.org/10.1002/essoar.10506591.1>`_).
 The package is specifically designed to work with gridded data that is produced by General Circulation Models (GCMs) of ocean, weather, and climate.
-Such GCM data comes on complex curvilinear grids, whose geometry is respected by the GCM-Filters Laplacians.
+Such GCM data come on complex curvilinear grids, whose geometry is respected by the GCM-Filters Laplacians.
 Through integration with `dask <https://dask.org/>`_, GCM-Filters enables parallel, out-of-core filter analysis on both CPUs and GPUs.
 
 Contents
