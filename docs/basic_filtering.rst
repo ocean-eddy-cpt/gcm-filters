@@ -11,7 +11,7 @@ The core object in GCM-Filters is the :py:class:`gcm_filters.Filter` object. Its
 
 
 Details related to ``filter_scale``, ``filter_shape``, ``transition_width``, and ``n_steps`` can be found in the :doc:`theory`.
-The following sections explain the options for `grid_type` and `grid_vars` in more detail.
+The following sections explain the options for ``grid_type`` and ``grid_vars`` in more detail.
 
 Grid types
 ----------
@@ -33,7 +33,7 @@ The following table provides an overview of these different grid type options: w
 +================================+=================================================================+==============+====================+==================+==========================================+
 | ``REGULAR``                    | Cartesian grid                                                  | no           | periodic           | Scalar Laplacian |                                          |
 +--------------------------------+-----------------------------------------------------------------+--------------+--------------------+------------------+------------------------------------------+
-| ``REGULAR_WITH_LAND``          | Cartesian grid                                                  | yes          | periodic           | Scalar Laplacian |                                          |
+| ``REGULAR_WITH_LAND``          | Cartesian grid                                                  | yes          | periodic           | Scalar Laplacian | see below                                |
 +--------------------------------+-----------------------------------------------------------------+--------------+--------------------+------------------+------------------------------------------+
 | ``IRREGULAR_WITH_LAND``        | locally orthogonal grid                                         | yes          | periodic           | Scalar Laplacian | :doc:`examples/example_filter_types`;    |
 |                                |                                                                 |              |                    |                  | :doc:`examples/example_tripole_grid`     |
@@ -52,16 +52,16 @@ The remaining grid types are for a special type of filtering: **simple fixed fac
 internally transform your original (locally orthogonal) grid to a uniform Cartesian grid with dx = dy = 1, and perform fixed factor filtering on the uniform grid. After this is done, ``gcm_filters`` transforms
 the filtered field back to your original grid. This is why the following grid types contain the key word ``TRANSFORMED_TO``.
 
-+--------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
-| ``GridType``                         | Grid                    | Handles land | Boundary condition | Laplacian type   | Example                              |
-+======================================+=========================+==============+====================+==================+======================================+
-| ``TRANSFORMED_TO_REGULAR``           | locally orthogonal grid | no           | periodic           | Scalar Laplacian |                                      |
-+--------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
-| ``TRANSFORMED_TO REGULAR_WITH_LAND`` | locally orthogonal grid | yes          | periodic           | Scalar Laplacian | :doc:`examples/example_filter_types`;|
-|                                      |                         |              |                    |                  | :doc:`examples/example_tripole_grid` |
-+--------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
-| ``TRIPOLAR_REGULAR_WITH_LAND``       | locally orthogonal grid | yes          | tripole            | Scalar Laplacian | :doc:`examples/example_tripole_grid` |
-+--------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
++-----------------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
+| ``GridType``                                  | Grid                    | Handles land | Boundary condition | Laplacian type   | Example                              |
++===============================================+=========================+==============+====================+==================+======================================+
+| ``TRANSFORMED_TO_REGULAR``                    | locally orthogonal grid | no           | periodic           | Scalar Laplacian |                                      |
++-----------------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
+| ``TRANSFORMED_TO REGULAR_WITH_LAND``          | locally orthogonal grid | yes          | periodic           | Scalar Laplacian | :doc:`examples/example_filter_types`;|
+|                                               |                         |              |                    |                  | :doc:`examples/example_tripole_grid` |
++-----------------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
+| ``TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND`` | locally orthogonal grid | yes          | tripole            | Scalar Laplacian | :doc:`examples/example_tripole_grid` |
++-----------------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
 
 .. note::
 
@@ -146,7 +146,10 @@ Now that we have some data, we can apply our filter. We need to specify which di
 
 .. ipython:: python
 
-    da_filtered = filter.apply(da_masked, dims=['y', 'x'])
+    %time da_filtered = filter.apply(da_masked, dims=['y', 'x'])
+
+.. ipython:: python
+
     da_filtered
 
 Let's visualize what the filter did.
@@ -161,17 +164,21 @@ Let's visualize what the filter did.
 Using Dask
 -----------
 
-Up to now, we have filtered "eagerly"; when we called ``.apply``, the results were computed immediately and stored in memory.
-``GCM-Filters`` is also designed to work seamlessly with Dask array inputs. With `dask <https://dask.org/>`, we can filter "lazily", deferring the filter computations and possibly executing them in parallel.
-We can do this with our synthetic data by converting it to dask.
+Up to now, we have filtered *eagerly*; when we called ``.apply``, the results were computed immediately and stored in memory.
+``GCM-Filters`` is also designed to work seamlessly with Dask array inputs. With `dask <https://dask.org/>`_, we can filter *lazily*, deferring the filter computations and possibly executing them in parallel.
+We can do this with our synthetic data by converting them to dask.
 
 .. ipython:: python
+    :okwarning:
 
-   da_masked = da.where(wet_mask)
+    da_dask = da_masked.chunk({'time': 2})
+    da_dask
 
 We now filter our data lazily.
 
 .. ipython:: python
+    :okwarning:
+
     da_filtered_lazy = filter.apply(da_dask, dims=['y', 'x'])
     da_filtered_lazy
 
@@ -179,6 +186,7 @@ Nothing has actually been computed yet.
 We can trigger computation as follows:
 
 .. ipython:: python
+
     %time da_filtered_computed = da_filtered_lazy.compute()
 
 Here we got a very modest speedup because our example data are not big enough to really see a big performance benefit here.

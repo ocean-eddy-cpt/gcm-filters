@@ -236,6 +236,8 @@ Next, to get a filter scale of 30 in the grid-y direction you would set :math:`\
 
 The :doc:`examples/example_filter_types` has examples of anisotropic filtering.
 
+.. _Fixed factor filtering:
+
 Fixed Factor Filtering
 ----------------------
 
