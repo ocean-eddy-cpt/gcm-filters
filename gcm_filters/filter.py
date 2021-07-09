@@ -251,24 +251,25 @@ class Filter:
     ̦Parameters
     ----------
     filter_scale : float
-        The filter scale, which has different meaning depending on filter shape
+        The target length of the filter
     dx_min : float
         The smallest grid spacing. Should have same units as ``filter_scale``
     n_steps : int, optional
-        Number of total steps in the filter (A biharmonic step counts as two steps)
-        ``n_steps == 0`` means the number of steps is chosen automatically
+        Number of total steps in the filter. (A biharmonic step counts as two steps.)
+        ``n_steps < 3`` means the number of steps is chosen automatically
     filter_shape : FilterShape
-        - ``FilterShape.GAUSSIAN``: The target filter has kernel :math:`e^{-|x/Lf|^2}`
-        - ``FilterShape.TAPER``: The target filter has target grid scale Lf. Smaller scales are zeroed out.
-          Scales larger than ``pi * filter_scale / 2`` are left as-is. In between is a smooth transition.
+        - ``FilterShape.GAUSSIAN``: The target filter has a Gaussian kernel with standard deviation ``filter_scale / \sqrt(12)``
+        - ``FilterShape.TAPER``: The target filter has target length scale ``filter_scale``. Scales smaller than ``filter_scale``
+          are zeroed out. Scales larger than a threshold value are left as-is. The threshold value is larger than ``filter_scale``
+          and depends on ``transition_width``. In between is a smooth transition.
     transition_width : float, optional
-        Width of the transition region in the "Taper" filter.
+        Width of the transition region in the "Taper" filter. Default is ``pi``.
     ndim : int, optional
          Laplacian is applied on a grid of dimension ndim
     grid_type : GridType
-        what sort of grid we are dealing with
+        What sort of grid we are dealing with
     grid_vars : dict
-        dictionary of extra parameters used to initialize the grid Laplacian
+        Dictionary of extra parameters used to initialize the grid Laplacian
 
     Attributes
     ----------
