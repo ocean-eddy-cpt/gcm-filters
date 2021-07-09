@@ -65,7 +65,7 @@ the filtered field back to your original grid. This is why the following grid ty
 
 .. note::
 
-   For simple fixed factor filtering, only ``dx_min`` on the transformed uniform grid matters; and here we have ``dx_min`` = 1. So if you use any of the three grid types in the previous table, ``dx_min`` will automatically be set to 1 by the code.
+   For simple fixed factor filtering, only ``dx_min`` on the transformed uniform grid matters; and here we have ``dx_min`` = 1. So if you use any of the three grid types in the previous table, the code will overwrite your ``dx_min`` by 1.
 
 
 
