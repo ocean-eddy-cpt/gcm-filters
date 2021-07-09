@@ -18,6 +18,7 @@ Contents
 .. toctree::
    :maxdepth: 1
 
+   installation
    theory
    basic_filtering
    gpu
