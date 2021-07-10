@@ -44,7 +44,7 @@ We can create a Gaussian filter as follows.
     )
     gaussian_filter
 
-Once the filter has been constructed, the method `plot_shape` can be used to plot the shape of the target filter and the approximate filter.
+Once the filter has been constructed, the method ``plot_shape`` can be used to plot the shape of the target filter and the approximate filter.
 
 .. ipython:: python
     :okwarning:
@@ -59,7 +59,7 @@ Once the filter has been constructed, the method `plot_shape` can be used to plo
     The filter leaves large scales unchanged, so the plot shows values close to 1 for small :math:`k`.
     The filter damps out small scales, so the plots shows values close to 0 for large :math:`k`.
 
-The definition of the ``Taper`` filter is more complex, but the ``filter_scale`` has the same meaning: it corresponds to the width of a qualitatively-similar boxcar filter.
+The definition of the ``TAPER`` filter is more complex, but the ``filter_scale`` has the same meaning: it corresponds to the width of a qualitatively-similar boxcar filter.
 
 .. ipython:: python
 
@@ -71,8 +71,6 @@ The definition of the ``Taper`` filter is more complex, but the ``filter_scale``
     )
     taper_filter
 
-The ``TAPER`` filter is more scale-selective than the Gaussian filter; it does a better job of leaving scales larger than the filter scale unchanged, and removing scales smaller than the filter scale.
-
 .. ipython:: python
     :okwarning:
 
@@ -80,6 +78,7 @@ The ``TAPER`` filter is more scale-selective than the Gaussian filter; it does a
     taper_filter.plot_shape()
 
 
+The plot above shows that the ``TAPER`` filter is more scale-selective than the Gaussian filter; it does a better job of leaving scales larger than the filter scale unchanged, and removing scales smaller than the filter scale.
 The drawbacks of the ``TAPER`` filter are that it requires higher computational cost for the same filter scale (due to a higher number of necessary filter steps, see below), and it can produce negative values for the filtered field even when the unfiltered field is positive.
 
 The Taper filter has a tunable parameter ``transition_width`` that controls how sharply the filter separates scales above and below the filter scale.
@@ -110,7 +109,7 @@ Filter Steps
 ------------
 
 The filter goes through several steps to produce the final filtered field.
-There are two different kinds of steps: "Laplacian" and "Biharmonic" steps.
+There are two different kinds of steps: *Laplacian* and *Biharmonic* steps.
 At each Laplacian step, the filtered field is updated using the following formula
 
 .. math:: \bar{f} \leftarrow \bar{f} + \frac{1}{s_{j}}\Delta \bar{f}
@@ -126,7 +125,7 @@ The total number of steps, ``n_steps``, and the values of :math:`s_j` are automa
 If the filter scale is much larger than the grid scale, many steps are required.
 Also, the Taper filter requires more steps than the Gaussian filter for the same ``filter_scale``; in the above examples the Taper filters required ``n_steps`` = 16, but the Gaussian filter only ``n_steps`` = 5.
 
-The code allows users to set their own number of steps ``n_steps``.
+The code allows users to set their own ``n_steps``.
 Biharmonic steps are counted as 2 steps because their cost is approximately twice as much as a Laplacian step.
 So with ``n_steps`` = 3 you might get one Laplacian plus one biharmonic step, or three Laplacian steps.
 (The user cannot choose how ``n_steps`` is split between Laplacian and Biharmonic steps; that split is set internally in the code.)
@@ -193,7 +192,7 @@ The usual manifestation of these roundoff errors is high-amplitude small-scale n
     In such cases, the user has a few options to try to regain stability.
 
     1. If the data being filtered is single-precision, it might help to promote it to double precision (or higher) before filtering.
-    2. The user can also try reducing `n_steps`, but must not reduce it too much or the resulting filter will not behave as expected.
+    2. The user can also try reducing ``n_steps``, but must not reduce it too much or the resulting filter will not behave as expected.
     3. Users might elect to *coarsen* their data before filtering, i.e. to reduce the resolution of the input data before applying the filter. This has the effect of increasing the grid size, and thus decreasing the gap between the filter scale and the grid scale.
     4. The final option is simply to use a different approach to filtering, not based on ``gcm-filters``.
 
@@ -203,8 +202,8 @@ Spatially-Varying Filter Scale
 ------------------------------
 
 In the foregoing discussion the filter scale is fixed over the physical domain.
-It is possible to vary the filter scale over the domain by introducing a "diffusivity" :math:`\kappa`.
-(This "diffusivity" is nondimensional.)
+It is possible to vary the filter scale over the domain by introducing a *diffusivity* :math:`\kappa`.
+(This diffusivity is nondimensional.)
 The Laplacian steps are altered to
 
 .. math:: \bar{f} \leftarrow \bar{f} + \frac{1}{s_{j}}\nabla\cdot(\kappa\nabla \bar{f})
@@ -241,16 +240,18 @@ The :doc:`examples/example_filter_types` has examples of anisotropic filtering.
 Fixed Factor Filtering
 ----------------------
 
-:doc:`examples/example_filter_types` also shows methods designed specifically for the case where the user wants to set the local filter scale equal to a multiple :math:`m` of the local grid scale to achieve a fixed "coarsening" factor.
+:doc:`examples/example_filter_types` also shows methods designed specifically for the case where the user wants to set the local filter scale equal to a multiple :math:`m` of the local grid scale to achieve a fixed *coarsening* factor.
 This can be achieved using the anisotropic diffusion described in the previous section.
 
-An alternative way to achieve filtering with fixed "coarsening" factor :math:`m` is what we refer to as **simple fixed factor filtering**. This method is somewhat ad hoc, and *not* equivalent to fixed factor filtering via anisotropic diffusion. On the upside, simple fixed factor filtering is often significantly faster and yields very similar results in practice, as seen in :doc:`examples/example_filter_types`. Simple fixed factor filtering works as follows:
+An alternative way to achieve filtering with fixed coarsening factor :math:`m` is what we refer to as **simple fixed factor filtering**. This method is somewhat ad hoc, and *not* equivalent to fixed factor filtering via anisotropic diffusion. On the upside, simple fixed factor filtering is often significantly faster and yields very similar results in practice, as seen in :doc:`examples/example_filter_types`. The code handles simple fixed factor filtering as follows:
 
-1. Multiply the unfiltered data by the local grid cell area.
-2. Apply the filter with ``filter_scale`` = :math:`m` *as if* the grid scale were uniform.
-3. Divide the resulting field by the local grid cell area.
+1. It multiplies the unfiltered data by the local grid cell area.
+2. It applies a filter with ``filter_scale`` = :math:`m` *as if* the grid scale were uniform.
+3. It divides the resulting field by the local grid cell area.
 
-The first step is essentially a coordinate transformation where your original (locally orthogonal) grid is transformed to a uniform Cartesian grid with :math:`dx = dy = 1`. The third step is the reverse coordinate transformation. These three steps are handled internally by ``gcm-filters`` if the user chooses one of the following grid types: ``TRANSFORMED_TO_REGULAR``, ``TRANSFORMED_TO_REGULAR_WITH_LAND``, ``TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND``, together with ``filter_scale = m``. For simple fixed factor filtering, only ``dx_min`` on the transformed uniform grid matters; and here we have ``dx_min = 1``. So if you use any of these three grid types, the code will overwrite whatever ``dx_min`` you input by 1. Read more about the different grid types in :doc:`basic_filtering`.
+The first step is essentially a coordinate transformation where your original (locally orthogonal) grid is transformed to a uniform Cartesian grid with :math:`dx = dy = 1`. The third step is the reverse coordinate transformation.
+
+.. note:: The three steps above are handled internally by ``gcm-filters`` if the user chooses one of the following grid types: ``TRANSFORMED_TO_REGULAR``, ``TRANSFORMED_TO_REGULAR_WITH_LAND``, ``TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND``, together with ``filter_scale`` = :math:`m` and ``dx_min`` = 1. (For simple fixed factor filtering, only ``dx_min`` on the transformed uniform grid matters; and here we have ``dx_min`` = 1). Read more about the different grid types in :doc:`basic_filtering`.
 
 
 Filtering Vectors
@@ -258,8 +259,8 @@ Filtering Vectors
 
 In Cartesian geometry the Laplacian of a vector field can be obtained by taking the Laplacian of each component of the vector field, so vector fields can be filtered as described in the foregoing sections.
 On smooth manifolds, the Laplacian of a vector field is not the same as the Laplacian of each component of the vector field.
-Users may wish to use a vector Laplacian to filter vector fields.
+Users may wish to use a **vector Laplacian** to filter vector fields.
 The filter is constructed in exactly the same way; the only difference is in how the Laplacian is defined.
 Rather than taking a scalar field and returning a scalar field, the vector Laplacian takes a vector field as input and returns a vector field.
-To distinguish this from the scalar Laplacian, we refer to the filter based on a scalar Laplacian as a "diffusion-based" filter and the filter based on a vector Laplacian as a "viscosity-based" filter.
+To distinguish this from the scalar Laplacian, we refer to the filter based on a scalar Laplacian as a *diffusion-based* filter and the filter based on a vector Laplacian as a *viscosity-based* filter.
 :doc:`examples/example_vector_laplacian` has examples of viscosity-based filtering.

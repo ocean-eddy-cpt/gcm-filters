@@ -48,8 +48,8 @@ Grid types with scalar Laplacians can be used for filtering scalar fields (such 
 Grid types for simple fixed factor filtering
 ++++++++++++++++++++++++++++++++++++++++++++
 
-The remaining grid types are for a special type of filtering: **simple fixed factor filtering** (see also the :doc:`theory`). If you specify one of the following grid types for your data, ``gcm_filters`` will
-internally transform your original (locally orthogonal) grid to a uniform Cartesian grid with dx = dy = 1, and perform fixed factor filtering on the uniform grid. After this is done, ``gcm_filters`` transforms
+The remaining grid types are for a special type of filtering: **simple fixed factor filtering** to achieve a fixed *coarsening* factor (see also the :doc:`theory`). If you specify one of the following grid types for your data, ``gcm_filters`` will
+internally transform your original (locally orthogonal) grid to a uniform Cartesian grid with `dx = dy = 1`, and perform fixed factor filtering on the uniform grid. After this is done, ``gcm_filters`` transforms
 the filtered field back to your original grid. This is why the following grid types contain the key word ``TRANSFORMED_TO``.
 
 +-----------------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
@@ -62,11 +62,6 @@ the filtered field back to your original grid. This is why the following grid ty
 +-----------------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
 | ``TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND`` | locally orthogonal grid | yes          | tripole            | Scalar Laplacian | :doc:`examples/example_tripole_grid` |
 +-----------------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
-
-.. note::
-
-   For simple fixed factor filtering, only ``dx_min`` on the transformed uniform grid matters; and here we have ``dx_min`` = 1. So if you use any of the three grid types in the previous table, the code will overwrite your ``dx_min`` by 1.
-
 
 
 Grid variables
@@ -189,4 +184,4 @@ We can trigger computation as follows:
 
     %time da_filtered_computed = da_filtered_lazy.compute()
 
-Here we got a very modest speedup because our example data are not big enough to really see a big performance benefit here.
+Here we got only a very modest speedup because our example data are too small. For bigger data, the performance benefit will be more evident.
