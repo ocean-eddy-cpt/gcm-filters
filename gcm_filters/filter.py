@@ -347,7 +347,8 @@ class Filter:
         ]
         if filter_factor >= max_filter_factor:
             warnings.warn(
-                "Filter scale much larger than grid scale -> numerical instability possible",
+                "Filter scale much larger than grid scale -> numerical instability possible. "
+                "More information on numerical instability can be found at https://gcm-filters.readthedocs.io/en/latest/theory.html.",
                 stacklevel=2,
             )
 
