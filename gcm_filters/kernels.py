@@ -90,7 +90,7 @@ class BaseVectorLaplacian(ABC):
 @dataclass
 class AreaWeightedMixin(ABC):
     """Mixin class to transform a scalar field on a locally orthogonal grid to a scalar field on a uniform
-    Cartesian grids with dx = dy = 1. In practice, this coordinate transformation is performed through
+    Cartesian grid with dx = dy = 1. In practice, this coordinate transformation is performed through
     multiplying the input field by the cell area of the original grid. The reverse coordinate transformation
     is performed through division by the cell area of the original grid.
 
