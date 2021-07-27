@@ -17,47 +17,36 @@ scalar_grids = [gt for gt in GridType if gt not in vector_grids]
 _RANDOM_SEED = 42
 rng = Generator(PCG64(_RANDOM_SEED))
 
+_extra_kwargs = {
+    GridType.REGULAR: [],
+    GridType.REGULAR_WITH_LAND: ["wet_mask"],
+    GridType.IRREGULAR_WITH_LAND: [
+        "wet_mask",
+        "dxw",
+        "dyw",
+        "dxs",
+        "dys",
+        "area",
+        "kappa_w",
+        "kappa_s",
+    ],
+    GridType.TRIPOLAR_REGULAR_WITH_LAND: ["wet_mask"],
+    GridType.TRIPOLAR_POP_WITH_LAND: ["wet_mask", "dxe", "dye", "dxn", "dyn", "tarea"],
+}
+
 ################## Scalar Laplacian tests ##############################################
 @pytest.fixture(scope="module", params=scalar_grids)
 def grid_type_field_and_extra_kwargs(request):
     grid_type = request.param
     ny, nx = (128, 256)
     data = rng.random((ny, nx))
-
-    extra_kwargs = {}
-    if grid_type == GridType.REGULAR_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        extra_kwargs["wet_mask"] = mask_data
-    if grid_type == GridType.IRREGULAR_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        extra_kwargs["wet_mask"] = mask_data
-        grid_data = np.ones_like(data)
-        extra_kwargs["dxw"] = grid_data
-        extra_kwargs["dyw"] = grid_data
-        extra_kwargs["dxs"] = grid_data
-        extra_kwargs["dys"] = grid_data
-        extra_kwargs["area"] = grid_data
-        extra_kwargs["kappa_w"] = grid_data
-        extra_kwargs["kappa_s"] = grid_data
-    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        mask_data[0, :] = 0  #  Antarctica
-        extra_kwargs["wet_mask"] = mask_data
-    if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        mask_data[0, :] = 0  #  Antarctica
-        extra_kwargs["wet_mask"] = mask_data
-        grid_data = np.ones_like(data)
-        extra_kwargs["dxe"] = grid_data
-        extra_kwargs["dye"] = grid_data
-        extra_kwargs["dxn"] = grid_data
-        extra_kwargs["dyn"] = grid_data
-        extra_kwargs["tarea"] = grid_data
-
+    mask_data = np.ones_like(data)
+    mask_data[0, :] = 0  #  Antarctica; required for some kernels
+    mask_data[: (ny // 2), : (nx // 2)] = 0
+    extra_kwargs = {
+        name: mask_data if name == "wet_mask" else np.ones_like(data)
+        for name in _extra_kwargs[grid_type]
+    }
     return grid_type, data, extra_kwargs
 
 
