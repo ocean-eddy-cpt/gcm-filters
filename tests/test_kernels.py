@@ -90,7 +90,7 @@ def test_flux_in_y_direction(grid_type_field_and_extra_kwargs):
         # deploy mass at random location away from Antarctica: delta_{j,i}
         delta = np.zeros_like(data)
         ny = np.shape(delta)[0]
-        random_yloc = np.random.randint(5, ny - 2)
+        random_yloc = np.random.randint(6, ny - 3)
         nx = np.shape(delta)[1]
         random_xloc = np.random.randint(0, nx)
         delta[random_yloc, random_xloc] = 1
@@ -108,8 +108,8 @@ def test_flux_in_y_direction(grid_type_field_and_extra_kwargs):
             test_kwargs["dys"] = ones
             test_kwargs["dxw"] = ones
             test_kwargs["dxs"] = ones.copy()
-            test_kwargs["dxs"][random_yloc - 1, :] = 1000
-            test_kwargs["dxs"][random_yloc + 2, :] = 2000
+            test_kwargs["dxs"][random_yloc - 2, :] = 1000
+            test_kwargs["dxs"][random_yloc + 3, :] = 2000
         if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
             test_kwargs["wet_mask"] = ones.copy()
             test_kwargs["wet_mask"][0, :] = 0  # Antarctica
@@ -118,8 +118,8 @@ def test_flux_in_y_direction(grid_type_field_and_extra_kwargs):
             test_kwargs["dyn"] = ones
             test_kwargs["dxe"] = ones
             test_kwargs["dxn"] = ones.copy()
-            test_kwargs["dxn"][random_yloc - 2, :] = 1000
-            test_kwargs["dxn"][random_yloc + 1, :] = 2000
+            test_kwargs["dxn"][random_yloc - 3, :] = 1000
+            test_kwargs["dxn"][random_yloc + 2, :] = 2000
 
         LaplacianClass = ALL_KERNELS[grid_type]
         laplacian = LaplacianClass(**test_kwargs)
@@ -143,7 +143,7 @@ def test_flux_in_x_direction(grid_type_field_and_extra_kwargs):
         ny = np.shape(delta)[0]
         random_yloc = np.random.randint(5, ny)
         nx = np.shape(delta)[1]
-        random_xloc = np.random.randint(2, nx - 2)
+        random_xloc = np.random.randint(3, nx - 3)
         delta[random_yloc, random_xloc] = 1
 
         test_kwargs = copy.deepcopy(extra_kwargs)
@@ -159,8 +159,8 @@ def test_flux_in_x_direction(grid_type_field_and_extra_kwargs):
             test_kwargs["dxw"] = ones
             test_kwargs["dxs"] = ones
             test_kwargs["dyw"] = ones.copy()
-            test_kwargs["dyw"][:, random_xloc - 1] = 1000
-            test_kwargs["dyw"][:, random_xloc + 2] = 2000
+            test_kwargs["dyw"][:, random_xloc - 2] = 1000
+            test_kwargs["dyw"][:, random_xloc + 3] = 2000
         if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
             test_kwargs["wet_mask"] = ones.copy()
             test_kwargs["wet_mask"][0, :] = 0  # Antarctica
@@ -169,8 +169,8 @@ def test_flux_in_x_direction(grid_type_field_and_extra_kwargs):
             test_kwargs["dxe"] = ones
             test_kwargs["dxn"] = ones
             test_kwargs["dye"] = ones.copy()
-            test_kwargs["dye"][:, random_xloc - 2] = 1000
-            test_kwargs["dye"][:, random_xloc + 1] = 2000
+            test_kwargs["dye"][:, random_xloc - 3] = 1000
+            test_kwargs["dye"][:, random_xloc + 2] = 2000
 
         LaplacianClass = ALL_KERNELS[grid_type]
         laplacian = LaplacianClass(**test_kwargs)
