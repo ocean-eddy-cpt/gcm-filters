@@ -42,14 +42,12 @@ class BaseScalarLaplacian(ABC):
     """̵Base class for scalar Laplacians."""
 
     def prepare(self, field):
-        print("No area-weighting")
         return field
 
     def __call__(self, field):
         pass  # pragma: no cover
 
     def finalize(self, field):
-        print("No area-deweighting")
         return field
 
     # change to property when we are using python 3.9
@@ -67,14 +65,12 @@ class BaseVectorLaplacian(ABC):
     """Base class for vector Laplacians."""
 
     def prepare(self, ufield, vfield):
-        print("No area-weighting")
         return (ufield, vfield)
 
     def __call__(self, ufield, vfield):
         pass  # pragma: no cover
 
     def finalize(self, ufield, vfield):
-        print("No area-deweighting")
         return (ufield, vfield)
 
     # change to property when we are using python 3.9
@@ -102,11 +98,9 @@ class AreaWeightedMixin(ABC):
     area: ArrayType
 
     def prepare(self, field):
-        print("Area-weighting")
         return field * self.area
 
     def finalize(self, field):
-        print("Area-deweighting")
         return field / self.area
 
 
