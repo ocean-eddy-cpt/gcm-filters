@@ -3,6 +3,8 @@ import copy
 import numpy as np
 import pytest
 
+from numpy.random import PCG64, Generator
+
 from gcm_filters.kernels import ALL_KERNELS, GridType, required_grid_vars
 
 
@@ -11,12 +13,16 @@ vector_grids = [gt for gt in GridType if gt.name in {"VECTOR_C_GRID"}]
 # all remaining grids are for scalar Laplacians
 scalar_grids = [gt for gt in GridType if gt not in vector_grids]
 
+
+_RANDOM_SEED = 42
+rng = Generator(PCG64(_RANDOM_SEED))
+
 ################## Scalar Laplacian tests ##############################################
 @pytest.fixture(scope="module", params=scalar_grids)
 def grid_type_field_and_extra_kwargs(request):
     grid_type = request.param
     ny, nx = (128, 256)
-    data = np.random.rand(ny, nx)
+    data = rng.random((ny, nx))
 
     extra_kwargs = {}
     if grid_type == GridType.REGULAR_WITH_LAND:
@@ -90,9 +96,9 @@ def test_flux_in_y_direction(grid_type_field_and_extra_kwargs):
         # deploy mass at random location away from Antarctica: delta_{j,i}
         delta = np.zeros_like(data)
         ny = np.shape(delta)[0]
-        random_yloc = np.random.randint(5, ny - 2)
+        random_yloc = rng.integers(5, ny - 2)
         nx = np.shape(delta)[1]
-        random_xloc = np.random.randint(0, nx)
+        random_xloc = rng.integers(0, nx)
         delta[random_yloc, random_xloc] = 1
 
         test_kwargs = copy.deepcopy(extra_kwargs)
@@ -141,9 +147,9 @@ def test_flux_in_x_direction(grid_type_field_and_extra_kwargs):
         # deploy mass at random location away from Antarctica: delta_{j,i}
         delta = np.zeros_like(data)
         ny = np.shape(delta)[0]
-        random_yloc = np.random.randint(5, ny)
+        random_yloc = rng.integers(5, ny)
         nx = np.shape(delta)[1]
-        random_xloc = np.random.randint(2, nx - 2)
+        random_xloc = rng.integers(2, nx - 2)
         delta[random_yloc, random_xloc] = 1
 
         test_kwargs = copy.deepcopy(extra_kwargs)
@@ -193,7 +199,7 @@ def test_for_antarctica(grid_type_field_and_extra_kwargs):
 
     if grid_type in tripolar_grids:
         nx = np.shape(extra_kwargs["wet_mask"])[1]
-        random_loc = np.random.randint(0, nx)
+        random_loc = rng.integers(0, nx)
         bad_kwargs = copy.deepcopy(extra_kwargs)
         bad_kwargs["wet_mask"][0, random_loc] = 1
 
@@ -213,7 +219,7 @@ def test_tripolar_exchanges(grid_type_field_and_extra_kwargs):
         delta = np.zeros_like(data)
         nx = np.shape(delta)[1]
         # deploy mass at northern boundary, away from boundaries and pivot point in middle
-        random_loc = np.random.randint(1, nx // 2 - 2)
+        random_loc = rng.integers(1, nx // 2 - 2)
         delta[-1, random_loc] = 1
 
         diffused = laplacian(delta)
@@ -255,7 +261,7 @@ def vector_grid_type_field_and_extra_kwargs(request):
         (geolon_u, geolat_u) = np.meshgrid(lon_u, lat_u)
         (geolon_v, geolat_v) = np.meshgrid(lon_v, lat_v)
         # radius of a random planet smaller than Earth
-        R = 6378000 * np.random.rand(1)
+        R = 6378000 * rng.random((1,))
         # dx varies spatially
         extra_kwargs["dxCu"] = R * np.cos(geolat_u / 360 * 2 * np.pi)
         extra_kwargs["dxCv"] = R * np.cos(geolat_v / 360 * 2 * np.pi)
@@ -283,8 +289,8 @@ def vector_grid_type_field_and_extra_kwargs(request):
         extra_kwargs["wet_mask_t"] = mask_data
         extra_kwargs["wet_mask_q"] = mask_data
 
-    data_u = np.random.rand(ny, nx)
-    data_v = np.random.rand(ny, nx)
+    data_u = rng.random((ny, nx))
+    data_v = rng.random((ny, nx))
 
     return grid_type, data_u, data_v, extra_kwargs, geolat_u
 
