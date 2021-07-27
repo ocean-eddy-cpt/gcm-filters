@@ -41,36 +41,16 @@ def _prepare_tripolar_exchanges(field):
 class BaseScalarLaplacian(ABC):
     """̵Base class for scalar Laplacians."""
 
-    def __call__(self, field):
-        pass  # pragma: no cover
-
-    # change to property when we are using python 3.9
-    # https://stackoverflow.com/questions/128573/using-property-on-classmethods
-    @classmethod
-    def required_grid_args(self):
-        try:
-            return list(self.__annotations__)
-        except AttributeError:
-            return []
-
-
-@dataclass
-class BaseScalarLaplacianWithArea(ABC):
-    """̵Base class for scalar Laplacians that are for simple fixed factor filtering. Simple
-    fixed factor filtering operates on a uniform Cartesian grid with dx=dy=1 that is being transformed
-    from the original locally orthogonal grid. In practice, the coordinate transformation is reflected
-    by a multiplication / division by the cell area of the original grid. Note that this occurs at the
-    filter level, rather than the Laplacian level.
-
-    Attributes
-    ----------
-    area: cell area
-    """
-
-    area: ArrayType
+    def prepare(self, field):
+        print("No area-weighting")
+        return field
 
     def __call__(self, field):
         pass  # pragma: no cover
+
+    def finalize(self, field):
+        print("No area-deweighting")
+        return field
 
     # change to property when we are using python 3.9
     # https://stackoverflow.com/questions/128573/using-property-on-classmethods
@@ -86,8 +66,16 @@ class BaseScalarLaplacianWithArea(ABC):
 class BaseVectorLaplacian(ABC):
     """Base class for vector Laplacians."""
 
+    def prepare(self, ufield, vfield):
+        print("No area-weighting")
+        return (ufield, vfield)
+
     def __call__(self, ufield, vfield):
         pass  # pragma: no cover
+
+    def finalize(self, ufield, vfield):
+        print("No area-deweighting")
+        return (ufield, vfield)
 
     # change to property when we are using python 3.9
     # https://stackoverflow.com/questions/128573/using-property-on-classmethods
@@ -97,6 +85,29 @@ class BaseVectorLaplacian(ABC):
             return list(self.__annotations__)
         except AttributeError:
             return []
+
+
+@dataclass
+class AreaWeightedMixin(ABC):
+    """Mixin class to transform a scalar field on a locally orthogonal grid to a scalar field on a uniform
+    Cartesian grids with dx = dy = 1. In practice, this coordinate transformation is performed through
+    multiplying the input field by the cell area of the original grid. The reverse coordinate transformation
+    is performed through division by the cell area of the original grid.
+
+    Attributes
+    ----------
+    area: cell area
+    """
+
+    area: ArrayType
+
+    def prepare(self, field):
+        print("Area-weighting")
+        return field * self.area
+
+    def finalize(self, field):
+        print("Area-deweighting")
+        return field / self.area
 
 
 @dataclass
@@ -118,11 +129,13 @@ ALL_KERNELS[GridType.REGULAR] = RegularLaplacian
 
 
 @dataclass
-class RegularLaplacianWithArea(BaseScalarLaplacianWithArea):
-    """̵Scalar Laplacian operating on regularly spaced Cartesian grid with dx=dy=1 that is
-    being transformed from a locally orthogonal grid. In practice, the coordinate transformation
-    is reflected by a multiplication / division by the cell area of the original grid. Note
-    that this occurs at the filter level, rather than the Laplacian level.
+class RegularLaplacianWithArea(AreaWeightedMixin, RegularLaplacian):
+    """̵Scalar Laplacian operating on a locally orthogonal grid in three steps:
+    1) Field on locally orthogonal grid is transformed to field on regularly spaced Cartesian
+    grid with dx = dy = 1, through multiplication by cell area of original grid.
+    2) Laplacian acts on regular Cartesian grid.
+    3) Diffused field on regular Cartesian grid is transformed back to field on original grid,
+    through division by cell area of original grid.
 
     Attributes
     ----------
@@ -131,15 +144,7 @@ class RegularLaplacianWithArea(BaseScalarLaplacianWithArea):
 
     area: ArrayType
 
-    def __call__(self, field: ArrayType):
-        np = get_array_module(field)
-        return (
-            -4 * field
-            + np.roll(field, -1, axis=-1)
-            + np.roll(field, 1, axis=-1)
-            + np.roll(field, -1, axis=-2)
-            + np.roll(field, 1, axis=-2)
-        )
+    pass
 
 
 ALL_KERNELS[GridType.TRANSFORMED_TO_REGULAR] = RegularLaplacianWithArea
@@ -187,11 +192,15 @@ ALL_KERNELS[GridType.REGULAR_WITH_LAND] = RegularLaplacianWithLandMask
 
 
 @dataclass
-class RegularLaplacianWithLandMaskAndArea(BaseScalarLaplacianWithArea):
-    """̵Scalar Laplacian operating on regularly spaced Cartesian grid with dx=dy=1 that is
-    being transformed from a locally orthogonal grid with land. In practice, the coordinate
-    transformation is reflected by a multiplication / division by the cell area of the original
-    grid. Note that this occurs at the filter level, rather than the Laplacian level.
+class RegularLaplacianWithLandMaskAndArea(
+    AreaWeightedMixin, RegularLaplacianWithLandMask
+):
+    """̵Scalar Laplacian operating on a locally orthogonal grid with land mask in three steps:
+    1) Field on locally orthogonal grid is transformed to field on regularly spaced Cartesian
+    grid with dx = dy = 1, through multiplication by cell area of original grid.
+    2) Laplacian acts on regular Cartesian grid.
+    3) Diffused field on regular Cartesian grid is transformed back to field on original grid,
+    through division by cell area of original grid.
 
     Attributes
     ----------
@@ -202,31 +211,7 @@ class RegularLaplacianWithLandMaskAndArea(BaseScalarLaplacianWithArea):
     area: ArrayType
     wet_mask: ArrayType
 
-    def __post_init__(self):
-        np = get_array_module(self.wet_mask)
-        self.wet_fac = (
-            np.roll(self.wet_mask, -1, axis=-1)
-            + np.roll(self.wet_mask, 1, axis=-1)
-            + np.roll(self.wet_mask, -1, axis=-2)
-            + np.roll(self.wet_mask, 1, axis=-2)
-        )
-
-    def __call__(self, field: ArrayType):
-        np = get_array_module(field)
-
-        out = np.nan_to_num(field)  # set all nans to zero
-        out = self.wet_mask * out
-
-        out = (
-            -self.wet_fac * out
-            + np.roll(out, -1, axis=-1)
-            + np.roll(out, 1, axis=-1)
-            + np.roll(out, -1, axis=-2)
-            + np.roll(out, 1, axis=-2)
-        )
-
-        out = self.wet_mask * out
-        return out
+    pass
 
 
 ALL_KERNELS[
@@ -301,16 +286,18 @@ ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularLaplacianWithLandMask
 
 
 @dataclass
-class TripolarRegularLaplacianTpoint(BaseScalarLaplacianWithArea):
-    """̵Scalar Laplacian operating on regularly spaced Cartesian grid with dx=dy=1 that is
-    being transformed from a locally orthogonal grid with land and a tripole boundary
-    condition. In practice, the coordinate transformation is reflected by a multiplication /
-    division by the cell area of the original grid. Note that this occurs at the filter level,
-    rather than the Laplacian level.
+class TripolarRegularLaplacianTpoint(AreaWeightedMixin, BaseScalarLaplacian):
+    """̵Scalar Laplacian operating on a locally orthogonal grid with land mask and a tripole
+    boundary. There are three steps:
+    1) Field on locally orthogonal grid is transformed to field on regularly spaced Cartesian
+    grid with dx = dy = 1, through multiplication by cell area of original grid.
+    2) Laplacian acts on regular Cartesian grid.
+    3) Diffused field on regular Cartesian grid is transformed back to field on original grid,
+    through division by cell area of original grid.
 
     Attributes
     ----------
-    area: cell area or original grid
+    area: cell area of original grid
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
 
@@ -330,7 +317,7 @@ class TripolarRegularLaplacianTpoint(BaseScalarLaplacianWithArea):
             + np.roll(wet_mask_extended, 1, axis=-1)
             + np.roll(wet_mask_extended, -1, axis=-2)
             + np.roll(wet_mask_extended, 1, axis=-2)
-        )  # todo: inherit this operation from CartesianLaplacianWithLandMask
+        )  # todo: inherit this operation from RegularLaplacianWithLandMask
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
@@ -345,7 +332,7 @@ class TripolarRegularLaplacianTpoint(BaseScalarLaplacianWithArea):
             + np.roll(data, 1, axis=-1)
             + np.roll(data, -1, axis=-2)
             + np.roll(data, 1, axis=-2)
-        )  # todo: inherit this operation from CartesianLaplacianWithLandMask
+        )  # todo: inherit this operation from RegularLaplacianWithLandMask
 
         out = out[..., :-1, :]  # disregard appended row
 

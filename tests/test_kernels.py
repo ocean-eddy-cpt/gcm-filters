@@ -5,6 +5,7 @@ import pytest
 
 from gcm_filters.kernels import (
     ALL_KERNELS,
+    AreaWeightedMixin,
     BaseScalarLaplacian,
     GridType,
     required_grid_vars,
@@ -77,12 +78,13 @@ def test_conservation(grid_type_field_and_extra_kwargs):
 
     LaplacianClass = ALL_KERNELS[grid_type]
     laplacian = LaplacianClass(**extra_kwargs)
-    area = 1
-    # - Laplacians that belong to BaseScalarLaplacianWithArea class
-    #   act on (transformed) regular grid with dx = dy = 1
-    # - Laplacians that belong to BaseScalarLaplacian class
-    #   act on potentially irregular grid --> need area information
-    if issubclass(LaplacianClass, BaseScalarLaplacian):
+    area = 1  # default value for regular Cartesian grids
+    # - Laplacians that belong to AreaWeithedMixin class
+    #   act on (transformed) regular grid with dx = dy = 1;
+    #   --> test with area = 1
+    # - all other Laplacians  act on potentially irregular grid
+    #   --> need area information
+    if not issubclass(LaplacianClass, AreaWeightedMixin):
         for k, v in extra_kwargs.items():
             if "area" in k:
                 area = v
