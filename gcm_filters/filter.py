@@ -311,11 +311,10 @@ class Filter:
         # Determine whether this is simple fixed factor filter; in that case we need dx_min = 1
         if issubclass(self.Laplacian, AreaWeightedMixin):
             if self.dx_min != 1:
-                warnings.warn(
-                    "Provided Laplacian is for simple fixed factor filtering, "
-                    "where area-weighted field is filtered on a regular grid with dx = dy = 1 "
-                    "--> dx_min is set to 1",
-                    stacklevel=2,
+                raise ValueError(
+                    f"Provided Laplacian is for simple fixed factor filtering, "
+                    "where transformed field is filtered on a regular grid with dx = dy = 1. "
+                    "dx_min must be set to 1."
                 )
                 self.dx_min = 1
 

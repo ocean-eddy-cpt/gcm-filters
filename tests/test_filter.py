@@ -334,11 +334,11 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
     bad_filter_args["filter_scale"] = 1000
     with pytest.warns(UserWarning, match=r"Filter scale much larger .*"):
         filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
-    # check that we get a warning if we pass dx_min != 1 to a regular scalar Laplacian
+    # check that we get an error if we pass dx_min != 1 to a regular scalar Laplacian
     if grid_type in scalar_transformed_regular_grids:
         bad_filter_args["filter_scale"] = 3  # restore good value for filter scale
         bad_filter_args["dx_min"] = 3
-        with pytest.warns(UserWarning, match=r"Provided Laplacian .*"):
+        with pytest.raises(ValueError, match=r"Provided Laplacian .*"):
             filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
 
 
