@@ -125,8 +125,8 @@ def test_flux_in_direction(grid_type_field_and_extra_kwargs, direction):
     var_to_modify, slice_left, slice_right = replace_data[grid_type][direction]
     print(grid_type, var_to_modify, slice_left, slice_right)
     new_data = np.ones_like(test_kwargs[var_to_modify])
-    # new_data[slice_left] = 1000
-    # new_data[slice_right] = 2000
+    new_data[slice_left] = 1000
+    new_data[slice_right] = 2000
     test_kwargs[var_to_modify] = new_data
 
     LaplacianClass = ALL_KERNELS[grid_type]
@@ -147,58 +147,6 @@ def test_flux_in_direction(grid_type_field_and_extra_kwargs, direction):
             diffused[random_yloc, random_xloc + 1],
             atol=1e-12,
         )
-
-
-#
-# def test_flux_in_x_direction(grid_type_field_and_extra_kwargs):
-#     """This test checks that the Laplacian computes the correct fluxes in x-direction if the grid is irregular.
-#     The test will catch sign errors in the Laplacian rolling of array elements along the x-axis."""
-#     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
-#
-#     if grid_type in irregular_grids:
-#         # deploy mass at random location away from Antarctica: delta_{j,i}
-#         delta = np.zeros_like(data)
-#         ny = np.shape(delta)[0]
-#         random_yloc = rng.integers(5, ny)
-#         nx = np.shape(delta)[1]
-#         random_xloc = rng.integers(2, nx - 2)
-#         delta[random_yloc, random_xloc] = 1
-#
-#         test_kwargs = copy.deepcopy(extra_kwargs)
-#         ones = np.ones_like(data)
-#         # create highly irregular grid data for
-#         # - western edge of cell {j,i-1};
-#         # - western edge of cell {j,i+2}
-#         # this should leave laplacian(delta_{j,i}) unaffected
-#         if grid_type == GridType.IRREGULAR_WITH_LAND:
-#             test_kwargs["wet_mask"] = ones  # no land for simplicity
-#             test_kwargs["area"] = ones
-#             test_kwargs["dys"] = ones
-#             test_kwargs["dxw"] = ones
-#             test_kwargs["dxs"] = ones
-#             test_kwargs["dyw"] = ones.copy()
-#             test_kwargs["dyw"][:, random_xloc - 1] = 1000
-#             test_kwargs["dyw"][:, random_xloc + 2] = 2000
-#         if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
-#             test_kwargs["wet_mask"] = ones.copy()
-#             test_kwargs["wet_mask"][0, :] = 0  # Antarctica
-#             test_kwargs["tarea"] = ones
-#             test_kwargs["dyn"] = ones
-#             test_kwargs["dxe"] = ones
-#             test_kwargs["dxn"] = ones
-#             test_kwargs["dye"] = ones.copy()
-#             test_kwargs["dye"][:, random_xloc - 2] = 1000
-#             test_kwargs["dye"][:, random_xloc + 1] = 2000
-#
-#         LaplacianClass = ALL_KERNELS[grid_type]
-#         laplacian = LaplacianClass(**test_kwargs)
-#         diffused = laplacian(delta)
-#         # check that delta function gets diffused isotropically in x-direction
-#         np.testing.assert_allclose(
-#             diffused[random_yloc, random_xloc - 1],
-#             diffused[random_yloc, random_xloc + 1],
-#             atol=1e-12,
-#         )
 
 
 ################## Tripolar grid tests for scalar Laplacians ##############################################
