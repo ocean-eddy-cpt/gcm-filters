@@ -316,7 +316,6 @@ class Filter:
                     "where transformed field is filtered on a regular grid with dx = dy = 1. "
                     "dx_min must be set to 1."
                 )
-                self.dx_min = 1
 
         # Get default number of steps
         filter_factor = self.filter_scale / self.dx_min
