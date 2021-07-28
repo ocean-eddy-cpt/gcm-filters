@@ -14,11 +14,11 @@ GridType = enum.Enum(
     "GridType",
     [
         "REGULAR",
-        "TRANSFORMED_TO_REGULAR",
+        "REGULAR_AREA_WEIGHTED",
         "REGULAR_WITH_LAND",
-        "TRANSFORMED_TO_REGULAR_WITH_LAND",
+        "REGULAR_WITH_LAND_AREA_WEIGHTED",
         "IRREGULAR_WITH_LAND",
-        "TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND",
+        "TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED",
         "TRIPOLAR_POP_WITH_LAND",
         "VECTOR_C_GRID",
     ],
@@ -85,10 +85,7 @@ class BaseVectorLaplacian(ABC):
 
 @dataclass
 class AreaWeightedMixin(ABC):
-    """Mixin class to transform a scalar field on a locally orthogonal grid to a scalar field on a uniform
-    Cartesian grid with dx = dy = 1. In practice, this coordinate transformation is performed through
-    multiplying the input field by the cell area of the original grid. The reverse coordinate transformation
-    is performed through division by the cell area of the original grid.
+    """Mixin to weight and deweight a field by the cell area.
 
     Attributes
     ----------
@@ -125,11 +122,10 @@ ALL_KERNELS[GridType.REGULAR] = RegularLaplacian
 @dataclass
 class RegularLaplacianWithArea(AreaWeightedMixin, RegularLaplacian):
     """̵Scalar Laplacian operating on a locally orthogonal grid in three steps:
-    1) Field on locally orthogonal grid is transformed to field on regularly spaced Cartesian
-    grid with dx = dy = 1, through multiplication by cell area of original grid.
-    2) Laplacian acts on regular Cartesian grid.
-    3) Diffused field on regular Cartesian grid is transformed back to field on original grid,
-    through division by cell area of original grid.
+
+    1. :py:meth:`prepare`: Field is multiplied by the cell area. This corresponds to transforming the field from the original locally orthogonal grid to a regularly spaced Cartesian grid with dx = dy = 1.
+    2. :meth:`__call__`: Laplacian acts on regular Cartesian grid.
+    3. :meth:`finalize`: Diffused field is divided by the cell area of the original grid. This corresponds to transforming the field from the regular Cartesian grid back to the original grid.
 
     Attributes
     ----------
@@ -141,7 +137,7 @@ class RegularLaplacianWithArea(AreaWeightedMixin, RegularLaplacian):
     pass
 
 
-ALL_KERNELS[GridType.TRANSFORMED_TO_REGULAR] = RegularLaplacianWithArea
+ALL_KERNELS[GridType.REGULAR_AREA_WEIGHTED] = RegularLaplacianWithArea
 
 
 @dataclass
@@ -190,11 +186,10 @@ class RegularLaplacianWithLandMaskAndArea(
     AreaWeightedMixin, RegularLaplacianWithLandMask
 ):
     """̵Scalar Laplacian operating on a locally orthogonal grid with land mask in three steps:
-    1) Field on locally orthogonal grid is transformed to field on regularly spaced Cartesian
-    grid with dx = dy = 1, through multiplication by cell area of original grid.
-    2) Laplacian acts on regular Cartesian grid.
-    3) Diffused field on regular Cartesian grid is transformed back to field on original grid,
-    through division by cell area of original grid.
+
+    1. :py:meth:`prepare`: Field is multiplied by the cell area. This corresponds to transforming the field from the original locally orthogonal grid to a regularly spaced Cartesian grid with dx = dy = 1.
+    2. :meth:`__call__`: Laplacian acts on regular Cartesian grid.
+    3. :meth:`finalize`: Diffused field is divided by the cell area of the original grid. This corresponds to transforming the field from the regular Cartesian grid back to the original grid.
 
     Attributes
     ----------
@@ -209,7 +204,7 @@ class RegularLaplacianWithLandMaskAndArea(
 
 
 ALL_KERNELS[
-    GridType.TRANSFORMED_TO_REGULAR_WITH_LAND
+    GridType.REGULAR_WITH_LAND_AREA_WEIGHTED
 ] = RegularLaplacianWithLandMaskAndArea
 
 
@@ -281,13 +276,11 @@ ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularLaplacianWithLandMask
 
 @dataclass
 class TripolarRegularLaplacianTpoint(AreaWeightedMixin, BaseScalarLaplacian):
-    """̵Scalar Laplacian operating on a locally orthogonal grid with land mask and a tripole
-    boundary. There are three steps:
-    1) Field on locally orthogonal grid is transformed to field on regularly spaced Cartesian
-    grid with dx = dy = 1, through multiplication by cell area of original grid.
-    2) Laplacian acts on regular Cartesian grid.
-    3) Diffused field on regular Cartesian grid is transformed back to field on original grid,
-    through division by cell area of original grid.
+    """Scalar Laplacian operating on a locally orthogonal grid with land mask and a tripole boundary. There are three steps:
+
+    1. :py:meth:`prepare`: Field is multiplied by the cell area. This corresponds to transforming the field from the original locally orthogonal grid to a regularly spaced Cartesian grid with dx = dy = 1.
+    2. :meth:`__call__`: Laplacian acts on regular Cartesian grid.
+    3. :meth:`finalize`: Diffused field is divided by the cell area of the original grid. This corresponds to transforming the field from the regular Cartesian grid back to the original grid.
 
     Attributes
     ----------
@@ -335,15 +328,13 @@ class TripolarRegularLaplacianTpoint(AreaWeightedMixin, BaseScalarLaplacian):
 
 
 ALL_KERNELS[
-    GridType.TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND
+    GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED
 ] = TripolarRegularLaplacianTpoint
 
 
 @dataclass
 class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
-    """̵Scalar Laplacian for locally orthogonal grid with land mask and tripole boundary condition,
-    as for example used in the global POP configuration. This Laplacian works for scalar fields
-    located at T-points.
+    """̵Scalar Laplacian for locally orthogonal grid with land mask and tripole boundary condition, as for example used in the global POP configuration. This Laplacian works for scalar fields located at T-points.
 
     Attributes
     ----------
@@ -415,7 +406,7 @@ ALL_KERNELS[GridType.TRIPOLAR_POP_WITH_LAND] = POPTripolarLaplacianTpoint
 
 @dataclass
 class CgridVectorLaplacian(BaseVectorLaplacian):
-    """̵Vector Laplacian on C-Grid.
+    """̵Vector Laplacian on C-Grid. The implementation follows the friction operator suggested by Griffies and Hallberg, 2000.
 
     Attributes
     ----------
@@ -523,8 +514,7 @@ ALL_KERNELS[GridType.VECTOR_C_GRID] = CgridVectorLaplacian
 
 
 def required_grid_vars(grid_type: GridType):
-    """Utility function for figuring out the required grid variables
-    needed by each grid type.
+    """Utility function for figuring out the required grid variables needed by each grid type.
 
     Parameters
     ----------
