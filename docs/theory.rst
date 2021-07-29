@@ -226,7 +226,7 @@ Anisotropic Filtering
 
 It is possible to have different filter scales in different directions, and to have both the scales and directions vary over the domain.
 This is achieved by replacing :math:`\kappa` in the previous section with a :math:`2\times2` symmetric and positive definite matrix (for a 2D domain), i.e. replacing :math:`\Delta` with :math:`\nabla\cdot(\mathbf{K}\nabla)`.
-``gcm-filters`` currently only supports having the directions of anisotropy be aligned with the grid, so that the user only inputs one :math:`\kappa` for each grid direction, rather than a full :math:`2\times2` matrix.
+``gcm-filters`` currently only supports diagonal :math:`\mathbf{K}`, i.e. the principal axes of the anisotropic filter are aligned with the grid, so that the user only inputs one :math:`\kappa` for each grid direction, rather than a full :math:`2\times2` matrix.
 Just like in the previous section, we require that each of these two :math:`\kappa` be less than or equal to 1, and the interpretation is also the same: the local filter scale in a particular direction is :math:`\sqrt{\kappa}\times` ``filter_scale``.
 
 Suppose, for example, that you want to filter with a scale of 60 in the grid-x direction and a scale of 30 in the grid-y direction.
