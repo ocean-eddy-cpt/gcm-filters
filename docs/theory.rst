@@ -7,7 +7,7 @@ For a more detailed treatment, see `Grooms et al. (2021) <https://doi.org/10.100
 Filter Scale and Shape
 ----------------------
 
-Any low-pass spatial filter should have a target length scale such that the filtered field keeps length scales larger than the target length scale, and smoothes out smaller scales. In the context of this package the target length scale is called ``filter_scale``.
+Any low-pass spatial filter should have a target length scale such that the filtered field keeps the part of the signal with length scales larger than the target length scale, and smoothes out smaller scales. In the context of this package the target length scale is called ``filter_scale``.
 
 A spatial filter can also have a *shape* that determines how sharply it separates scales above and below the target length scale.
 The filter shape can be thought of in terms of the kernel of a convolution filter
@@ -62,7 +62,7 @@ So with ``n_steps`` = 3 you might get one Laplacian plus one biharmonic step, or
 Once a filter object has been constructed, the method ``plot_shape`` can be used to plot the shape of the target filter and the approximate filter.
 This can be particularly useful if the user is trying to reduce ``n_steps`` from its default value without introducing sigificant errors.
 ``plot_shape`` does not plot the shape of the filter *kernel*.
-Instead, it plots the shape in "Fourier" space.
+Instead, it plots the frequency response of the filter for each wavenumber :math:`k`.
 Length scales are related to wavelengths by :math:`\ell = 2\pi/k`.
 The filter leaves large scales unchanged, so ``plot_shape`` shows values close to 1 for small :math:`k`.
 The filter damps out small scales, so ``plot_shape`` shows values close to 0 for large :math:`k`.
@@ -111,7 +111,7 @@ Anisotropic Filtering
 
 It is possible to have different filter scales in different directions, and to have both the scales and directions vary over the domain.
 This is achieved by replacing :math:`\kappa` in the previous section with a :math:`2\times2` symmetric and positive definite matrix (for a 2D domain), i.e. replacing :math:`\Delta` with :math:`\nabla\cdot(\mathbf{K}\nabla)`.
-``gcm-filters`` currently only supports having the directions of anisotropy be aligned with the grid, so that the user only inputs one :math:`\kappa` for each grid direction, rather than a full :math:`2\times2` matrix.
+``gcm-filters`` currently only supports diagonal :math:`\mathbf{K}`, i.e. the principal axes of the anisotropic filter are aligned with the grid, so that the user only inputs one :math:`\kappa` for each grid direction, rather than a full :math:`2\times2` matrix.
 Just like in the previous section, we require that each of these two :math:`\kappa` be less than or equal to 1, and the interpretation is also the same: the local filter scale in a particular direction is :math:`\sqrt{\kappa}\times` ``filter_scale``.
 
 Suppose, for example, that you want to filter with a scale of 60 in the grid-x direction and a scale of 30 in the grid-y direction.

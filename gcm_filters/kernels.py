@@ -10,14 +10,15 @@ from typing import Any, Dict
 from .gpu_compat import ArrayType, get_array_module
 
 
-# not married to the term "Cartesian"
 GridType = enum.Enum(
     "GridType",
     [
         "REGULAR",
+        "REGULAR_AREA_WEIGHTED",
         "REGULAR_WITH_LAND",
+        "REGULAR_WITH_LAND_AREA_WEIGHTED",
         "IRREGULAR_WITH_LAND",
-        "TRIPOLAR_REGULAR_WITH_LAND",
+        "TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED",
         "TRIPOLAR_POP_WITH_LAND",
         "VECTOR_C_GRID",
     ],
@@ -38,8 +39,16 @@ def _prepare_tripolar_exchanges(field):
 
 @dataclass
 class BaseScalarLaplacian(ABC):
+    """̵Base class for scalar Laplacians."""
+
+    def prepare(self, field):
+        return field
+
     def __call__(self, field):
         pass  # pragma: no cover
+
+    def finalize(self, field):
+        return field
 
     # change to property when we are using python 3.9
     # https://stackoverflow.com/questions/128573/using-property-on-classmethods
@@ -53,8 +62,16 @@ class BaseScalarLaplacian(ABC):
 
 @dataclass
 class BaseVectorLaplacian(ABC):
+    """Base class for vector Laplacians."""
+
+    def prepare(self, ufield, vfield):
+        return (ufield, vfield)
+
     def __call__(self, ufield, vfield):
         pass  # pragma: no cover
+
+    def finalize(self, ufield, vfield):
+        return (ufield, vfield)
 
     # change to property when we are using python 3.9
     # https://stackoverflow.com/questions/128573/using-property-on-classmethods
@@ -67,8 +84,26 @@ class BaseVectorLaplacian(ABC):
 
 
 @dataclass
+class AreaWeightedMixin(ABC):
+    """Mixin to weight and deweight a field by the cell area.
+
+    Attributes
+    ----------
+    area: cell area
+    """
+
+    area: ArrayType
+
+    def prepare(self, field):
+        return field * self.area
+
+    def finalize(self, field):
+        return field / self.area
+
+
+@dataclass
 class RegularLaplacian(BaseScalarLaplacian):
-    """̵Laplacian for regularly spaced Cartesian grids."""
+    """̵Scalar Laplacian for regularly spaced Cartesian grids."""
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
@@ -85,8 +120,29 @@ ALL_KERNELS[GridType.REGULAR] = RegularLaplacian
 
 
 @dataclass
+class RegularLaplacianWithArea(AreaWeightedMixin, RegularLaplacian):
+    """̵Scalar Laplacian operating on a locally orthogonal grid in three steps:
+
+    1. :py:meth:`prepare`: Field is multiplied by the cell area. This corresponds to transforming the field from the original locally orthogonal grid to a regularly spaced Cartesian grid with dx = dy = 1.
+    2. :meth:`__call__`: Laplacian acts on regular Cartesian grid.
+    3. :meth:`finalize`: Diffused field is divided by the cell area of the original grid. This corresponds to transforming the field from the regular Cartesian grid back to the original grid.
+
+    Attributes
+    ----------
+    area: cell area of original grid
+    """
+
+    area: ArrayType
+
+    pass
+
+
+ALL_KERNELS[GridType.REGULAR_AREA_WEIGHTED] = RegularLaplacianWithArea
+
+
+@dataclass
 class RegularLaplacianWithLandMask(BaseScalarLaplacian):
-    """̵Laplacian for regularly spaced Cartesian grids with land mask.
+    """̵Scalar Laplacian for regularly spaced Cartesian grids with land mask.
 
     Attributes
     ----------
@@ -97,7 +153,6 @@ class RegularLaplacianWithLandMask(BaseScalarLaplacian):
 
     def __post_init__(self):
         np = get_array_module(self.wet_mask)
-
         self.wet_fac = (
             np.roll(self.wet_mask, -1, axis=-1)
             + np.roll(self.wet_mask, 1, axis=-1)
@@ -127,8 +182,35 @@ ALL_KERNELS[GridType.REGULAR_WITH_LAND] = RegularLaplacianWithLandMask
 
 
 @dataclass
+class RegularLaplacianWithLandMaskAndArea(
+    AreaWeightedMixin, RegularLaplacianWithLandMask
+):
+    """̵Scalar Laplacian operating on a locally orthogonal grid with land mask in three steps:
+
+    1. :py:meth:`prepare`: Field is multiplied by the cell area. This corresponds to transforming the field from the original locally orthogonal grid to a regularly spaced Cartesian grid with dx = dy = 1.
+    2. :meth:`__call__`: Laplacian acts on regular Cartesian grid.
+    3. :meth:`finalize`: Diffused field is divided by the cell area of the original grid. This corresponds to transforming the field from the regular Cartesian grid back to the original grid.
+
+    Attributes
+    ----------
+    area: cell area of original grid
+    wet_mask: Mask array, 1 for ocean, 0 for land
+    """
+
+    area: ArrayType
+    wet_mask: ArrayType
+
+    pass
+
+
+ALL_KERNELS[
+    GridType.REGULAR_WITH_LAND_AREA_WEIGHTED
+] = RegularLaplacianWithLandMaskAndArea
+
+
+@dataclass
 class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
-    """̵Laplacian for irregularly spaced Cartesian grids with land mask.
+    """̵Scalar Laplacian for locally orthogonal grids with land mask.
 
     Attributes
     ----------
@@ -193,14 +275,20 @@ ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularLaplacianWithLandMask
 
 
 @dataclass
-class TripolarRegularLaplacianTpoint(BaseScalarLaplacian):
-    """̵Laplacian for fields defined at T-points on POP tripolar grid geometry with land mask, but assuming that dx = dy = 1
+class TripolarRegularLaplacianTpoint(AreaWeightedMixin, BaseScalarLaplacian):
+    """Scalar Laplacian operating on a locally orthogonal grid with land mask and a tripole boundary. There are three steps:
+
+    1. :py:meth:`prepare`: Field is multiplied by the cell area. This corresponds to transforming the field from the original locally orthogonal grid to a regularly spaced Cartesian grid with dx = dy = 1.
+    2. :meth:`__call__`: Laplacian acts on regular Cartesian grid.
+    3. :meth:`finalize`: Diffused field is divided by the cell area of the original grid. This corresponds to transforming the field from the regular Cartesian grid back to the original grid.
 
     Attributes
     ----------
+    area: cell area of original grid
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
 
+    area: ArrayType
     wet_mask: ArrayType
 
     def __post_init__(self):
@@ -216,7 +304,7 @@ class TripolarRegularLaplacianTpoint(BaseScalarLaplacian):
             + np.roll(wet_mask_extended, 1, axis=-1)
             + np.roll(wet_mask_extended, -1, axis=-2)
             + np.roll(wet_mask_extended, 1, axis=-2)
-        )  # todo: inherit this operation from CartesianLaplacianWithLandMask
+        )  # todo: inherit this operation from RegularLaplacianWithLandMask
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
@@ -231,7 +319,7 @@ class TripolarRegularLaplacianTpoint(BaseScalarLaplacian):
             + np.roll(data, 1, axis=-1)
             + np.roll(data, -1, axis=-2)
             + np.roll(data, 1, axis=-2)
-        )  # todo: inherit this operation from CartesianLaplacianWithLandMask
+        )  # todo: inherit this operation from RegularLaplacianWithLandMask
 
         out = out[..., :-1, :]  # disregard appended row
 
@@ -239,21 +327,23 @@ class TripolarRegularLaplacianTpoint(BaseScalarLaplacian):
         return out
 
 
-ALL_KERNELS[GridType.TRIPOLAR_REGULAR_WITH_LAND] = TripolarRegularLaplacianTpoint
+ALL_KERNELS[
+    GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED
+] = TripolarRegularLaplacianTpoint
 
 
 @dataclass
 class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
-    """̵Laplacian for irregularly spaced Cartesian grids with land mask.
+    """̵Scalar Laplacian for locally orthogonal grid with land mask and tripole boundary condition, as for example used in the global POP configuration. This Laplacian works for scalar fields located at T-points.
 
     Attributes
     ----------
     wet_mask: Mask array, 1 for ocean, 0 for land; can be obtained via xr.where(KMT>0, 1, 0)
-    dxe: x-spacing centered at eastern T-cell edge, provided by model diagnostic HUS(nlat, nlon)
-    dye: y-spacing centered at eastern  T-cell edge, provided by model diagnostic HTE(nlat, nlon)
-    dxn: x-spacing centered at northern T-cell edge, provided by model diagnostic HTN(nlat, nlon)
-    dyn: y-spacing centered at northern T-cell edge, provided by model diagnostic HUW(nlat, nlon)
-    tarea: cell area, provided by model diagnostic TAREA(nlat, nlon)
+    dxe: x-spacing centered at eastern T-cell edge, provided by POP model diagnostic HUS(nlat, nlon)
+    dye: y-spacing centered at eastern  T-cell edge, provided by POP model diagnostic HTE(nlat, nlon)
+    dxn: x-spacing centered at northern T-cell edge, provided by POP model diagnostic HTN(nlat, nlon)
+    dyn: y-spacing centered at northern T-cell edge, provided by POP model diagnostic HUW(nlat, nlon)
+    tarea: cell area, provided by POP model diagnostic TAREA(nlat, nlon)
     """
 
     wet_mask: ArrayType
@@ -316,7 +406,7 @@ ALL_KERNELS[GridType.TRIPOLAR_POP_WITH_LAND] = POPTripolarLaplacianTpoint
 
 @dataclass
 class CgridVectorLaplacian(BaseVectorLaplacian):
-    """̵Vector Laplacian on C-Grid.
+    """̵Vector Laplacian on C-Grid. The implementation follows the friction operator suggested by Griffies and Hallberg, 2000.
 
     Attributes
     ----------
@@ -424,8 +514,7 @@ ALL_KERNELS[GridType.VECTOR_C_GRID] = CgridVectorLaplacian
 
 
 def required_grid_vars(grid_type: GridType):
-    """Utility function for figuring out the required grid variables
-    needed by each grid type.
+    """Utility function for figuring out the required grid variables needed by each grid type.
 
     Parameters
     ----------
