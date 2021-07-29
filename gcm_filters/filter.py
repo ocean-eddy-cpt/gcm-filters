@@ -14,8 +14,8 @@ from scipy import interpolate
 from .gpu_compat import get_array_module
 from .kernels import (
     ALL_KERNELS,
+    AreaWeightedMixin,
     BaseScalarLaplacian,
-    BaseScalarLaplacianWithArea,
     BaseVectorLaplacian,
     GridType,
 )
@@ -179,6 +179,11 @@ def _create_filter_func(
         laplacian = Laplacian(**grid_vars)
         np = get_array_module(field)
         field_bar = field.copy()  # Initalize the filtering process
+
+        # prepare field for filtering (this multiplies by area for simple fixed factor
+        # filters, and does nothing for all other filters)
+        field_bar = laplacian.prepare(field_bar)
+
         for i in range(filter_spec.n_steps_total):
             if filter_spec.is_laplacian[i]:
                 s_l = np.real(filter_spec.s[i])
@@ -192,6 +197,11 @@ def _create_filter_func(
                     temp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
                     + temp_b * 1 / np.abs(s_b) ** 2
                 )
+
+        # finalize filtering (this divides by area for simple fixed factor filters,
+        # and does nothing for all other filters)
+        field_bar = laplacian.finalize(field_bar)
+
         return field_bar
 
     return filter_func
@@ -215,6 +225,11 @@ def _create_filter_func_vec(
         np = get_array_module(ufield)
         ufield_bar = ufield.copy()  # Initalize the filtering process
         vfield_bar = vfield.copy()  # Initalize the filtering process
+
+        # prepare field for filtering (this multiplies by area for simple fixed factor
+        # filters, and does nothing for all other filters)
+        (ufield_bar, vfield_bar) = laplacian.prepare(ufield_bar, vfield_bar)
+
         for i in range(filter_spec.n_steps_total):
             if filter_spec.is_laplacian[i]:
                 s_l = np.real(filter_spec.s[i])
@@ -239,6 +254,11 @@ def _create_filter_func_vec(
                     vtemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
                     + vtemp_b * 1 / np.abs(s_b) ** 2
                 )
+
+        # finalize filtering (this divides by area for simple fixed factor filters,
+        # and does nothing for all other filters)
+        (ufield_bar, vfield_bar) = laplacian.finalize(ufield_bar, vfield_bar)
+
         return (ufield_bar, vfield_bar)
 
     return filter_func_vec
@@ -249,32 +269,32 @@ class Filter:
     """A class for applying diffusion-based filtering to gridded data.
 
     Parameters
-    ----------
-    filter_scale : float
-        The target length of the filter
-    dx_min : float
-        The smallest grid spacing. Should have same units as ``filter_scale``
-    n_steps : int, optional
-        Number of total steps in the filter. (A biharmonic step counts as two steps.)
-        ``n_steps < 3`` means the number of steps is chosen automatically
-    filter_shape : FilterShape
-        - ``FilterShape.GAUSSIAN``: The target filter has target length scale ``filter_scale``. This is realized by a Gaussian kernel
-          with standard deviation ``filter_scale / sqrt(12)``.
-        - ``FilterShape.TAPER``: The target filter has target length scale ``filter_scale``. Scales smaller than ``filter_scale``
-          are zeroed out. Scales larger than a threshold value are left as-is. The threshold value is larger than ``filter_scale``
-          and depends on ``transition_width``. Between the threshold value and ``filter_scale`` is a smooth transition
-    transition_width : float, optional
-        Width of the transition region in the ``TAPER`` filter. Default is ``pi``
-    ndim : int, optional
-         Laplacian is applied on a grid of dimension ndim
-    grid_type : GridType
-        What sort of grid we are dealing with
-    grid_vars : dict
-        Dictionary of extra parameters used to initialize the grid Laplacian
+     ----------
+     filter_scale : float
+         The target length of the filter
+     dx_min : float
+         The smallest grid spacing. Should have same units as ``filter_scale``
+     n_steps : int, optional
+         Number of total steps in the filter. (A biharmonic step counts as two steps.)
+         ``n_steps < 3`` means the number of steps is chosen automatically
+     filter_shape : FilterShape
+         - ``FilterShape.GAUSSIAN``: The target filter has target length scale ``filter_scale``. This is realized by a Gaussian kernel
+           with standard deviation ``filter_scale / sqrt(12)``.
+         - ``FilterShape.TAPER``: The target filter has target length scale ``filter_scale``. Scales smaller than ``filter_scale``
+           are zeroed out. Scales larger than a threshold value are left as-is. The threshold value is larger than ``filter_scale``
+           and depends on ``transition_width``. Between the threshold value and ``filter_scale`` is a smooth transition
+     transition_width : float, optional
+         Width of the transition region in the ``TAPER`` filter. Default is ``pi``
+     ndim : int, optional
+          Laplacian is applied on a grid of dimension ndim
+     grid_type : GridType
+         What sort of grid we are dealing with
+     grid_vars : dict
+         Dictionary of extra parameters used to initialize the grid Laplacian
 
-    Attributes
-    ----------
-    filter_spec: FilterSpec
+     Attributes
+     ----------
+     filter_spec: FilterSpec
     """
 
     filter_scale: float
@@ -291,15 +311,13 @@ class Filter:
         self.Laplacian = ALL_KERNELS[self.grid_type]
 
         # Determine whether this is simple fixed factor filter; in that case we need dx_min = 1
-        if issubclass(self.Laplacian, BaseScalarLaplacianWithArea):
+        if issubclass(self.Laplacian, AreaWeightedMixin):
             if self.dx_min != 1:
-                warnings.warn(
-                    "Provided Laplacian is for simple fixed factor filtering, "
-                    "where area-weighted field is filtered on a regular grid with dx = dy = 1 "
-                    "--> dx_min is set to 1",
-                    stacklevel=2,
+                raise ValueError(
+                    f"Provided Laplacian is for simple fixed factor filtering, "
+                    "where transformed field is filtered on a regular grid with dx = dy = 1. "
+                    "dx_min must be set to 1."
                 )
-                self.dx_min = 1
 
         # Get default number of steps
         filter_factor = self.filter_scale / self.dx_min
@@ -330,7 +348,8 @@ class Filter:
         ]
         if filter_factor >= max_filter_factor:
             warnings.warn(
-                "Filter scale much larger than grid scale -> numerical instability possible",
+                "Filter scale much larger than grid scale -> numerical instability possible. "
+                "More information on numerical instability can be found at https://gcm-filters.readthedocs.io/en/latest/theory.html.",
                 stacklevel=2,
             )
 
@@ -394,9 +413,6 @@ class Filter:
                 f"Provided Laplacian {self.Laplacian} is a vector Laplacian. "
                 f"The ``.apply`` method is only suitable for scalar Laplacians."
             )
-        if issubclass(self.Laplacian, BaseScalarLaplacianWithArea):
-            # simple fixed factor filtering multiplies field by area before filtering
-            field = field * self.grid_ds["area"]
 
         filter_func = _create_filter_func(self.filter_spec, self.Laplacian)
         grid_args = [self.grid_ds[name] for name in self.Laplacian.required_grid_args()]
@@ -411,9 +427,6 @@ class Filter:
             output_dtypes=[field.dtype],
             dask="parallelized",
         )
-        if issubclass(self.Laplacian, BaseScalarLaplacianWithArea):
-            # simple fixed factor filtering divides filtered field by area
-            field_smooth = field_smooth / self.grid_ds["area"]
 
         return field_smooth
 
@@ -439,4 +452,5 @@ class Filter:
             output_dtypes=[ufield.dtype, vfield.dtype],
             dask="parallelized",
         )
+
         return (ufield_smooth, vfield_smooth)
