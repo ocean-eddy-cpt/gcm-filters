@@ -251,7 +251,13 @@ An alternative way to achieve filtering with fixed coarsening factor :math:`m` i
 
 The first step is essentially a coordinate transformation where your original (locally orthogonal) grid is transformed to a uniform Cartesian grid with :math:`dx = dy = 1`. The third step is the reverse coordinate transformation.
 
-.. note:: The three steps above are handled internally by ``gcm-filters`` if the user chooses one of the following grid types: ``TRANSFORMED_TO_REGULAR``, ``TRANSFORMED_TO_REGULAR_WITH_LAND``, ``TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND``, together with ``filter_scale`` = :math:`m` and ``dx_min`` = 1. (For simple fixed factor filtering, only ``dx_min`` on the transformed uniform grid matters; and here we have ``dx_min`` = 1). Read more about the different grid types in :doc:`basic_filtering`.
+.. note:: The three steps above are handled internally by ``gcm-filters`` if the user chooses one of the following grid types:
+
+   * ``REGULAR_AREA_WEIGHTED``
+   * ``REGULAR_WITH_LAND_AREA_WEIGHTED``
+   * ``TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED``
+
+   together with ``filter_scale`` = :math:`m` and ``dx_min`` = 1. (For simple fixed factor filtering, only ``dx_min`` on the transformed uniform grid matters; and here we have ``dx_min`` = 1). Read more about the different grid types in :doc:`basic_filtering`.
 
 
 Filtering Vectors

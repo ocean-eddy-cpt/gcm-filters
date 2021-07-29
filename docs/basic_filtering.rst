@@ -48,19 +48,18 @@ Grid types with scalar Laplacians can be used for filtering scalar fields (such 
 Grid types for simple fixed factor filtering
 ++++++++++++++++++++++++++++++++++++++++++++
 
-The remaining grid types are for a special type of filtering: **simple fixed factor filtering** to achieve a fixed *coarsening* factor (see also the :doc:`theory`). If you specify one of the following grid types for your data, ``gcm_filters`` will
-internally transform your original (locally orthogonal) grid to a uniform Cartesian grid with `dx = dy = 1`, and perform fixed factor filtering on the uniform grid. After this is done, ``gcm_filters`` transforms
-the filtered field back to your original grid. This is why the following grid types contain the key word ``TRANSFORMED_TO``.
+The remaining grid types are for a special type of filtering: **simple fixed factor filtering** to achieve a fixed *coarsening* factor (see also the :doc:`theory`). If you specify one of the following grid types for your data, ``gcm_filters`` will internally transform your original (locally orthogonal) grid to a uniform Cartesian grid with `dx = dy = 1`, and perform fixed factor filtering on the uniform grid. After this is done, ``gcm_filters`` transforms the filtered field back to your original grid.
+In practice, this coordinate transformation is achieved by area weighting and deweighting (see :doc:`theory`). This is why the following grid types have the suffix ``AREA_WEIGHTED``.
 
 +-----------------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
 | ``GridType``                                  | Grid                    | Handles land | Boundary condition | Laplacian type   | Example                              |
 +===============================================+=========================+==============+====================+==================+======================================+
-| ``TRANSFORMED_TO_REGULAR``                    | locally orthogonal grid | no           | periodic           | Scalar Laplacian |                                      |
+| ``REGULAR_AREA_WEIGHTED``                     | locally orthogonal grid | no           | periodic           | Scalar Laplacian |                                      |
 +-----------------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
-| ``TRANSFORMED_TO REGULAR_WITH_LAND``          | locally orthogonal grid | yes          | periodic           | Scalar Laplacian | :doc:`examples/example_filter_types`;|
+| ``REGULAR_WITH_LAND_AREA_WEIGHTED``           | locally orthogonal grid | yes          | periodic           | Scalar Laplacian | :doc:`examples/example_filter_types`;|
 |                                               |                         |              |                    |                  | :doc:`examples/example_tripole_grid` |
 +-----------------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
-| ``TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND`` | locally orthogonal grid | yes          | tripole            | Scalar Laplacian | :doc:`examples/example_tripole_grid` |
+| ``TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED``  | locally orthogonal grid | yes          | tripole            | Scalar Laplacian | :doc:`examples/example_tripole_grid` |
 +-----------------------------------------------+-------------------------+--------------+--------------------+------------------+--------------------------------------+
 
 
