@@ -13,7 +13,7 @@ For a more detailed treatment, see `Grooms et al. (2021) <https://doi.org/10.100
 Filter Scale and Shape
 ----------------------
 
-Any low-pass spatial filter should have a target length scale such that the filtered field keeps length scales larger than the target length scale, and smoothes out smaller scales. In the context of this package the target length scale is called ``filter_scale``.
+Any low-pass spatial filter should have a target length scale such that the filtered field keeps the part of the signal with length scales larger than the target length scale, and smoothes out smaller scales. In the context of this package the target length scale is called ``filter_scale``.
 
 A spatial filter can also have a *shape* that determines how sharply it separates scales above and below the target length scale.
 The filter shape can be thought of in terms of the kernel of a convolution filter
