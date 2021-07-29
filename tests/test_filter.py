@@ -121,9 +121,9 @@ scalar_transformed_regular_grids = [
     for gt in GridType
     if gt.name
     in {
-        "TRANSFORMED_TO_REGULAR",
-        "TRANSFORMED_TO_REGULAR_WITH_LAND",
-        "TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND",
+        "REGULAR_AREA_WEIGHTED",
+        "REGULAR_WITH_LAND_AREA_WEIGHTED",
+        "TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED",
     }
 ]
 
@@ -137,7 +137,7 @@ def grid_type_and_input_ds(request):
 
     grid_vars = {}
 
-    if grid_type == GridType.TRANSFORMED_TO_REGULAR:
+    if grid_type == GridType.REGULAR_AREA_WEIGHTED:
         area = 0.5 + np.random.rand(ny, nx)
         da_area = xr.DataArray(area, dims=["y", "x"])
         grid_vars = {"area": da_area}
@@ -146,7 +146,7 @@ def grid_type_and_input_ds(request):
         mask_data[: (ny // 2), : (nx // 2)] = 0
         da_mask = xr.DataArray(mask_data, dims=["y", "x"])
         grid_vars = {"wet_mask": da_mask}
-    if grid_type == GridType.TRANSFORMED_TO_REGULAR_WITH_LAND:
+    if grid_type == GridType.REGULAR_WITH_LAND_AREA_WEIGHTED:
         area = 0.5 + np.random.rand(ny, nx)
         da_area = xr.DataArray(area, dims=["y", "x"])
         mask_data = np.ones_like(data)
@@ -172,7 +172,7 @@ def grid_type_and_input_ds(request):
             "kappa_w": da_kappa,
             "kappa_s": da_kappa,
         }
-    if grid_type == GridType.TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND:
+    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED:
         area = 0.5 + np.random.rand(ny, nx)
         da_area = xr.DataArray(area, dims=["y", "x"])
         mask_data = np.ones_like(data)
@@ -334,11 +334,11 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
     bad_filter_args["filter_scale"] = 1000
     with pytest.warns(UserWarning, match=r"Filter scale much larger .*"):
         filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
-    # check that we get a warning if we pass dx_min != 1 to a regular scalar Laplacian
+    # check that we get an error if we pass dx_min != 1 to a regular scalar Laplacian
     if grid_type in scalar_transformed_regular_grids:
         bad_filter_args["filter_scale"] = 3  # restore good value for filter scale
         bad_filter_args["dx_min"] = 3
-        with pytest.warns(UserWarning, match=r"Provided Laplacian .*"):
+        with pytest.raises(ValueError, match=r"Provided Laplacian .*"):
             filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
 
 

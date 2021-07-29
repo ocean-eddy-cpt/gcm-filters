@@ -5,6 +5,7 @@ import pytest
 
 from gcm_filters.kernels import (
     ALL_KERNELS,
+    AreaWeightedMixin,
     BaseScalarLaplacian,
     GridType,
     required_grid_vars,
@@ -24,14 +25,14 @@ def grid_type_field_and_extra_kwargs(request):
     data = np.random.rand(ny, nx)
 
     extra_kwargs = {}
-    if grid_type == GridType.TRANSFORMED_TO_REGULAR:
+    if grid_type == GridType.REGULAR_AREA_WEIGHTED:
         area = 0.5 + np.random.rand(ny, nx)
         extra_kwargs["area"] = area
     if grid_type == GridType.REGULAR_WITH_LAND:
         mask_data = np.ones_like(data)
         mask_data[: (ny // 2), : (nx // 2)] = 0
         extra_kwargs["wet_mask"] = mask_data
-    if grid_type == GridType.TRANSFORMED_TO_REGULAR_WITH_LAND:
+    if grid_type == GridType.REGULAR_WITH_LAND_AREA_WEIGHTED:
         area = 0.5 + np.random.rand(ny, nx)
         extra_kwargs["area"] = area
         mask_data = np.ones_like(data)
@@ -49,7 +50,7 @@ def grid_type_field_and_extra_kwargs(request):
         extra_kwargs["area"] = grid_data * grid_data
         extra_kwargs["kappa_w"] = np.ones_like(data)
         extra_kwargs["kappa_s"] = np.ones_like(data)
-    if grid_type == GridType.TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND:
+    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED:
         area = 0.5 + np.random.rand(ny, nx)
         extra_kwargs["area"] = area
         mask_data = np.ones_like(data)
@@ -77,12 +78,13 @@ def test_conservation(grid_type_field_and_extra_kwargs):
 
     LaplacianClass = ALL_KERNELS[grid_type]
     laplacian = LaplacianClass(**extra_kwargs)
-    area = 1
-    # - Laplacians that belong to BaseScalarLaplacianWithArea class
-    #   act on (transformed) regular grid with dx = dy = 1
-    # - Laplacians that belong to BaseScalarLaplacian class
-    #   act on potentially irregular grid --> need area information
-    if issubclass(LaplacianClass, BaseScalarLaplacian):
+    area = 1  # default value for regular Cartesian grids
+    # - Laplacians that belong to AreaWeithedMixin class
+    #   act on (transformed) regular grid with dx = dy = 1;
+    #   --> test with area = 1
+    # - all other Laplacians  act on potentially irregular grid
+    #   --> need area information
+    if not issubclass(LaplacianClass, AreaWeightedMixin):
         for k, v in extra_kwargs.items():
             if "area" in k:
                 area = v
@@ -222,7 +224,7 @@ def tripolar_grid_type_field_and_extra_kwargs(request):
     data = np.random.rand(ny, nx)
 
     extra_kwargs = {}
-    if grid_type == GridType.TRIPOLAR_TRANSFORMED_TO_REGULAR_WITH_LAND:
+    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED:
         area = np.ones_like(data)
         extra_kwargs["area"] = area
         mask_data = np.ones_like(data)
