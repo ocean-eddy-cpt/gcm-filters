@@ -1,5 +1,7 @@
 import copy
 
+from typing import Tuple
+
 import numpy as np
 import pytest
 import xarray as xr
@@ -127,77 +129,85 @@ scalar_transformed_regular_grids = [
     }
 ]
 
+_grid_kwargs = {
+    GridType.REGULAR: [],
+    GridType.REGULAR_AREA_WEIGHTED: ["area"],
+    GridType.REGULAR_WITH_LAND: ["wet_mask"],
+    GridType.REGULAR_WITH_LAND_AREA_WEIGHTED: ["wet_mask", "area"],
+    GridType.IRREGULAR_WITH_LAND: [
+        "wet_mask",
+        "dxw",
+        "dyw",
+        "dxs",
+        "dys",
+        "area",
+        "kappa_w",
+        "kappa_s",
+    ],
+    GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED: ["wet_mask", "area"],
+    GridType.TRIPOLAR_POP_WITH_LAND: ["wet_mask", "dxe", "dye", "dxn", "dyn", "tarea"],
+}
+
+
+def _make_random_data(ny, nx):
+    data = np.random.rand(ny, nx)
+    da = xr.DataArray(data, dims=["y", "x"])
+    return da
+
+
+def _make_mask_data(ny, nx):
+    mask_data = np.ones((ny, nx))
+    mask_data[0, :] = 0  #  Antarctica; required for some kernels
+    mask_data[: (ny // 2), : (nx // 2)] = 0
+    da_mask = xr.DataArray(mask_data, dims=["y", "x"])
+    return da_mask
+
+
+def _make_kappa_data(ny, nx):
+    kappa_data = np.ones((ny, nx))
+    da_kappa = xr.DataArray(kappa_data, dims=["y", "x"])
+    return da_kappa
+
+
+def _make_irregular_grid_data(ny, nx):
+    # avoid large-amplitude variation, ensure positive values, mean of 1
+    grid_data = 0.9 + 0.2 * np.random.rand(ny, nx)
+    assert np.all(grid_data > 0)
+    da_grid = xr.DataArray(grid_data, dims=["y", "x"])
+    return da_grid
+
+
+def _make_irregular_tripole_grid_data(ny, nx):
+    # avoid large-amplitude variation, ensure positive values, mean of 1
+    grid_data = 0.9 + 0.2 * np.random.rand(ny, nx)
+    assert np.all(grid_data > 0)
+    # make northern edge grid data fold onto itself
+    half_northern_edge = grid_data[-1, : (nx // 2)]
+    grid_data[-1, (nx // 2) :] = half_northern_edge[::-1]
+    da_grid = xr.DataArray(grid_data, dims=["y", "x"])
+    return da_grid
+
 
 @pytest.fixture(scope="module", params=scalar_grids)
 def grid_type_and_input_ds(request):
     grid_type = request.param
+    ny, nx = 128, 256
 
-    ny, nx = (128, 256)
-    data = np.random.rand(ny, nx)
+    da = _make_random_data(ny, nx)
 
     grid_vars = {}
+    for name in _grid_kwargs[grid_type]:
+        if name == "wet_mask":
+            grid_vars[name] = _make_mask_data(ny, nx)
+        elif "kappa" in name:
+            grid_vars[name] = _make_kappa_data(ny, nx)
+        else:
+            grid_vars[name] = _make_irregular_grid_data(ny, nx)
 
-    if grid_type == GridType.REGULAR_AREA_WEIGHTED:
-        area = 0.5 + np.random.rand(ny, nx)
-        da_area = xr.DataArray(area, dims=["y", "x"])
-        grid_vars = {"area": da_area}
-    if grid_type == GridType.REGULAR_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-        grid_vars = {"wet_mask": da_mask}
-    if grid_type == GridType.REGULAR_WITH_LAND_AREA_WEIGHTED:
-        area = 0.5 + np.random.rand(ny, nx)
-        da_area = xr.DataArray(area, dims=["y", "x"])
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-        grid_vars = {"area": da_area, "wet_mask": da_mask}
-    if grid_type == GridType.IRREGULAR_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-        grid_data = 0.5 + np.random.rand(ny, nx)
-        da_grid = xr.DataArray(grid_data, dims=["y", "x"])
-        da_area = xr.DataArray(grid_data * grid_data, dims=["y", "x"])
-        da_kappa = xr.DataArray(np.ones_like(data), dims=["y", "x"])
-
-        grid_vars = {
-            "wet_mask": da_mask,
-            "dxw": da_grid,
-            "dyw": da_grid,
-            "dxs": da_grid,
-            "dys": da_grid,
-            "area": da_area,
-            "kappa_w": da_kappa,
-            "kappa_s": da_kappa,
-        }
-    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED:
-        area = 0.5 + np.random.rand(ny, nx)
-        da_area = xr.DataArray(area, dims=["y", "x"])
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        mask_data[0, :] = 0  #  Antarctica
-        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-        grid_vars = {"area": da_area, "wet_mask": da_mask}
     if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        mask_data[0, :] = 0  #  Antarctica
-        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-        grid_data = 0.5 + np.random.rand(ny, nx)
-        da_grid = xr.DataArray(grid_data, dims=["y", "x"])
-        da_area = xr.DataArray(grid_data * grid_data, dims=["y", "x"])
-        grid_vars = {
-            "wet_mask": da_mask,
-            "dxe": da_grid,
-            "dye": da_grid,
-            "dxn": da_grid,
-            "dyn": da_grid,
-            "tarea": da_area,
-        }
-
-    da = xr.DataArray(data, dims=["y", "x"])
+        for name in _grid_kwargs[grid_type]:
+            if (name == "dxn") or (name == "dyn"):
+                grid_vars[name] = _make_irregular_tripole_grid_data(ny, nx)
 
     return grid_type, da, grid_vars
 
