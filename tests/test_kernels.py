@@ -68,7 +68,8 @@ def _make_irregular_grid_data(shape: Tuple[int, int]) -> np.ndarray:
 @pytest.fixture(scope="module", params=scalar_grids)
 def grid_type_field_and_extra_kwargs(request):
     grid_type = request.param
-    shape = (128, 256)
+    ny, nx = 128, 256
+    shape = (ny, nx)
 
     data = _make_random_data(shape)
 
@@ -81,10 +82,15 @@ def grid_type_field_and_extra_kwargs(request):
         else:
             extra_kwargs[name] = _make_irregular_grid_data(shape)
 
-    # special case for POP
+    # special case for tripole grid
+    # northern edge grid data has to fold on itself
     if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
-        # is this important? If not, remove special case
-        extra_kwargs["tarea"] = extra_kwargs["dxe"] * extra_kwargs["dye"]
+        # first half of northernmost row
+        half_northern_edge_dxn = extra_kwargs["dxn"][-1, : (nx // 2)]
+        half_northern_edge_dyn = extra_kwargs["dyn"][-1, : (nx // 2)]
+        # has to equal mirrored second half of northernmost row of dxn
+        extra_kwargs["dxn"][-1, (nx // 2) :] = half_northern_edge_dxn[::-1]
+        extra_kwargs["dyn"][-1, (nx // 2) :] = half_northern_edge_dyn[::-1]
 
     return grid_type, data, extra_kwargs
 
