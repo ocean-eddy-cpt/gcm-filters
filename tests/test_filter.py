@@ -206,7 +206,7 @@ def grid_type_and_input_ds(request):
 
     if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
         for name in _grid_kwargs[grid_type]:
-            if (name == "dxn") or (name == "dyn"):
+            if name in ["dxn", "dyn"]:
                 grid_vars[name] = _make_irregular_tripole_grid_data(ny, nx)
 
     return grid_type, da, grid_vars
