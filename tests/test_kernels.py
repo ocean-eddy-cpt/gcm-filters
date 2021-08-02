@@ -135,14 +135,14 @@ def test_required_grid_vars(grid_type_field_and_extra_kwargs):
 ################## Irregular grid tests for scalar Laplacians ##############################################
 # Irregular grids are grids that allow spatially varying dx, dy
 
-# The following definition of irregular_grids is hard coded; maybe a better definition
-# would be: all grids that have len(required_grid_vars)>1 (more than just a wet_mask)
+# The following definition of irregular_grids is hard coded
 irregular_grids = [GridType.IRREGULAR_WITH_LAND, GridType.TRIPOLAR_POP_WITH_LAND]
 
 
-def test_flux(grid_type_field_and_extra_kwargs):
-    """This test checks that the Laplacian computes the correct fluxes in y-direction if the grid is irregular.
-    The test will catch sign errors in the Laplacian rolling of array elements along the y-axis."""
+@pytest.mark.parametrize("direction", ["X", "Y"])
+def test_flux(grid_type_field_and_extra_kwargs, direction):
+    """This test checks that the Laplacian computes the correct fluxes in x- and y-direction if the grid is irregular.
+    The test will catch sign errors in the Laplacian rolling of array elements."""
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
 
     if grid_type not in irregular_grids:
@@ -156,28 +156,70 @@ def test_flux(grid_type_field_and_extra_kwargs):
     random_xloc = 225
     delta[random_yloc, random_xloc] = 1
 
-    # use constant area
-    # I hoped this would fix the test failure, but it doesn't
-    if "area" in extra_kwargs:
-        extra_kwargs["area"] = np.ones_like(data)
+    test_kwargs = extra_kwargs.copy()
+    # start with spatially uniform area, dx, dy because we want *isotropic* diffusion
+    for name in extra_kwargs:
+        if not name == "wet_mask":
+            test_kwargs[name] = np.ones_like(data)
+
+    # now introduce some "outlier" data for dx, dy that Laplacian(delta) should not feel because
+    # the outlier dx / dy are far enough from the delta function. Note that the outlier data is
+    # still close enough that Laplacian(delta) will feel them if np.roll(dx, -1, axis) in kernels.py
+    # is mistakenly coded as np.roll(dx, +1, axis) and vice versa
+    replace_data = {
+        GridType.IRREGULAR_WITH_LAND: {
+            "Y": (
+                "dxs",
+                (random_yloc - 1, slice(None)),
+                (random_yloc + 2, slice(None)),
+            ),
+            "X": (
+                "dyw",
+                (slice(None), random_xloc - 1),
+                (slice(None), random_xloc + 2),
+            ),
+        },
+        GridType.TRIPOLAR_POP_WITH_LAND: {
+            "Y": (
+                "dxn",
+                (random_yloc - 2, slice(None)),
+                (random_yloc + 1, slice(None)),
+            ),
+            "X": (
+                "dye",
+                (slice(None), random_xloc - 2),
+                (slice(None), random_xloc + 1),
+            ),
+        },
+    }
+
+    var_to_modify, slice_left, slice_right = replace_data[grid_type][direction]
+    print(grid_type, var_to_modify, slice_left, slice_right)
+    new_data = np.ones_like(test_kwargs[var_to_modify])
+    new_data[slice_left] = 1000
+    new_data[slice_right] = 2000
+    test_kwargs[var_to_modify] = new_data
 
     LaplacianClass = ALL_KERNELS[grid_type]
-    laplacian = LaplacianClass(**extra_kwargs)
+    laplacian = LaplacianClass(**test_kwargs)
     diffused = laplacian(delta)
 
-    # check that delta function gets diffused isotropically in y-direction
-    np.testing.assert_allclose(
-        diffused[random_yloc - 1, random_xloc],
-        diffused[random_yloc + 1, random_xloc],
-        atol=1e-12,
-    )
+    if direction == "Y":
+        # Check that delta function gets diffused isotropically in y-direction. Isotropic diffusion is
+        # ensured unless Laplacian(delta) feels grid "outlier" data.
+        np.testing.assert_allclose(
+            diffused[random_yloc - 1, random_xloc],
+            diffused[random_yloc + 1, random_xloc],
+            atol=1e-12,
+        )
 
-    # check that delta function gets diffused isotropically in x-direction
-    np.testing.assert_allclose(
-        diffused[random_yloc, random_xloc - 1],
-        diffused[random_yloc, random_xloc + 1],
-        atol=1e-12,
-    )
+    elif direction == "X":
+        # check that delta function gets diffused isotropically in x-direction
+        np.testing.assert_allclose(
+            diffused[random_yloc, random_xloc - 1],
+            diffused[random_yloc, random_xloc + 1],
+            atol=1e-12,
+        )
 
 
 ################## Tripolar grid tests for scalar Laplacians ##############################################
