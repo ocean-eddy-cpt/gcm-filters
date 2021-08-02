@@ -64,12 +64,22 @@ def _make_irregular_grid_data(shape: Tuple[int, int]) -> np.ndarray:
     return grid_data
 
 
+def _make_irregular_tripole_grid_data(shape: Tuple[int, int]) -> np.ndarray:
+    # avoid large-amplitude variation, ensure positive values, mean of 1
+    grid_data = 0.9 + 0.2 * rng.random(shape)
+    assert np.all(grid_data > 0)
+    # make northern edge grid data fold onto itself
+    nx = shape[-1]
+    half_northern_edge = grid_data[-1, : (nx // 2)]
+    grid_data[-1, (nx // 2) :] = half_northern_edge[::-1]
+    return grid_data
+
+
 ################## Scalar Laplacian tests ##############################################
 @pytest.fixture(scope="module", params=scalar_grids)
 def grid_type_field_and_extra_kwargs(request):
     grid_type = request.param
-    ny, nx = 128, 256
-    shape = (ny, nx)
+    shape = (128, 256)
 
     data = _make_random_data(shape)
 
@@ -82,15 +92,11 @@ def grid_type_field_and_extra_kwargs(request):
         else:
             extra_kwargs[name] = _make_irregular_grid_data(shape)
 
-    # special case for tripole grid
-    # northern edge grid data has to fold on itself
+    # northern edge grid data has to fold onto itself for tripole grids
     if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
-        # first half of northernmost row
-        half_northern_edge_dxn = extra_kwargs["dxn"][-1, : (nx // 2)]
-        half_northern_edge_dyn = extra_kwargs["dyn"][-1, : (nx // 2)]
-        # has to equal mirrored second half of northernmost row of dxn
-        extra_kwargs["dxn"][-1, (nx // 2) :] = half_northern_edge_dxn[::-1]
-        extra_kwargs["dyn"][-1, (nx // 2) :] = half_northern_edge_dyn[::-1]
+        for name in _grid_kwargs[grid_type]:
+            if name in ["dxn", "dyn"]:
+                extra_kwargs[name] = _make_irregular_tripole_grid_data(shape)
 
     return grid_type, data, extra_kwargs
 
