@@ -189,28 +189,16 @@ tripolar_grids = [gt for gt in GridType if gt.name.startswith("TRIPOLAR")]
 # these are the assumptions of test_tripolar_exchanges
 def tripolar_grid_type_field_and_extra_kwargs(request):
     grid_type = request.param
-    ny, nx = (128, 256)
-    data = np.random.rand(ny, nx)
+    shape = (128, 256)
+
+    data = _make_random_data(shape)
 
     extra_kwargs = {}
-    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED:
-        area = np.ones_like(data)
-        extra_kwargs["area"] = area
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        mask_data[0, :] = 0  #  Antarctica
-        extra_kwargs["wet_mask"] = mask_data
-    if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        mask_data[0, :] = 0  #  Antarctica
-        extra_kwargs["wet_mask"] = mask_data
-        grid_data = np.ones_like(data)
-        extra_kwargs["dxe"] = grid_data
-        extra_kwargs["dye"] = grid_data
-        extra_kwargs["dxn"] = grid_data
-        extra_kwargs["dyn"] = grid_data
-        extra_kwargs["tarea"] = grid_data * grid_data
+    for name in _grid_kwargs[grid_type]:
+        if name == "wet_mask":
+            extra_kwargs[name] = _make_mask_data(shape)
+        else:
+            extra_kwargs[name] = np.ones_like(data)
 
     return grid_type, data, extra_kwargs
 
@@ -227,6 +215,27 @@ def test_for_antarctica(tripolar_grid_type_field_and_extra_kwargs):
 
         LaplacianClass = ALL_KERNELS[grid_type]
         with pytest.raises(AssertionError, match=r"Wet mask requires .*"):
+            laplacian = LaplacianClass(**bad_kwargs)
+
+
+def test_folding_of_northern_gridedge_data(tripolar_grid_type_field_and_extra_kwargs):
+    """This test checks that we get an error if northern edge of tripole grid data does not fold onto itself."""
+    grid_type, _, extra_kwargs = tripolar_grid_type_field_and_extra_kwargs
+
+    if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
+        LaplacianClass = ALL_KERNELS[grid_type]
+
+        xloc = 3
+        bad_kwargs = copy.deepcopy(extra_kwargs)
+        # dxn has uppermost row equal to ones; introduce one outlier value
+        # in left half of row that does not get mirrored onto right half of row
+        bad_kwargs["dxn"][-1, xloc] = 10
+        with pytest.raises(AssertionError, match=r"Northernmost row of dxn .*"):
+            laplacian = LaplacianClass(**bad_kwargs)
+        # restore dxn, and repeat test for dyn
+        bad_kwargs["dxn"][-1, xloc] = 1
+        bad_kwargs["dyn"][-1, xloc] = 10
+        with pytest.raises(AssertionError, match=r"Northernmost row of dyn .*"):
             laplacian = LaplacianClass(**bad_kwargs)
 
 
