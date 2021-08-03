@@ -64,6 +64,17 @@ def _make_irregular_grid_data(shape: Tuple[int, int]) -> np.ndarray:
     return grid_data
 
 
+def _make_irregular_tripole_grid_data(shape: Tuple[int, int]) -> np.ndarray:
+    # avoid large-amplitude variation, ensure positive values, mean of 1
+    grid_data = 0.9 + 0.2 * rng.random(shape)
+    assert np.all(grid_data > 0)
+    # make northern edge grid data fold onto itself
+    nx = shape[-1]
+    half_northern_edge = grid_data[-1, : (nx // 2)]
+    grid_data[-1, (nx // 2) :] = half_northern_edge[::-1]
+    return grid_data
+
+
 ################## Scalar Laplacian tests ##############################################
 @pytest.fixture(scope="module", params=scalar_grids)
 def grid_type_field_and_extra_kwargs(request):
@@ -81,10 +92,11 @@ def grid_type_field_and_extra_kwargs(request):
         else:
             extra_kwargs[name] = _make_irregular_grid_data(shape)
 
-    # special case for POP
+    # northern edge grid data has to fold onto itself for tripole grids
     if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
-        # is this important? If not, remove special case
-        extra_kwargs["tarea"] = extra_kwargs["dxe"] * extra_kwargs["dye"]
+        for name in _grid_kwargs[grid_type]:
+            if name in ["dxn", "dyn"]:
+                extra_kwargs[name] = _make_irregular_tripole_grid_data(shape)
 
     return grid_type, data, extra_kwargs
 
@@ -123,14 +135,14 @@ def test_required_grid_vars(grid_type_field_and_extra_kwargs):
 ################## Irregular grid tests for scalar Laplacians ##############################################
 # Irregular grids are grids that allow spatially varying dx, dy
 
-# The following definition of irregular_grids is hard coded; maybe a better definition
-# would be: all grids that have len(required_grid_vars)>1 (more than just a wet_mask)
+# The following definition of irregular_grids is hard coded
 irregular_grids = [GridType.IRREGULAR_WITH_LAND, GridType.TRIPOLAR_POP_WITH_LAND]
 
 
-def test_flux(grid_type_field_and_extra_kwargs):
-    """This test checks that the Laplacian computes the correct fluxes in y-direction if the grid is irregular.
-    The test will catch sign errors in the Laplacian rolling of array elements along the y-axis."""
+@pytest.mark.parametrize("direction", ["X", "Y"])
+def test_flux(grid_type_field_and_extra_kwargs, direction):
+    """This test checks that the Laplacian computes the correct fluxes in x- and y-direction if the grid is irregular.
+    The test will catch sign errors in the Laplacian rolling of array elements."""
     grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
 
     if grid_type not in irregular_grids:
@@ -144,28 +156,70 @@ def test_flux(grid_type_field_and_extra_kwargs):
     random_xloc = 225
     delta[random_yloc, random_xloc] = 1
 
-    # use constant area
-    # I hoped this would fix the test failure, but it doesn't
-    if "area" in extra_kwargs:
-        extra_kwargs["area"] = np.ones_like(data)
+    test_kwargs = extra_kwargs.copy()
+    # start with spatially uniform area, dx, dy because we want *isotropic* diffusion
+    for name in extra_kwargs:
+        if not name == "wet_mask":
+            test_kwargs[name] = np.ones_like(data)
+
+    # now introduce some "outlier" data for dx, dy that Laplacian(delta) should not feel because
+    # the outlier dx / dy are far enough from the delta function. Note that the outlier data is
+    # still close enough that Laplacian(delta) will feel them if np.roll(dx, -1, axis) in kernels.py
+    # is mistakenly coded as np.roll(dx, +1, axis) and vice versa
+    replace_data = {
+        GridType.IRREGULAR_WITH_LAND: {
+            "Y": (
+                "dxs",
+                (random_yloc - 1, slice(None)),
+                (random_yloc + 2, slice(None)),
+            ),
+            "X": (
+                "dyw",
+                (slice(None), random_xloc - 1),
+                (slice(None), random_xloc + 2),
+            ),
+        },
+        GridType.TRIPOLAR_POP_WITH_LAND: {
+            "Y": (
+                "dxn",
+                (random_yloc - 2, slice(None)),
+                (random_yloc + 1, slice(None)),
+            ),
+            "X": (
+                "dye",
+                (slice(None), random_xloc - 2),
+                (slice(None), random_xloc + 1),
+            ),
+        },
+    }
+
+    var_to_modify, slice_left, slice_right = replace_data[grid_type][direction]
+    print(grid_type, var_to_modify, slice_left, slice_right)
+    new_data = np.ones_like(test_kwargs[var_to_modify])
+    new_data[slice_left] = 1000
+    new_data[slice_right] = 2000
+    test_kwargs[var_to_modify] = new_data
 
     LaplacianClass = ALL_KERNELS[grid_type]
-    laplacian = LaplacianClass(**extra_kwargs)
+    laplacian = LaplacianClass(**test_kwargs)
     diffused = laplacian(delta)
 
-    # check that delta function gets diffused isotropically in y-direction
-    np.testing.assert_allclose(
-        diffused[random_yloc - 1, random_xloc],
-        diffused[random_yloc + 1, random_xloc],
-        atol=1e-12,
-    )
+    if direction == "Y":
+        # Check that delta function gets diffused isotropically in y-direction. Isotropic diffusion is
+        # ensured unless Laplacian(delta) feels grid "outlier" data.
+        np.testing.assert_allclose(
+            diffused[random_yloc - 1, random_xloc],
+            diffused[random_yloc + 1, random_xloc],
+            atol=1e-12,
+        )
 
-    # check that delta function gets diffused isotropically in x-direction
-    np.testing.assert_allclose(
-        diffused[random_yloc, random_xloc - 1],
-        diffused[random_yloc, random_xloc + 1],
-        atol=1e-12,
-    )
+    elif direction == "X":
+        # check that delta function gets diffused isotropically in x-direction
+        np.testing.assert_allclose(
+            diffused[random_yloc, random_xloc - 1],
+            diffused[random_yloc, random_xloc + 1],
+            atol=1e-12,
+        )
 
 
 ################## Tripolar grid tests for scalar Laplacians ##############################################
@@ -177,28 +231,16 @@ tripolar_grids = [gt for gt in GridType if gt.name.startswith("TRIPOLAR")]
 # these are the assumptions of test_tripolar_exchanges
 def tripolar_grid_type_field_and_extra_kwargs(request):
     grid_type = request.param
-    ny, nx = (128, 256)
-    data = np.random.rand(ny, nx)
+    shape = (128, 256)
+
+    data = _make_random_data(shape)
 
     extra_kwargs = {}
-    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED:
-        area = np.ones_like(data)
-        extra_kwargs["area"] = area
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        mask_data[0, :] = 0  #  Antarctica
-        extra_kwargs["wet_mask"] = mask_data
-    if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        mask_data[0, :] = 0  #  Antarctica
-        extra_kwargs["wet_mask"] = mask_data
-        grid_data = np.ones_like(data)
-        extra_kwargs["dxe"] = grid_data
-        extra_kwargs["dye"] = grid_data
-        extra_kwargs["dxn"] = grid_data
-        extra_kwargs["dyn"] = grid_data
-        extra_kwargs["tarea"] = grid_data * grid_data
+    for name in _grid_kwargs[grid_type]:
+        if name == "wet_mask":
+            extra_kwargs[name] = _make_mask_data(shape)
+        else:
+            extra_kwargs[name] = np.ones_like(data)
 
     return grid_type, data, extra_kwargs
 
@@ -215,6 +257,27 @@ def test_for_antarctica(tripolar_grid_type_field_and_extra_kwargs):
 
         LaplacianClass = ALL_KERNELS[grid_type]
         with pytest.raises(AssertionError, match=r"Wet mask requires .*"):
+            laplacian = LaplacianClass(**bad_kwargs)
+
+
+def test_folding_of_northern_gridedge_data(tripolar_grid_type_field_and_extra_kwargs):
+    """This test checks that we get an error if northern edge of tripole grid data does not fold onto itself."""
+    grid_type, _, extra_kwargs = tripolar_grid_type_field_and_extra_kwargs
+
+    if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
+        LaplacianClass = ALL_KERNELS[grid_type]
+
+        xloc = 3
+        bad_kwargs = copy.deepcopy(extra_kwargs)
+        # dxn has uppermost row equal to ones; introduce one outlier value
+        # in left half of row that does not get mirrored onto right half of row
+        bad_kwargs["dxn"][-1, xloc] = 10
+        with pytest.raises(AssertionError, match=r"Northernmost row of dxn .*"):
+            laplacian = LaplacianClass(**bad_kwargs)
+        # restore dxn, and repeat test for dyn
+        bad_kwargs["dxn"][-1, xloc] = 1
+        bad_kwargs["dyn"][-1, xloc] = 10
+        with pytest.raises(AssertionError, match=r"Northernmost row of dyn .*"):
             laplacian = LaplacianClass(**bad_kwargs)
 
 
