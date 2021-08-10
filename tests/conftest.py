@@ -5,13 +5,7 @@ import pytest
 
 from numpy.random import PCG64, Generator
 
-from gcm_filters.kernels import (
-    ALL_KERNELS,
-    AreaWeightedMixin,
-    BaseScalarLaplacian,
-    GridType,
-    required_grid_vars,
-)
+from gcm_filters.kernels import ALL_KERNELS, GridType
 
 
 _RANDOM_SEED = 42
