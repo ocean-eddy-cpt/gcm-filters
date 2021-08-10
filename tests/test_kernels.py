@@ -232,10 +232,9 @@ def test_zero_area(vector_grid_type_field_and_extra_kwargs):
     LaplacianClass = ALL_KERNELS[grid_type]
     laplacian = LaplacianClass(**test_kwargs)
     res_u, res_v = laplacian(data_u, data_v)
-    assert np.any(np.isinf(res_u)) == False
-    assert np.any(np.isnan(res_u)) == False
-    assert np.any(np.isinf(res_v)) == False
-    assert np.any(np.isnan(res_v)) == False
+    assert not np.any(np.isinf(res_u))
+    assert not np.any(np.isnan(res_u))
+    assert not np.any(np.isnan(res_v))
 
 
 def test_required_vector_grid_vars(vector_grid_type_field_and_extra_kwargs):
