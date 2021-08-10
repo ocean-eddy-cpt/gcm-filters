@@ -194,7 +194,6 @@ def test_flux(grid_type_field_and_extra_kwargs, direction):
     }
 
     var_to_modify, slice_left, slice_right = replace_data[grid_type][direction]
-    print(grid_type, var_to_modify, slice_left, slice_right)
     new_data = np.ones_like(test_kwargs[var_to_modify])
     new_data[slice_left] = 1000
     new_data[slice_right] = 2000
@@ -204,22 +203,20 @@ def test_flux(grid_type_field_and_extra_kwargs, direction):
     laplacian = LaplacianClass(**test_kwargs)
     diffused = laplacian(delta)
 
-    if direction == "Y":
-        # Check that delta function gets diffused isotropically in y-direction. Isotropic diffusion is
-        # ensured unless Laplacian(delta) feels grid "outlier" data.
-        np.testing.assert_allclose(
-            diffused[random_yloc - 1, random_xloc],
-            diffused[random_yloc + 1, random_xloc],
-            atol=1e-12,
-        )
+    # Check that delta function gets diffused isotropically in y-direction. Isotropic diffusion is
+    # ensured unless Laplacian(delta) feels grid "outlier" data.
+    np.testing.assert_allclose(
+        diffused[random_yloc - 1, random_xloc],
+        diffused[random_yloc + 1, random_xloc],
+        atol=1e-12,
+    )
 
-    elif direction == "X":
-        # check that delta function gets diffused isotropically in x-direction
-        np.testing.assert_allclose(
-            diffused[random_yloc, random_xloc - 1],
-            diffused[random_yloc, random_xloc + 1],
-            atol=1e-12,
-        )
+    # check that delta function gets diffused isotropically in x-direction
+    np.testing.assert_allclose(
+        diffused[random_yloc, random_xloc - 1],
+        diffused[random_yloc, random_xloc + 1],
+        atol=1e-12,
+    )
 
 
 ################## Tripolar grid tests for scalar Laplacians ##############################################
