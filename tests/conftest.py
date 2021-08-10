@@ -30,11 +30,20 @@ _grid_kwargs = {
     GridType.TRIPOLAR_POP_WITH_LAND: ["wet_mask", "dxe", "dye", "dxn", "dyn", "tarea"],
 }
 
-# define (for now: hard-code) which grids are associated with vector Laplacians
-vector_grids = [gt for gt in GridType if gt.name in {"VECTOR_C_GRID"}]
-# all remaining grids are for scalar Laplacians
-scalar_grids = [gt for gt in GridType if gt not in vector_grids]
-tripolar_grids = [gt for gt in GridType if gt.name.startswith("TRIPOLAR")]
+
+scalar_grids = [
+    GridType.REGULAR,
+    GridType.REGULAR_AREA_WEIGHTED,
+    GridType.REGULAR_WITH_LAND,
+    GridType.REGULAR_WITH_LAND_AREA_WEIGHTED,
+    GridType.IRREGULAR_WITH_LAND,
+    GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED,
+]
+tripolar_grids = [
+    GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED,
+    GridType.TRIPOLAR_POP_WITH_LAND,
+]
+vector_grids = [GridType.VECTOR_C_GRID]
 
 
 def _make_random_data(shape: Tuple[int, int]) -> np.ndarray:
@@ -68,7 +77,7 @@ def _make_irregular_tripole_grid_data(shape: Tuple[int, int]) -> np.ndarray:
 
 
 @pytest.fixture(scope="module", params=scalar_grids)
-def grid_type_field_and_extra_kwargs(request):
+def scalar_grid_type_data_and_extra_kwargs(request):
     grid_type = request.param
     shape = (128, 256)
 
@@ -92,72 +101,10 @@ def grid_type_field_and_extra_kwargs(request):
     return grid_type, data, extra_kwargs
 
 
-@pytest.fixture(scope="module", params=vector_grids)
-def vector_grid_type_field_and_extra_kwargs(request):
-    grid_type = request.param
-    ny, nx = (128, 256)
-
-    extra_kwargs = {}
-    if grid_type == GridType.VECTOR_C_GRID:
-        # construct spherical coordinate system similar to MOM6 NeverWorld2 grid
-        # define latitudes and longitudes
-        lat_min = -70
-        lat_max = 70
-        lat_u = np.linspace(
-            lat_min + 0.5 * (lat_max - lat_min) / ny,
-            lat_max - 0.5 * (lat_max - lat_min) / ny,
-            ny,
-        )
-        lat_v = np.linspace(lat_min + (lat_max - lat_min) / ny, lat_max, ny)
-        lon_min = 0
-        lon_max = 60
-        lon_u = np.linspace(lon_min + (lon_max - lon_min) / nx, lon_max, nx)
-        lon_v = np.linspace(
-            lon_min + 0.5 * (lon_max - lon_min) / nx,
-            lon_max - 0.5 * (lon_max - lon_min) / nx,
-            nx,
-        )
-        (geolon_u, geolat_u) = np.meshgrid(lon_u, lat_u)
-        (geolon_v, geolat_v) = np.meshgrid(lon_v, lat_v)
-        # radius of a random planet smaller than Earth
-        R = 6378000 * rng.random((1,))
-        # dx varies spatially
-        extra_kwargs["dxCu"] = R * np.cos(geolat_u / 360 * 2 * np.pi)
-        extra_kwargs["dxCv"] = R * np.cos(geolat_v / 360 * 2 * np.pi)
-        extra_kwargs["dxBu"] = extra_kwargs["dxCv"] + np.roll(
-            extra_kwargs["dxCv"], -1, axis=1
-        )
-        extra_kwargs["dxT"] = extra_kwargs["dxCu"] + np.roll(
-            extra_kwargs["dxCu"], 1, axis=1
-        )
-        # dy is set constant, equal to dx at the equator
-        dy = np.max(extra_kwargs["dxCu"]) * np.ones((ny, nx))
-        extra_kwargs["dyCu"] = dy
-        extra_kwargs["dyCv"] = dy
-        extra_kwargs["dyBu"] = dy
-        extra_kwargs["dyT"] = dy
-        # compute grid cell areas
-        extra_kwargs["area_u"] = extra_kwargs["dxCu"] * extra_kwargs["dyCu"]
-        extra_kwargs["area_v"] = extra_kwargs["dxCv"] * extra_kwargs["dyCv"]
-        # set isotropic and anisotropic kappas
-        extra_kwargs["kappa_iso"] = np.ones((ny, nx))
-        extra_kwargs["kappa_aniso"] = np.ones((ny, nx))
-        # put a big island in the middle
-        mask_data = np.ones((ny, nx))
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        extra_kwargs["wet_mask_t"] = mask_data
-        extra_kwargs["wet_mask_q"] = mask_data
-
-    data_u = rng.random((ny, nx))
-    data_v = rng.random((ny, nx))
-
-    return grid_type, data_u, data_v, extra_kwargs, geolat_u
-
-
 @pytest.fixture(scope="module", params=tripolar_grids)
 # the following test data mirrors a regular grid because
 # these are the assumptions of test_tripolar_exchanges
-def tripolar_grid_type_field_and_extra_kwargs(request):
+def tripolar_grid_type_data_and_extra_kwargs(request):
     grid_type = request.param
     shape = (128, 256)
 
@@ -171,3 +118,79 @@ def tripolar_grid_type_field_and_extra_kwargs(request):
             extra_kwargs[name] = np.ones_like(data)
 
     return grid_type, data, extra_kwargs
+
+
+@pytest.fixture(scope="module")
+def spherical_geometry():
+    ny, nx = (128, 256)
+
+    # construct spherical coordinate system similar to MOM6 NeverWorld2 grid
+    # define latitudes and longitudes
+    lat_min = -70
+    lat_max = 70
+    lat_u = np.linspace(
+        lat_min + 0.5 * (lat_max - lat_min) / ny,
+        lat_max - 0.5 * (lat_max - lat_min) / ny,
+        ny,
+    )
+    lat_v = np.linspace(lat_min + (lat_max - lat_min) / ny, lat_max, ny)
+    lon_min = 0
+    lon_max = 60
+    lon_u = np.linspace(lon_min + (lon_max - lon_min) / nx, lon_max, nx)
+    lon_v = np.linspace(
+        lon_min + 0.5 * (lon_max - lon_min) / nx,
+        lon_max - 0.5 * (lon_max - lon_min) / nx,
+        nx,
+    )
+    (geolon_u, geolat_u) = np.meshgrid(lon_u, lat_u)
+    (geolon_v, geolat_v) = np.meshgrid(lon_v, lat_v)
+
+    return geolon_u, geolat_u, geolon_v, geolat_v
+
+
+@pytest.fixture(scope="module", params=vector_grids)
+def vector_grid_type_data_and_extra_kwargs(request, spherical_geometry):
+    grid_type = request.param
+    geolon_u, geolat_u, geolon_v, geolat_v = spherical_geometry
+    ny, nx = geolon_u.shape
+
+    extra_kwargs = {}
+
+    # for now, we assume that the only implemented vector grid is VECTOR_C_GRID
+    # we can relax this if we implement other vector grids
+    assert grid_type == GridType.VECTOR_C_GRID
+
+    # radius of a random planet smaller than Earth
+    R = 6378000 * rng.random((1,))
+    # dx varies spatially
+    extra_kwargs["dxCu"] = R * np.cos(geolat_u / 360 * 2 * np.pi)
+    extra_kwargs["dxCv"] = R * np.cos(geolat_v / 360 * 2 * np.pi)
+    extra_kwargs["dxBu"] = extra_kwargs["dxCv"] + np.roll(
+        extra_kwargs["dxCv"], -1, axis=1
+    )
+    extra_kwargs["dxT"] = extra_kwargs["dxCu"] + np.roll(
+        extra_kwargs["dxCu"], 1, axis=1
+    )
+    # dy is set constant, equal to dx at the equator
+    dy = np.max(extra_kwargs["dxCu"]) * np.ones((ny, nx))
+    extra_kwargs["dyCu"] = dy
+    extra_kwargs["dyCv"] = dy
+    extra_kwargs["dyBu"] = dy
+    extra_kwargs["dyT"] = dy
+    # compute grid cell areas
+    extra_kwargs["area_u"] = extra_kwargs["dxCu"] * extra_kwargs["dyCu"]
+    extra_kwargs["area_v"] = extra_kwargs["dxCv"] * extra_kwargs["dyCv"]
+    # set isotropic and anisotropic kappas
+    extra_kwargs["kappa_iso"] = np.ones((ny, nx))
+    extra_kwargs["kappa_aniso"] = np.ones((ny, nx))
+    # put a big island in the middle
+    mask_data = np.ones((ny, nx))
+    mask_data[: (ny // 2), : (nx // 2)] = 0
+    extra_kwargs["wet_mask_t"] = mask_data
+    extra_kwargs["wet_mask_q"] = mask_data
+
+    data_u = rng.random((ny, nx))
+    data_v = rng.random((ny, nx))
+
+    # use same return signature as other kernel fixtures
+    return grid_type, (data_u, data_v), extra_kwargs

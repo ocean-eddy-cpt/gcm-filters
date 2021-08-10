@@ -14,9 +14,9 @@ from gcm_filters.kernels import (
 )
 
 
-def test_conservation(grid_type_field_and_extra_kwargs):
+def test_conservation(scalar_grid_type_data_and_extra_kwargs):
     """This test checks that scalar Laplacians preserve the area integral."""
-    grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
+    grid_type, data, extra_kwargs = scalar_grid_type_data_and_extra_kwargs
 
     LaplacianClass = ALL_KERNELS[grid_type]
     laplacian = LaplacianClass(**extra_kwargs)
@@ -39,8 +39,8 @@ def test_conservation(grid_type_field_and_extra_kwargs):
     np.testing.assert_allclose((area * res).sum(), 0.0, atol=1e-12)
 
 
-def test_required_grid_vars(grid_type_field_and_extra_kwargs):
-    grid_type, _, extra_kwargs = grid_type_field_and_extra_kwargs
+def test_required_grid_vars(scalar_grid_type_data_and_extra_kwargs):
+    grid_type, _, extra_kwargs = scalar_grid_type_data_and_extra_kwargs
     grid_vars = required_grid_vars(grid_type)
     assert set(grid_vars) == set(extra_kwargs)
 
@@ -53,10 +53,10 @@ irregular_grids = [GridType.IRREGULAR_WITH_LAND, GridType.TRIPOLAR_POP_WITH_LAND
 
 
 @pytest.mark.parametrize("direction", ["X", "Y"])
-def test_flux(grid_type_field_and_extra_kwargs, direction):
+def test_flux(scalar_grid_type_data_and_extra_kwargs, direction):
     """This test checks that the Laplacian computes the correct fluxes in x- and y-direction if the grid is irregular.
     The test will catch sign errors in the Laplacian rolling of array elements."""
-    grid_type, data, extra_kwargs = grid_type_field_and_extra_kwargs
+    grid_type, data, extra_kwargs = scalar_grid_type_data_and_extra_kwargs
 
     if grid_type not in irregular_grids:
         pytest.skip("This test is only for irregular grids")
@@ -135,9 +135,9 @@ def test_flux(grid_type_field_and_extra_kwargs, direction):
 ################## Tripolar grid tests for scalar Laplacians ##############################################
 
 
-def test_for_antarctica(tripolar_grid_type_field_and_extra_kwargs):
+def test_for_antarctica(tripolar_grid_type_data_and_extra_kwargs):
     """This test checks that we get an error if southernmost row of wet_mask has entry not equal to zero."""
-    grid_type, _, extra_kwargs = tripolar_grid_type_field_and_extra_kwargs
+    grid_type, _, extra_kwargs = tripolar_grid_type_data_and_extra_kwargs
 
     nx = np.shape(extra_kwargs["wet_mask"])[1]
     random_loc = 10
@@ -149,9 +149,9 @@ def test_for_antarctica(tripolar_grid_type_field_and_extra_kwargs):
         laplacian = LaplacianClass(**bad_kwargs)
 
 
-def test_folding_of_northern_gridedge_data(tripolar_grid_type_field_and_extra_kwargs):
+def test_folding_of_northern_gridedge_data(tripolar_grid_type_data_and_extra_kwargs):
     """This test checks that we get an error if northern edge of tripole grid data does not fold onto itself."""
-    grid_type, _, extra_kwargs = tripolar_grid_type_field_and_extra_kwargs
+    grid_type, _, extra_kwargs = tripolar_grid_type_data_and_extra_kwargs
 
     if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
         LaplacianClass = ALL_KERNELS[grid_type]
@@ -170,9 +170,9 @@ def test_folding_of_northern_gridedge_data(tripolar_grid_type_field_and_extra_kw
             laplacian = LaplacianClass(**bad_kwargs)
 
 
-def test_tripolar_exchanges(tripolar_grid_type_field_and_extra_kwargs):
+def test_tripolar_exchanges(tripolar_grid_type_data_and_extra_kwargs):
     """This test checks that Laplacian exchanges across northern boundary seam line of tripolar grid are correct."""
-    grid_type, data, extra_kwargs = tripolar_grid_type_field_and_extra_kwargs
+    grid_type, data, extra_kwargs = tripolar_grid_type_data_and_extra_kwargs
 
     LaplacianClass = ALL_KERNELS[grid_type]
     laplacian = LaplacianClass(**extra_kwargs)
@@ -198,13 +198,14 @@ def test_tripolar_exchanges(tripolar_grid_type_field_and_extra_kwargs):
 
 
 def test_conservation_under_solid_body_rotation(
-    vector_grid_type_field_and_extra_kwargs,
+    vector_grid_type_data_and_extra_kwargs, spherical_geometry
 ):
     """This test checks that vector Laplacians are invariant under solid body rotations:
     a corollary of conserving angular momentum."""
 
-    grid_type, _, _, extra_kwargs, geolat_u = vector_grid_type_field_and_extra_kwargs
+    grid_type, _, extra_kwargs = vector_grid_type_data_and_extra_kwargs
 
+    _, geolat_u, _, _ = spherical_geometry
     # u = cos(lat), v=0 is solid body rotation
     data_u = np.cos(geolat_u / 360 * 2 * np.pi)
     data_v = np.zeros_like(data_u)
@@ -216,11 +217,12 @@ def test_conservation_under_solid_body_rotation(
     np.testing.assert_allclose(res_v, 0.0, atol=1e-12)
 
 
-def test_zero_area(vector_grid_type_field_and_extra_kwargs):
+def test_zero_area(vector_grid_type_data_and_extra_kwargs):
     """This test checks that if area_u, area_v contain zeros, the Laplacian will not blow up
     due to division by zero."""
 
-    grid_type, data_u, data_v, extra_kwargs, _ = vector_grid_type_field_and_extra_kwargs
+    grid_type, (data_u, data_v), extra_kwargs = vector_grid_type_data_and_extra_kwargs
+
     test_kwargs = copy.deepcopy(extra_kwargs)
     # fill area_u, area_v with zeros over land; e.g., you will find that in MOM6 model output
     test_kwargs["area_u"] = np.where(
@@ -237,7 +239,7 @@ def test_zero_area(vector_grid_type_field_and_extra_kwargs):
     assert not np.any(np.isnan(res_v))
 
 
-def test_required_vector_grid_vars(vector_grid_type_field_and_extra_kwargs):
-    grid_type, _, _, extra_kwargs, _ = vector_grid_type_field_and_extra_kwargs
+def test_required_vector_grid_vars(vector_grid_type_data_and_extra_kwargs):
+    grid_type, _, extra_kwargs = vector_grid_type_data_and_extra_kwargs
     grid_vars = required_grid_vars(grid_type)
     assert set(grid_vars) == set(extra_kwargs)
