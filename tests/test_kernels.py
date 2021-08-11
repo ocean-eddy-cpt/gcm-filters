@@ -46,18 +46,12 @@ def test_required_grid_vars(scalar_grid_type_data_and_extra_kwargs):
 ################## Irregular grid tests for scalar Laplacians ##############################################
 # Irregular grids are grids that allow spatially varying dx, dy
 
-# The following definition of irregular_grids is hard coded
-irregular_grids = [GridType.IRREGULAR_WITH_LAND, GridType.TRIPOLAR_POP_WITH_LAND]
-
 
 @pytest.mark.parametrize("direction", ["X", "Y"])
-def test_flux(scalar_grid_type_data_and_extra_kwargs, direction):
+def test_flux(irregular_scalar_grid_type_data_and_extra_kwargs, direction):
     """This test checks that the Laplacian computes the correct fluxes in x- and y-direction if the grid is irregular.
     The test will catch sign errors in the Laplacian rolling of array elements."""
-    grid_type, data, extra_kwargs = scalar_grid_type_data_and_extra_kwargs
-
-    if grid_type not in irregular_grids:
-        pytest.skip("This test is only for irregular grids")
+    grid_type, data, extra_kwargs = irregular_scalar_grid_type_data_and_extra_kwargs
 
     # deploy mass at random location away from Antarctica
     delta = np.zeros_like(data)

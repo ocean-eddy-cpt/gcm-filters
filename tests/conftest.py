@@ -37,6 +37,7 @@ scalar_grids = [
     GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED,
     GridType.TRIPOLAR_POP_WITH_LAND,
 ]
+irregular_grids = [GridType.IRREGULAR_WITH_LAND, GridType.TRIPOLAR_POP_WITH_LAND]
 tripolar_grids = [
     GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED,
     GridType.TRIPOLAR_POP_WITH_LAND,
@@ -77,9 +78,7 @@ def _make_irregular_tripole_grid_data(shape: Tuple[int, int], seed: int) -> np.n
     return grid_data
 
 
-@pytest.fixture(scope="session", params=scalar_grids)
-def scalar_grid_type_data_and_extra_kwargs(request):
-    grid_type = request.param
+def _make_scalar_grid_data(grid_type):
     shape = (128, 256)
 
     data = _make_random_data(shape, 100)
@@ -101,6 +100,16 @@ def scalar_grid_type_data_and_extra_kwargs(request):
                 extra_kwargs[name] = _make_irregular_tripole_grid_data(shape, seed)
 
     return grid_type, data, extra_kwargs
+
+
+@pytest.fixture(scope="session", params=scalar_grids)
+def scalar_grid_type_data_and_extra_kwargs(request):
+    return _make_scalar_grid_data(request.param)
+
+
+@pytest.fixture(scope="session", params=irregular_grids)
+def irregular_scalar_grid_type_data_and_extra_kwargs(request):
+    return _make_scalar_grid_data(request.param)
 
 
 @pytest.fixture(scope="session", params=tripolar_grids)
