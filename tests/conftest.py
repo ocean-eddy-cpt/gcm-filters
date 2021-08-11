@@ -8,24 +8,6 @@ from numpy.random import PCG64, Generator
 from gcm_filters.kernels import ALL_KERNELS, GridType
 
 
-# https://stackoverflow.com/questions/56374588/how-can-i-ensure-tests-with-a-marker-are-only-run-if-explicitly-asked-in-pytest
-# don't run overwrite_test_data marked test unless specifically asked to
-_require_explicit_marks = ["overwrite_test_data"]
-
-
-def pytest_collection_modifyitems(config, items):
-    keywordexpr = config.option.keyword
-    markexpr = config.option.markexpr
-    if keywordexpr or markexpr:
-        return  # let pytest handle this
-
-    for item in items:
-        for keyword in _require_explicit_marks:
-            if keyword in item.keywords:
-                skip = pytest.mark.skip(reason=f"{keyword} not explicitly selected")
-                item.add_marker(skip)
-
-
 _grid_kwargs = {
     GridType.REGULAR: [],
     GridType.REGULAR_AREA_WEIGHTED: ["area"],
