@@ -360,6 +360,21 @@ class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
         if self.wet_mask[..., 0, :].any():
             raise AssertionError("Wet mask requires zeros in southernmost row")
 
+        # check that northern edge grid data folds onto itself
+        nx = np.shape(self.dxn)[-1]
+        first_half = self.dxn[..., [-1], : (nx // 2)]
+        second_half = self.dxn[..., [-1], (nx // 2) :]
+        if not np.all(first_half[..., ::-1] == second_half):
+            raise AssertionError(
+                "Northernmost row of dxn does not fold onto itself. This is a requirement for using a tripole boundary condition."
+            )
+        first_half = self.dyn[..., [-1], : (nx // 2)]
+        second_half = self.dyn[..., [-1], (nx // 2) :]
+        if not np.all(first_half[..., ::-1] == second_half):
+            raise AssertionError(
+                "Northernmost row of dyn does not fold onto itself. This is a requirement for using a tripole boundary condition."
+            )
+
         # prepare grid information for northern boundary exchanges
         self.dxe = _prepare_tripolar_exchanges(self.dxe)
         self.dye = _prepare_tripolar_exchanges(self.dye)
