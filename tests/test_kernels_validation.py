@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 import xarray as xr
@@ -8,6 +10,15 @@ from pytest_lazyfixture import lazy_fixture
 from gcm_filters.kernels import ALL_KERNELS
 
 
+# https://stackoverflow.com/questions/66970626/pytest-skip-test-condition-depending-on-environment
+def requires_env(varname, value):
+    env_value = os.environ.get(varname)
+    return pytest.mark.skipif(
+        not env_value == value,
+        reason=f"Test skipped unless environment variable {varname}=={value}",
+    )
+
+
 all_grids_data_and_extra_kwargs = [
     lazy_fixture("scalar_grid_type_data_and_extra_kwargs"),
     lazy_fixture("vector_grid_type_data_and_extra_kwargs"),
@@ -16,7 +27,8 @@ all_grids_data_and_extra_kwargs = [
 
 def _get_fname(grid_data_and_extra_kwargs):
     grid_type, data, extra_kwargs = grid_data_and_extra_kwargs
-    return f"test_data/{grid_type.name}.zarr"
+    dirname = os.path.dirname(__file__)
+    return os.path.join(dirname, "test_data", f"{grid_type.name}.zarr")
 
 
 def _get_results(grid_data_and_extra_kwargs):
@@ -40,9 +52,9 @@ def _get_results(grid_data_and_extra_kwargs):
 
 
 # this test will not be run by default
-# to run it and overwrite the test data, invoke pytest as follows
-# $ pytest -m overwrite_test_data tests/test_kernels_validation.py
-@pytest.mark.overwrite_test_data
+# to run it and overwrite the test data, invoke pytest with an environment variable as follows
+# $ GCM_FILTERS_OVERWRITE_TEST_DATA=1 pytest tests/test_kernels_validation.py
+@requires_env("GCM_FILTERS_OVERWRITE_TEST_DATA", "1")
 @pytest.mark.parametrize("grid_data_and_extra_kwargs", all_grids_data_and_extra_kwargs)
 def test_save_results(grid_data_and_extra_kwargs):
     res = _get_results(grid_data_and_extra_kwargs)

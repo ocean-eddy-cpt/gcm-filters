@@ -11,6 +11,3 @@ addopts = "-v"
 testpaths = [
     "tests",
 ]
-markers = [
-    "overwrite_test_data: running with this mark  will regenerate and overwrite the test data stored in tests/test_data"
-]

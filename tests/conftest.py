@@ -26,9 +26,6 @@ def pytest_collection_modifyitems(config, items):
                 item.add_marker(skip)
 
 
-_RANDOM_SEED = 42
-rng = Generator(PCG64(_RANDOM_SEED))
-
 _grid_kwargs = {
     GridType.REGULAR: [],
     GridType.REGULAR_AREA_WEIGHTED: ["area"],
@@ -65,7 +62,8 @@ tripolar_grids = [
 vector_grids = [GridType.VECTOR_C_GRID]
 
 
-def _make_random_data(shape: Tuple[int, int]) -> np.ndarray:
+def _make_random_data(shape: Tuple[int, int], seed: int) -> np.ndarray:
+    rng = Generator(PCG64(seed))
     return rng.random(shape)
 
 
@@ -77,14 +75,16 @@ def _make_mask_data(shape: Tuple[int, int]) -> np.ndarray:
     return mask_data
 
 
-def _make_irregular_grid_data(shape: Tuple[int, int]) -> np.ndarray:
+def _make_irregular_grid_data(shape: Tuple[int, int], seed: int) -> np.ndarray:
+    rng = Generator(PCG64(seed))
     # avoid large-amplitude variation, ensure positive values, mean of 1
     grid_data = 0.9 + 0.2 * rng.random(shape)
     assert np.all(grid_data > 0)
     return grid_data
 
 
-def _make_irregular_tripole_grid_data(shape: Tuple[int, int]) -> np.ndarray:
+def _make_irregular_tripole_grid_data(shape: Tuple[int, int], seed: int) -> np.ndarray:
+    rng = Generator(PCG64(seed))
     # avoid large-amplitude variation, ensure positive values, mean of 1
     grid_data = 0.9 + 0.2 * rng.random(shape)
     assert np.all(grid_data > 0)
@@ -95,39 +95,40 @@ def _make_irregular_tripole_grid_data(shape: Tuple[int, int]) -> np.ndarray:
     return grid_data
 
 
-@pytest.fixture(scope="module", params=scalar_grids)
+@pytest.fixture(scope="session", params=scalar_grids)
 def scalar_grid_type_data_and_extra_kwargs(request):
     grid_type = request.param
     shape = (128, 256)
 
-    data = _make_random_data(shape)
+    data = _make_random_data(shape, 100)
 
     extra_kwargs = {}
-    for name in _grid_kwargs[grid_type]:
+    for seed, name in enumerate(_grid_kwargs[grid_type]):
         if name == "wet_mask":
             extra_kwargs[name] = _make_mask_data(shape)
         elif "kappa" in name:
             extra_kwargs[name] = np.ones(shape)
         else:
-            extra_kwargs[name] = _make_irregular_grid_data(shape)
+            extra_kwargs[name] = _make_irregular_grid_data(shape, seed)
 
     # northern edge grid data has to fold onto itself for tripole grids
     if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
         for name in _grid_kwargs[grid_type]:
             if name in ["dxn", "dyn"]:
-                extra_kwargs[name] = _make_irregular_tripole_grid_data(shape)
+                seed += 1
+                extra_kwargs[name] = _make_irregular_tripole_grid_data(shape, seed)
 
     return grid_type, data, extra_kwargs
 
 
-@pytest.fixture(scope="module", params=tripolar_grids)
+@pytest.fixture(scope="session", params=tripolar_grids)
 # the following test data mirrors a regular grid because
 # these are the assumptions of test_tripolar_exchanges
 def tripolar_grid_type_data_and_extra_kwargs(request):
     grid_type = request.param
     shape = (128, 256)
 
-    data = _make_random_data(shape)
+    data = _make_random_data(shape, 30)
 
     extra_kwargs = {}
     for name in _grid_kwargs[grid_type]:
@@ -139,7 +140,7 @@ def tripolar_grid_type_data_and_extra_kwargs(request):
     return grid_type, data, extra_kwargs
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def spherical_geometry():
     ny, nx = (128, 256)
 
@@ -167,7 +168,7 @@ def spherical_geometry():
     return geolon_u, geolat_u, geolon_v, geolat_v
 
 
-@pytest.fixture(scope="module", params=vector_grids)
+@pytest.fixture(scope="session", params=vector_grids)
 def vector_grid_type_data_and_extra_kwargs(request, spherical_geometry):
     grid_type = request.param
     geolon_u, geolat_u, geolon_v, geolat_v = spherical_geometry
@@ -179,8 +180,7 @@ def vector_grid_type_data_and_extra_kwargs(request, spherical_geometry):
     # we can relax this if we implement other vector grids
     assert grid_type == GridType.VECTOR_C_GRID
 
-    # radius of a random planet smaller than Earth
-    R = 6378000 * rng.random((1,))
+    R = 6378000
     # dx varies spatially
     extra_kwargs["dxCu"] = R * np.cos(geolat_u / 360 * 2 * np.pi)
     extra_kwargs["dxCv"] = R * np.cos(geolat_v / 360 * 2 * np.pi)
@@ -208,8 +208,8 @@ def vector_grid_type_data_and_extra_kwargs(request, spherical_geometry):
     extra_kwargs["wet_mask_t"] = mask_data
     extra_kwargs["wet_mask_q"] = mask_data
 
-    data_u = rng.random((ny, nx))
-    data_v = rng.random((ny, nx))
+    data_u = _make_random_data((ny, nx), 42)
+    data_v = _make_random_data((ny, nx), 43)
 
     # use same return signature as other kernel fixtures
     return grid_type, (data_u, data_v), extra_kwargs
