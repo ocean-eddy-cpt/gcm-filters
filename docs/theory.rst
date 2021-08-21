@@ -20,7 +20,8 @@ The filter shape can be thought of in terms of the kernel of a convolution filte
 
 .. math:: \bar{f} = \int G(x - x')f(x') dx'
 
-where :math:`f` is the function being filtered, :math:`G` is the filter kernel, and :math:`x'` is a dummy integration variable.
+where :math:`f` is the function being filtered, :math:`G` is the filter kernel, and :math:`x'` is a dummy integration variable. (We note, however, that our filter is not *exactly* the same as a convolution filter. So our filter with a Gaussian target does not exactly produce the same results as a convolution against a Gaussian kernel on the sphere.)
+
 This package currently has two filter shapes: ``GAUSSIAN`` and ``TAPER``.
 
 .. ipython:: python
@@ -52,6 +53,7 @@ Once the filter has been constructed, the method ``plot_shape`` can be used to p
     @savefig gaussian_shape.png
     gaussian_filter.plot_shape()
 
+The distinction between the target filter and the approximate filter will be discussed below.
 
 .. note:: ``plot_shape`` does not plot the shape of the filter *kernel*. Instead, it plots the frequency response of the filter for each wavenumber :math:`k`.
     In other words, the plot shows how the filter attenuates different scales in the data.
