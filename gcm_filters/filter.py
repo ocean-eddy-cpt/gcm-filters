@@ -26,12 +26,12 @@ FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
 
 filter_params = {
     FilterShape.GAUSSIAN: {
-        1: {"n_steps_factor": 0.8, "max_filter_factor": 67},
-        2: {"n_steps_factor": 1.1, "max_filter_factor": 77},
+        1: {"offset": 0.8, "factor": 0.0, "exponent": 1, "max_filter_factor": 67},
+        2: {"offset": 1.1, "factor": 0.0, "exponent": 1, "max_filter_factor": 77},
     },
     FilterShape.TAPER: {
-        1: {"n_steps_factor": 2.8, "max_filter_factor": 19},
-        2: {"n_steps_factor": 3.9, "max_filter_factor": 20},
+        1: {"offset": 2.2, "factor": 0.6, "exponent": 2.5, "max_filter_factor": 19},
+        2: {"offset": 3.2, "factor": 0.7, "exponent": 2.7, "max_filter_factor": 20},
     },
 }
 
@@ -282,7 +282,7 @@ class Filter:
         - ``FilterShape.TAPER``: The target filter has target grid scale Lf. Smaller scales are zeroed out.
           Scales larger than ``pi * filter_scale / 2`` are left as-is. In between is a smooth transition.
     transition_width : float, optional
-        Width of the transition region in the "Taper" filter.
+        Width of the transition region in the "Taper" filter. Theoretical minimumm is 1; not recommended.
     ndim : int, optional
          Laplacian is applied on a grid of dimension ndim
     grid_type : GridType
@@ -325,10 +325,13 @@ class Filter:
             else:
                 n_steps_default = self.n_steps  # For ndim>2 we don't have a default
         else:
-            n_steps_default = np.ceil(
-                filter_params[self.filter_shape][self.ndim]["n_steps_factor"]
-                * filter_factor
-            ).astype(int)
+            n_steps_factor = filter_params[self.filter_shape][self.ndim][
+                "offset"
+            ] + filter_params[self.filter_shape][self.ndim]["factor"] * (
+                (np.pi / self.transition_width)
+                ** filter_params[self.filter_shape][self.ndim]["exponent"]
+            )
+            n_steps_default = np.ceil(n_steps_factor * filter_factor).astype(int)
 
         # Set n_steps if needed and issue n_step warning, if needed
         if self.n_steps < 3:
