@@ -278,11 +278,11 @@ class Filter:
         Number of total steps in the filter (A biharmonic step counts as two steps)
         ``n_steps == 0`` means the number of steps is chosen automatically
     filter_shape : FilterShape
-        - ``FilterShape.GAUSSIAN``: The target filter has kernel :math:`e^{-|x/Lf|^2}`
+        - ``FilterShape.GAUSSIAN``: The target filter has shape :math:`e^{-(k filter_scale)^2/24}`
         - ``FilterShape.TAPER``: The target filter has target grid scale Lf. Smaller scales are zeroed out.
           Scales larger than ``pi * filter_scale / 2`` are left as-is. In between is a smooth transition.
     transition_width : float, optional
-        Width of the transition region in the "Taper" filter. Theoretical minimumm is 1; not recommended.
+        Width of the transition region in the "Taper" filter. Theoretical minimum is 1; not recommended.
     ndim : int, optional
          Laplacian is applied on a grid of dimension ndim
     grid_type : GridType
