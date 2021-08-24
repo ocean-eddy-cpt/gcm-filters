@@ -317,6 +317,10 @@ class Filter:
                     "dx_min must be set to 1."
                 )
 
+        # Check if transition_width is <=1
+        if self.transition_width <= 1:
+            raise ValueError(f"Transition width must be > 1.")
+
         # Get default number of steps
         filter_factor = self.filter_scale / self.dx_min
         if self.ndim > 2:
