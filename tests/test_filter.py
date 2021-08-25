@@ -329,7 +329,12 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
             )
 
     bad_filter_args = copy.deepcopy(filter_args)
+    # check that we get an error when transition_width <= 1
+    bad_filter_args["transition_width"] = 1
+    with pytest.raises(ValueError, match=r"Transition width .*"):
+        filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
     # check that we get an error if ndim > 2 and n_steps = 0
+    bad_filter_args["transition_width"] = np.pi
     bad_filter_args["ndim"] = 3
     bad_filter_args["n_steps"] = 0
     with pytest.raises(ValueError, match=r"When ndim > 2, you .*"):
