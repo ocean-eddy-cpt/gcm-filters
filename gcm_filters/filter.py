@@ -26,12 +26,12 @@ FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
 
 filter_params = {
     FilterShape.GAUSSIAN: {
-        1: {"n_steps_factor": 0.8, "max_filter_factor": 67},
-        2: {"n_steps_factor": 1.1, "max_filter_factor": 77},
+        1: {"offset": 0.8, "factor": 0.0, "exponent": 1, "max_filter_factor": 67},
+        2: {"offset": 1.1, "factor": 0.0, "exponent": 1, "max_filter_factor": 77},
     },
     FilterShape.TAPER: {
-        1: {"n_steps_factor": 2.8, "max_filter_factor": 19},
-        2: {"n_steps_factor": 3.9, "max_filter_factor": 20},
+        1: {"offset": 2.2, "factor": 0.6, "exponent": 2.5, "max_filter_factor": 19},
+        2: {"offset": 3.2, "factor": 0.7, "exponent": 2.7, "max_filter_factor": 20},
     },
 }
 
@@ -266,35 +266,33 @@ def _create_filter_func_vec(
 
 @dataclass
 class Filter:
-    """A class for applying diffusion-based filtering to gridded data.
+    """A class for applying diffusion-based smoothing filters to gridded data.
 
-    Parameters
-     ----------
-     filter_scale : float
-         The target length of the filter
-     dx_min : float
-         The smallest grid spacing. Should have same units as ``filter_scale``
-     n_steps : int, optional
-         Number of total steps in the filter. (A biharmonic step counts as two steps.)
-         ``n_steps < 3`` means the number of steps is chosen automatically
-     filter_shape : FilterShape
-         - ``FilterShape.GAUSSIAN``: The target filter has target length scale ``filter_scale``. This is realized by a Gaussian kernel
-           with standard deviation ``filter_scale / sqrt(12)``.
-         - ``FilterShape.TAPER``: The target filter has target length scale ``filter_scale``. Scales smaller than ``filter_scale``
-           are zeroed out. Scales larger than a threshold value are left as-is. The threshold value is larger than ``filter_scale``
-           and depends on ``transition_width``. Between the threshold value and ``filter_scale`` is a smooth transition
-     transition_width : float, optional
-         Width of the transition region in the ``TAPER`` filter. Default is ``pi``
-     ndim : int, optional
-          Laplacian is applied on a grid of dimension ndim
-     grid_type : GridType
-         What sort of grid we are dealing with
-     grid_vars : dict
-         Dictionary of extra parameters used to initialize the grid Laplacian
+    ̦Parameters
+    ----------
+    filter_scale : float
+        The filter scale, which has different meaning depending on filter shape
+    dx_min : float
+        The smallest grid spacing. Should have same units as ``filter_scale``
+    n_steps : int, optional
+        Number of total steps in the filter (A biharmonic step counts as two steps)
+        ``n_steps == 0`` means the number of steps is chosen automatically
+    filter_shape : FilterShape
+        - ``FilterShape.GAUSSIAN``: The target filter has shape :math:`e^{-(k filter_scale)^2/24}`
+        - ``FilterShape.TAPER``: The target filter has target grid scale Lf. Smaller scales are zeroed out.
+          Scales larger than ``pi * filter_scale / 2`` are left as-is. In between is a smooth transition.
+    transition_width : float, optional
+        Width of the transition region in the "Taper" filter. Theoretical minimum is 1; not recommended.
+    ndim : int, optional
+         Laplacian is applied on a grid of dimension ndim
+    grid_type : GridType
+        what sort of grid we are dealing with
+    grid_vars : dict
+        dictionary of extra parameters used to initialize the grid Laplacian
 
-     Attributes
-     ----------
-     filter_spec: FilterSpec
+    Attributes
+    ----------
+    filter_spec: FilterSpec
     """
 
     filter_scale: float
@@ -319,6 +317,10 @@ class Filter:
                     "dx_min must be set to 1."
                 )
 
+        # Check if transition_width is <=1
+        if self.transition_width <= 1:
+            raise ValueError(f"Transition width must be > 1.")
+
         # Get default number of steps
         filter_factor = self.filter_scale / self.dx_min
         if self.ndim > 2:
@@ -327,10 +329,13 @@ class Filter:
             else:
                 n_steps_default = self.n_steps  # For ndim>2 we don't have a default
         else:
-            n_steps_default = np.ceil(
-                filter_params[self.filter_shape][self.ndim]["n_steps_factor"]
-                * filter_factor
-            ).astype(int)
+            n_steps_factor = filter_params[self.filter_shape][self.ndim][
+                "offset"
+            ] + filter_params[self.filter_shape][self.ndim]["factor"] * (
+                (np.pi / self.transition_width)
+                ** filter_params[self.filter_shape][self.ndim]["exponent"]
+            )
+            n_steps_default = np.ceil(n_steps_factor * filter_factor).astype(int)
 
         # Set n_steps if needed and issue n_step warning, if needed
         if self.n_steps < 3:
