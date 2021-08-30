@@ -129,7 +129,7 @@ class RegularLaplacianWithArea(AreaWeightedMixin, RegularLaplacian):
 
     Attributes
     ----------
-    area: cell area of original grid
+    area: cell area
     """
 
     area: ArrayType
@@ -193,7 +193,7 @@ class RegularLaplacianWithLandMaskAndArea(
 
     Attributes
     ----------
-    area: cell area of original grid
+    area: cell area
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
 
@@ -284,7 +284,7 @@ class TripolarRegularLaplacianTpoint(AreaWeightedMixin, BaseScalarLaplacian):
 
     Attributes
     ----------
-    area: cell area of original grid
+    area: cell area
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
 
@@ -421,7 +421,7 @@ ALL_KERNELS[GridType.TRIPOLAR_POP_WITH_LAND] = POPTripolarLaplacianTpoint
 
 @dataclass
 class CgridVectorLaplacian(BaseVectorLaplacian):
-    """̵Vector Laplacian on C-Grid. The implementation follows the friction operator suggested by Griffies and Hallberg, 2000.
+    """̵Vector Laplacian on C-Grid. Follows The implementation for viscosity operators on C-grids suggested by Griffies and Hallberg, 2000.
 
     Attributes
     ----------
@@ -438,7 +438,7 @@ class CgridVectorLaplacian(BaseVectorLaplacian):
     area_u: U-cell area
     area_v: V-cell area
     kappa_iso: isotropic viscosity
-    kappa_aniso: anisotropic viscosity aligned with x-direction
+    kappa_aniso: additive anisotropic viscosity aligned with x-direction
     """
 
     wet_mask_t: ArrayType

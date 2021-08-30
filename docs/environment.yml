@@ -6,6 +6,7 @@ dependencies:
   - numpy
   - scipy
   - xarray
+  - dask
   - matplotlib
   - numpydoc
   - sphinx
