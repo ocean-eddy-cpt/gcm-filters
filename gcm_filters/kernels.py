@@ -181,6 +181,7 @@ class RegularLaplacianWithLandMask(BaseScalarLaplacian):
 ALL_KERNELS[GridType.REGULAR_WITH_LAND] = RegularLaplacianWithLandMask
 
 
+@dataclass
 class RegularLaplacianWithLandMaskAndArea(
     AreaWeightedMixin, RegularLaplacianWithLandMask
 ):
