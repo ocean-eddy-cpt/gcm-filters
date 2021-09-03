@@ -47,48 +47,6 @@ def test_required_grid_vars(scalar_grid_type_data_and_extra_kwargs):
 # Irregular grids are grids that allow spatially varying dx, dy
 
 
-@pytest.fixture(scope="module", params=list(GridType))
-def grid_type_field_and_extra_kwargs(request):
-    grid_type = request.param
-    ny, nx = (128, 256)
-    data = np.random.rand(ny, nx)
-
-    extra_kwargs = {}
-    if grid_type == GridType.REGULAR_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        extra_kwargs["wet_mask"] = mask_data
-    if grid_type == GridType.IRREGULAR_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        extra_kwargs["wet_mask"] = mask_data
-        grid_data = np.ones_like(data)
-        extra_kwargs["dxw"] = grid_data
-        extra_kwargs["dyw"] = grid_data
-        extra_kwargs["dxs"] = grid_data
-        extra_kwargs["dys"] = grid_data
-        extra_kwargs["area"] = grid_data
-        extra_kwargs["kappa_s"] = grid_data
-        extra_kwargs["kappa_w"] = grid_data
-    if grid_type == GridType.TRIPOLAR_REGULAR_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        mask_data[0, :] = 0  #  Antarctica
-        extra_kwargs["wet_mask"] = mask_data
-    if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
-        mask_data = np.ones_like(data)
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        mask_data[0, :] = 0  #  Antarctica
-        extra_kwargs["wet_mask"] = mask_data
-        grid_data = np.ones_like(data)
-        extra_kwargs["dxe"] = grid_data
-        extra_kwargs["dye"] = grid_data
-        extra_kwargs["dxn"] = grid_data
-        extra_kwargs["dyn"] = grid_data
-        extra_kwargs["tarea"] = grid_data
-    return grid_type, data, extra_kwargs
-
-
 def test_for_large_kappas(grid_type_field_and_extra_kwargs):
     """This test checks that we get an error if either kappa_s or kappa_w are > 1."""
     grid_type, _, extra_kwargs = grid_type_field_and_extra_kwargs
