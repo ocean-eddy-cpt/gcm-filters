@@ -8,8 +8,9 @@ repos:
     - id: check-ast
     - id: debug-statements
     - id: end-of-file-fixer
+      exclude: tests/test_data
     - id: check-docstring-first
-    - id: check-added-large-files
+#    - id: check-added-large-files
     - id: requirements-txt-fixer
     - id: file-contents-sorter
       files: requirements-dev.txt
