@@ -210,7 +210,7 @@ ALL_KERNELS[
 @dataclass
 class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
 
-    """Laplacian for irregularly spaced Cartesian grids with land mask.
+    """Scalar Laplacian for locally orthogonal grids with land mask.
        It is possible to vary the filter scale over the domain by
        introducing a nondimensional "diffusivity" (attributes kappa_w and kappa_s).
        For reasons given in Grooms et al. (2021) https://doi.org/10.1002/essoar.10506591.1,
