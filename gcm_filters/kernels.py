@@ -263,13 +263,6 @@ class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
                 f"Otherwise the filter's scale will not be equal to filter_scale anywhere in the domain."
             )
 
-        self.w_wet_mask = (
-            self.wet_mask * np.roll(self.wet_mask, -1, axis=-1) * self.kappa_w
-        )
-        self.s_wet_mask = (
-            self.wet_mask * np.roll(self.wet_mask, -1, axis=-2) * self.kappa_s
-        )
-
         # derive wet mask for western cell edge from wet_mask at T points via
         # w_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j,i-1)
         # note: wet_mask(j,i-1) corresponds to np.roll(wet_mask, +1, axis=-1)
