@@ -47,15 +47,17 @@ def test_required_grid_vars(scalar_grid_type_data_and_extra_kwargs):
 # Irregular grids are grids that allow spatially varying dx, dy
 
 
-def test_for_large_kappas(grid_type_field_and_extra_kwargs):
+def test_for_large_kappas(scalar_grid_type_data_and_extra_kwargs):
     """This test checks that we get an error if either kappa_s or kappa_w are > 1."""
-    grid_type, _, extra_kwargs = grid_type_field_and_extra_kwargs
+    grid_type, _, extra_kwargs = scalar_grid_type_data_and_extra_kwargs
 
     if grid_type == GridType.IRREGULAR_WITH_LAND:
-        ny, nx = np.shape(extra_kwargs["wet_mask"])
-        random_yloc = np.random.randint(0, ny)
-        random_xloc = np.random.randint(0, nx)
+        # pick a location outside of the mask
+        random_yloc = 99
+        random_xloc = 225
+
         bad_kwargs = copy.deepcopy(extra_kwargs)
+
         bad_kwargs["kappa_w"][random_yloc, random_xloc] = 2.0
 
         LaplacianClass = ALL_KERNELS[grid_type]
@@ -63,18 +65,18 @@ def test_for_large_kappas(grid_type_field_and_extra_kwargs):
             laplacian = LaplacianClass(**bad_kwargs)
 
         # restore good value in kappa_w and set bad value in kappa_s
-        bad_kwargs = copy.deepcopy(extra_kwargs)
+        bad_kwargs["kappa_w"][random_yloc, random_xloc] = 1.0
         bad_kwargs["kappa_s"][random_yloc, random_xloc] = 2.0
 
         with pytest.raises(ValueError, match=r"There are kappa_.*"):
             laplacian = LaplacianClass(**bad_kwargs)
 
 
-def test_for_kappas_not_equal_to_one(grid_type_field_and_extra_kwargs):
+def test_for_kappas_not_equal_to_one(scalar_grid_type_data_and_extra_kwargs):
     """This test checks that we get an error if neither kappa_s or kappa_w are
     set to 1.0 somewhere in the domain"""
 
-    grid_type, _, extra_kwargs = grid_type_field_and_extra_kwargs
+    grid_type, _, extra_kwargs = scalar_grid_type_data_and_extra_kwargs
 
     if grid_type == GridType.IRREGULAR_WITH_LAND:
         bad_kwargs = copy.deepcopy(extra_kwargs)

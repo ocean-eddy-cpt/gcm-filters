@@ -181,6 +181,7 @@ class RegularLaplacianWithLandMask(BaseScalarLaplacian):
 ALL_KERNELS[GridType.REGULAR_WITH_LAND] = RegularLaplacianWithLandMask
 
 
+@dataclass
 class RegularLaplacianWithLandMaskAndArea(
     AreaWeightedMixin, RegularLaplacianWithLandMask
 ):
@@ -210,7 +211,7 @@ ALL_KERNELS[
 @dataclass
 class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
 
-    """Laplacian for irregularly spaced Cartesian grids with land mask.
+    """Scalar Laplacian for locally orthogonal grids with land mask.
        It is possible to vary the filter scale over the domain by
        introducing a nondimensional "diffusivity" (attributes kappa_w and kappa_s).
        For reasons given in Grooms et al. (2021) https://doi.org/10.1002/essoar.10506591.1,
@@ -262,13 +263,6 @@ class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
                 f"At least one place in the domain must have either kappa_w = 1.0 or kappa_s = 1."
                 f"Otherwise the filter's scale will not be equal to filter_scale anywhere in the domain."
             )
-
-        self.w_wet_mask = (
-            self.wet_mask * np.roll(self.wet_mask, -1, axis=-1) * self.kappa_w
-        )
-        self.s_wet_mask = (
-            self.wet_mask * np.roll(self.wet_mask, -1, axis=-2) * self.kappa_s
-        )
 
         # derive wet mask for western cell edge from wet_mask at T points via
         # w_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j,i-1)
