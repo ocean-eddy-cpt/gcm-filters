@@ -3,6 +3,8 @@
 [![pre-commit](https://github.com/ocean-eddy-cpt/gcm-filters/workflows/pre-commit/badge.svg)](https://github.com/ocean-eddy-cpt/gcm-filters/actions?query=workflow%3Apre-commit)
 [![Tests](https://github.com/ocean-eddy-cpt/gcm-filters/workflows/Tests/badge.svg)](https://github.com/ocean-eddy-cpt/gcm-filters/actions?query=workflow%3ATests)
 [![Documentation Status](https://readthedocs.org/projects/gcm-filters/badge/?version=latest)](https://gcm-filters.readthedocs.io/en/latest/?badge=latest)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/gcm_filters.svg)](https://anaconda.org/conda-forge/gcm_filters) 
+[![PyPI version](https://badge.fury.io/py/gcm-filters.svg)](https://badge.fury.io/py/gcm-filters)
 
 GCM-Filters: Diffusion-based Spatial Filtering of Gridded Data from General Circulation Models
 
@@ -20,6 +22,11 @@ GCM-Filters can be installed with `pip`:
 
 ```shell
 pip install gcm_filters
+```
+
+or conda
+```shell
+conda install -c conda-forge gcm_filters
 ```
 
 ### Getting Started
