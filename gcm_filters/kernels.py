@@ -210,7 +210,14 @@ ALL_KERNELS[
 
 @dataclass
 class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
-    """̵Scalar Laplacian for locally orthogonal grids with land mask.
+
+    """Scalar Laplacian for locally orthogonal grids with land mask.
+       It is possible to vary the filter scale over the domain by
+       introducing a nondimensional "diffusivity" (attributes kappa_w and kappa_s).
+       For reasons given in Grooms et al. (2021) https://doi.org/10.1002/essoar.10506591.1,
+       we require that both kappa_w and kappa_s values must be <= 1 and that at least one
+       of them is set to 1 somewhere in the domain. Otherwise the scale of the filter will
+       not be equal to filter_scale anywhere in the domain.
 
     Attributes
     ----------
@@ -220,8 +227,11 @@ class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
     dxs: x-spacing centered at southern cell edge
     dys: y-spacing centered at southern cell edge
     area: cell area
-    kappa_w:  zonal diffusivity centered at western cell edge
-    kappa_s:  zonal diffusivity centered at southern cell edge
+    kappa_w: zonal diffusivity centered at western cell edge, values must be <= 1, and at
+             least one place in the domain must have kappa_w = 1 if kappa_s < 1.
+
+    kappa_s: meridional diffusivity centered at southern cell edge, values must be <= 1, and at
+             least one place in the domain must have kappa_s = 1 if kappa_w < 1.
     """
 
     wet_mask: ArrayType
@@ -235,6 +245,24 @@ class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
 
     def __post_init__(self):
         np = get_array_module(self.wet_mask)
+
+        if np.any(self.kappa_w > 1.0):
+            raise ValueError(
+                f"There are kappa_w values > 1 and this can cause the filter to blow up."
+                f"Please make sure all kappa_w are <=1."
+            )
+
+        if np.any(self.kappa_s > 1.0):
+            raise ValueError(
+                f"There are kappa_s values > 1 and this can cause the filter to blow up."
+                f"Please make sure all kappa_s are <=1."
+            )
+
+        if not (np.any(self.kappa_w == 1.0) or np.any(self.kappa_s == 1.0)):
+            raise ValueError(
+                f"At least one place in the domain must have either kappa_w = 1.0 or kappa_s = 1."
+                f"Otherwise the filter's scale will not be equal to filter_scale anywhere in the domain."
+            )
 
         # derive wet mask for western cell edge from wet_mask at T points via
         # w_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j,i-1)
@@ -335,7 +363,6 @@ ALL_KERNELS[
 @dataclass
 class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
     """̵Scalar Laplacian for locally orthogonal grid with land mask and tripole boundary condition, as for example used in the global POP configuration. This Laplacian works for scalar fields located at T-points.
-
     Attributes
     ----------
     wet_mask: Mask array, 1 for ocean, 0 for land; can be obtained via xr.where(KMT>0, 1, 0)
