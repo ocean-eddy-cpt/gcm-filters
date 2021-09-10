@@ -4,34 +4,27 @@
 [![Tests](https://github.com/ocean-eddy-cpt/gcm-filters/workflows/Tests/badge.svg)](https://github.com/ocean-eddy-cpt/gcm-filters/actions?query=workflow%3ATests)
 [![Documentation Status](https://readthedocs.org/projects/gcm-filters/badge/?version=latest)](https://gcm-filters.readthedocs.io/en/latest/?badge=latest)
 
-Diffusion-based smoothers for coarse-graining GCM data.
+GCM-Filters: Diffusion-based Spatial Filtering of Gridded Data from General Circulation Models
 
-### Documentation and code
+### Description
 
-URLs for the docs and code.
+**GCM-Filters** is a python package that performs spatial filtering analysis in a flexible and efficient way.
+The GCM-Filters algorithm applies a discrete Laplacian to smooth a field through an iterative process that resembles diffusion (`Grooms et al., 2021 <https://doi.org/10.1002/essoar.10506591.1>`_).
+The package is specifically designed to work with gridded data that is produced by General Circulation Models (GCMs) of ocean, weather, and climate.
+Such GCM data come on complex curvilinear grids, whose geometry is respected by the GCM-Filters Laplacians.
+Through integration with `dask <https://dask.org/>`_, GCM-Filters enables parallel, out-of-core filter analysis on both CPUs and GPUs.
 
 ### Installation
 
-For `conda` users you can
-
-```shell
-conda install --channel conda-forge gcm_filters
-```
-
-or, if you are a `pip` users
+GCM-Filters can be installed with `pip`:
 
 ```shell
 pip install gcm_filters
 ```
 
-### Example
+### Getting Started
 
-```python
-from gcm_filters import gcm_filters
-
-
-gcm_filters.meaning_of_life_url()
-```
+To learn how to use GCM-Filters for your data, visit the `GCM-Filters documentation <https://dask.org/>`_.
 
 
 ## Get in touch

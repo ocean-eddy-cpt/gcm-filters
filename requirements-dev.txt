@@ -14,9 +14,11 @@ pylint
 pytest
 pytest-cov
 pytest-flake8
+pytest-lazy-fixture
 pytest-xdist
 recommonmark
 setuptools_scm
 sphinx
 twine
 wheel
+zarr

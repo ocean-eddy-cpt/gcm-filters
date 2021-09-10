@@ -1,10 +1,13 @@
 name: gcm-filters-docs
+channels:
+  - conda-forge
 dependencies:
   - python=3.8
   - numpy
   - scipy
   - xarray
-  - scipy
+  - dask
+  - matplotlib
   - numpydoc
   - sphinx
   - ipython
@@ -12,11 +15,9 @@ dependencies:
   - nbformat
   - ipykernel # not strictly necessary but this is nice to run notebooks in this env to test
   - pandoc
-  - pip
-  - pip:
-    - jupyter_client
-    - sphinx-book-theme
-    - sphinx-copybutton
-    - sphinxcontrib-srclinks
-    - myst-parser
-    - myst-nb
+  - jupyter_client
+  - sphinx-book-theme
+  - sphinx-copybutton
+  - myst-parser
+  - myst-nb
+  - sphinxcontrib-srclinks
