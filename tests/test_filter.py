@@ -389,10 +389,6 @@ def test_application_to_dataset():
         xr.testing.assert_allclose(dataset.spatiotemporal,
                 filtered_dataset.spatiotemporal)
 
-    # Temporal averages of spatiotemporal variables should remain constant
-    xr.testing.assert_allclose(dataset.temporal.mean(dim=['y','x']),
-            filtered_dataset.temporal.mean(dim=['y','x']))
-
 
 #################### Visosity-based filter tests ########################################
 @pytest.mark.parametrize(
