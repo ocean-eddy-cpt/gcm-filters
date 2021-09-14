@@ -17,3 +17,7 @@ gcm_filters/_version.py
 # docs
 docs/_build
 make.bat
+
+# text editors
+*.swp
+*.swo
