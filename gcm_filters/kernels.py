@@ -306,8 +306,18 @@ ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularLaplacianWithLandMask
 
 @dataclass
 class MOM5LaplacianU(BaseScalarLaplacian):
-    """Laplacian for MOM5 gird (velocity points)"""
-
+    """Laplacian for MOM5 (tracer points).
+    MOM5 uses a Northeast convention B-grid, where velocity point U(i,j) is NE of tracer point T(i,j).
+    For information on MOM5 discretization see: https://mom-ocean.github.io/assets/pdfs/MOM5_manual.pdf
+    Attributes
+    __________
+    wet_mask: Mask array, 1 for ocean, 0 for land
+    dxt: width in x of T-cell, model diagnostic dxt
+    dyt: height in y of T-cell, model diagnostic dyt
+    dxu: width in x of U-cell, model diagnostic dxu
+    dyu: height in y of U-cell, model diagnostic dyu
+    area_u: area of U-cell, dxu*dyu
+    """
     wet_mask: ArrayType
     dxt: ArrayType
     dyt: ArrayType
@@ -351,7 +361,18 @@ ALL_KERNELS[GridType.MOM5U] = MOM5LaplacianU
 
 @dataclass
 class MOM5LaplacianT(BaseScalarLaplacian):
-    """Laplacian for MOM5 grid (tracer points)."""
+    """Laplacian for MOM5 (tracer points).
+    MOM5 uses a Northeast convention B-grid, where velocity point U(i,j) is NE of tracer point T(i,j).
+    Attributes
+    __________
+    For information on MOM5 discretization see: https://mom-ocean.github.io/assets/pdfs/MOM5_manual.pdf
+    wet_mask: Mask array, 1 for ocean, 0 for land
+    dxt: width in x of T-cell, model diagnostic dxt
+    dyt: height in y of T-cell, model diagnostic dyt
+    dxu: width in x of U-cell, model diagnostic dxu
+    dyu: height in y of U-cell, model diagnostic dyu
+    area_t: area of T-cell, dxt*dyt
+    """
 
     wet_mask: ArrayType
     dxt: ArrayType
