@@ -38,6 +38,10 @@ The following table provides an overview of these different grid type options: w
 | ``IRREGULAR_WITH_LAND``        | locally orthogonal grid                                         | yes          | periodic           | Scalar Laplacian | :doc:`examples/example_filter_types`;    |
 |                                |                                                                 |              |                    |                  | :doc:`examples/example_tripole_grid`     |
 +--------------------------------+-----------------------------------------------------------------+--------------+--------------------+------------------+------------------------------------------+
+| ``MOM5U``                      | Velocity-point on Arakawa B-Grid                                | yes          | tripole            | Scalar Laplacian |                                          |
++--------------------------------+-----------------------------------------------------------------+--------------+--------------------+------------------+------------------------------------------+
+| ``MOM5T``                      | Tracer-point on Arakawa B-Grid                                  | yes          | tripole            | Scalar Laplacian |                                          |
++--------------------------------+-----------------------------------------------------------------+--------------+--------------------+------------------+------------------------------------------+
 | ``TRIPOLAR_POP_WITH_LAND``     | locally orthogonal grid                                         | yes          | tripole            | Scalar Laplacian | :doc:`examples/example_tripole_grid`     |
 +--------------------------------+-----------------------------------------------------------------+--------------+--------------------+------------------+------------------------------------------+
 | ``VECTOR_C_GRID``              | `Arakawa C-Grid <https://en.wikipedia.org/wiki/Arakawa_grids>`_ | yes          | periodic           | Vector Laplacian | :doc:`examples/example_vector_laplacian` |
