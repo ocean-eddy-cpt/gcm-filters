@@ -399,6 +399,12 @@ def test_application_to_dataset():
         filtered_dataset.spatiotemporal.mean(dim=["y", "x"]),
     )
 
+    # Warnings should be raised if no fields were filtered
+    with pytest.warns(UserWarning, match=r".* nothing was filtered."):
+        filter.apply(dataset, ["foo", "bar"])
+    with pytest.warns(UserWarning, match=r".* nothing was filtered."):
+        filter.apply(dataset, ["yy", "x"])
+
 
 #################### Visosity-based filter tests ########################################
 @pytest.mark.parametrize(

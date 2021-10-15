@@ -423,8 +423,8 @@ class Filter:
                     any_filtered = True
             if not any_filtered:
                 warnings.warn(
-                    f"No fields in the dataset had all of the given dimensions"
-                    f"({dims}), so nothing could be filtered.",
+                    f"No fields in the dataset had all of the given dimensions "
+                    f"({dims}), so nothing was filtered.",
                     stacklevel=2,
                 )
             return filtered
