@@ -18,6 +18,5 @@ gcm_filters/_version.py
 docs/_build
 make.bat
 
-# text editors
-*.swp
-*.swo
+# vim swapfiles
+*.sw[a-z]
