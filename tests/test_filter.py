@@ -361,15 +361,15 @@ def test_application_to_dataset():
     # Create a dataset with both spatial and temporal variables
     dataset = xr.Dataset(
         data_vars=dict(
-            spatial=(("y", "x"), np.random.normal(size=(100,100))),
+            spatial=(("y", "x"), np.random.normal(size=(100, 100))),
             temporal=(("time",), np.random.normal(size=(10,))),
-            spatiotemporal=(("time", "y", "x"), np.random.normal(size=(10,100,100))),
+            spatiotemporal=(("time", "y", "x"), np.random.normal(size=(10, 100, 100))),
         ),
         coords=dict(
             time=np.linspace(0, 1, 10),
             x=np.linspace(0, 1e6, 100),
             y=np.linspace(0, 1e6, 100),
-        )
+        ),
     )
 
     # Filter it using a Gaussian filter
@@ -395,8 +395,8 @@ def test_application_to_dataset():
     # Spatially averaged spatiotemporal variables should be unchanged because
     # the filter shouldn't modify the temporal component
     xr.testing.assert_allclose(
-        dataset.spatiotemporal.mean(dim=['y','x']),
-        filtered_dataset.spatiotemporal.mean(dim=['y','x'])
+        dataset.spatiotemporal.mean(dim=["y", "x"]),
+        filtered_dataset.spatiotemporal.mean(dim=["y", "x"]),
     )
 
 
