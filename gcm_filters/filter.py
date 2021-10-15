@@ -416,9 +416,17 @@ class Filter:
         dimensions specified by dims."""
         if isinstance(field_or_dataset, xr.Dataset):
             filtered = field_or_dataset.copy(deep=True)
+            any_filtered = False
             for key, field in filtered.variables.items():
                 if all(dim in field.dims for dim in dims):
                     filtered[key] = self.apply_to_field(field, dims=dims)
+                    any_filtered = True
+            if not any_filtered:
+                warnings.warn(
+                    f"No fields in the dataset had all of the given dimensions"
+                    f"({dims}), so nothing could be filtered.",
+                    stacklevel=2,
+                )
             return filtered
         else:
             return self.apply_to_field(field_or_dataset, dims=dims)
