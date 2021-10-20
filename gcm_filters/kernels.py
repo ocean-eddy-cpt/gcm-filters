@@ -318,6 +318,7 @@ class MOM5LaplacianU(BaseScalarLaplacian):
     dyu: height in y of U-cell, model diagnostic dyu
     area_u: area of U-cell, dxu*dyu
     """
+
     wet_mask: ArrayType
     dxt: ArrayType
     dyt: ArrayType
