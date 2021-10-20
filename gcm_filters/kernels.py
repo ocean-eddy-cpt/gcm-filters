@@ -306,7 +306,7 @@ ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularLaplacianWithLandMask
 
 @dataclass
 class MOM5LaplacianU(BaseScalarLaplacian):
-    """Laplacian for MOM5 (tracer points).
+    """Laplacian for MOM5 (velocity points).
     MOM5 uses a Northeast convention B-grid, where velocity point U(i,j) is NE of tracer point T(i,j).
     For information on MOM5 discretization see: https://mom-ocean.github.io/assets/pdfs/MOM5_manual.pdf
     Attributes
@@ -332,7 +332,6 @@ class MOM5LaplacianU(BaseScalarLaplacian):
         self.y_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2)
 
     def __call__(self, field: ArrayType):
-        """Uses code by Elizabeth"""
         np = get_array_module()
         field = np.nan_to_num(field)
         fx = 2 * (np.roll(field, shift=-1, axis=-2) - field)
