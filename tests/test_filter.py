@@ -357,6 +357,55 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
             filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
 
 
+def test_application_to_dataset():
+    # Create a dataset with both spatial and temporal variables
+    dataset = xr.Dataset(
+        data_vars=dict(
+            spatial=(("y", "x"), np.random.normal(size=(100, 100))),
+            temporal=(("time",), np.random.normal(size=(10,))),
+            spatiotemporal=(("time", "y", "x"), np.random.normal(size=(10, 100, 100))),
+        ),
+        coords=dict(
+            time=np.linspace(0, 1, 10),
+            x=np.linspace(0, 1e6, 100),
+            y=np.linspace(0, 1e6, 100),
+        ),
+    )
+
+    # Filter it using a Gaussian filter
+    filter = Filter(
+        filter_scale=4,
+        dx_min=1,
+        filter_shape=FilterShape.GAUSSIAN,
+        grid_type=GridType.REGULAR,
+    )
+    filtered_dataset = filter.apply(dataset, ["y", "x"])
+
+    # Temporal variables should be unaffected because the filter is only
+    # applied over space
+    xr.testing.assert_allclose(dataset.temporal, filtered_dataset.temporal)
+
+    # Spatial variables should be changed
+    with pytest.raises(AssertionError):
+        xr.testing.assert_allclose(dataset.spatial, filtered_dataset.spatial)
+        xr.testing.assert_allclose(
+            dataset.spatiotemporal, filtered_dataset.spatiotemporal
+        )
+
+    # Spatially averaged spatiotemporal variables should be unchanged because
+    # the filter shouldn't modify the temporal component
+    xr.testing.assert_allclose(
+        dataset.spatiotemporal.mean(dim=["y", "x"]),
+        filtered_dataset.spatiotemporal.mean(dim=["y", "x"]),
+    )
+
+    # Warnings should be raised if no fields were filtered
+    with pytest.warns(UserWarning, match=r".* nothing was filtered."):
+        filter.apply(dataset, ["foo", "bar"])
+    with pytest.warns(UserWarning, match=r".* nothing was filtered."):
+        filter.apply(dataset, ["yy", "x"])
+
+
 #################### Visosity-based filter tests ########################################
 @pytest.mark.parametrize(
     "filter_args",
