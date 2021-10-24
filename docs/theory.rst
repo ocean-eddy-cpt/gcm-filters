@@ -106,6 +106,12 @@ Larger values for ``transition_width`` reduce the cost and the likelihood of pro
     @savefig wider_taper_shape.png
     wider_taper_filter.plot_shape()
 
+The Taper filter is similar to the `Lanczos filter <https://journals.ametsoc.org/view/journals/apme/18/8/1520-0450_1979_018_1016_lfioat_2_0_co_2.xml>`_.
+Both are 1 for a range of large scales and 0 for a range of small scales, with a transition in between.
+The difference is in the transition region: in the transition region the Lanczos filter is straight line connecting 1 and 0, while the Taper filter is a smoother cubic.
+The Lanczos filter is typically described in terms of its "half-power cutoff wavelength"; the Taper filter can be similarly described.
+The half-power cutoff wavelength for the Taper filter with a ``filter_scale`` of :math:`L` and a ``transition_width`` of :math:`X` is :math:`2LX/(X+1)`.
+
 
 Filter Steps
 ------------
