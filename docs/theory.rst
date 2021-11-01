@@ -8,7 +8,7 @@ Filter Theory
     import numpy as np
 
 The theory behind ``gcm-filters`` is described here at a high level.
-For a more detailed treatment, see `Grooms et al. (2021) <https://doi.org/10.1002/essoar.10506591.1>`_.
+For a more detailed treatment, see `Grooms et al. (2021) <https://doi.org/10.1029/2021MS002552>`_.
 
 Filter Scale and Shape
 ----------------------
@@ -218,7 +218,7 @@ The Laplacian steps are altered to
 
 and the Biharmonic steps are similarly altered by replacing :math:`\Delta` with :math:`\nabla\cdot(\kappa\nabla)`.
 With :math:`\kappa` the *local* filter scale is :math:`\sqrt{\kappa}\times` ``filter_scale``.
-For reasons given in `Grooms et al. (2021) <https://doi.org/10.1002/essoar.10506591.1>`_, we require :math:`\kappa\le 1`, and at least one place in the domain where :math:`\kappa = 1`.
+For reasons given in `Grooms et al. (2021) <https://doi.org/10.1029/2021MS002552>`_, we require :math:`\kappa\le 1`, and at least one place in the domain where :math:`\kappa = 1`.
 Thus, when using variable :math:`\kappa`, ``filter_scale`` sets the *largest* filter scale in the domain and the local filter scale can be reduced by making :math:`\kappa<1`.
 
 Suppose, for example, that you want the local filter scale to be :math:`L(x,y)`.
