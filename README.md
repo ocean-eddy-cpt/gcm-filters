@@ -18,7 +18,7 @@ Through integration with [dask](https://dask.org/), GCM-Filters enables parallel
 
 ### Installation
 
-GCM-Filters can be installed with `pip`:
+GCM-Filters can be installed with pip:
 
 ```shell
 pip install gcm_filters
