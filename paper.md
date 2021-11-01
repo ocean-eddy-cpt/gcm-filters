@@ -6,12 +6,54 @@ tags:
   - climate modeling
   - fluid dynamics
 authors:
-  - name: TBD
+  - name: Nora Loose
+    orcid: 0000-0002-3684-9634
     affiliation: 1
+  - name: Ryan Abernathey
+    orcid: 0000-0001-5999-4917
+    affiliation: 2
+  - name: Ian Grooms
+    orcid: 0000-0002-4678-7203
+    affiliation: 1
+  - name: Hemant Khatri
+    orcid: 0000-0001-6559-9059
+    affiliation: 3
+  - name: Gustavo Marques
+    orcid: 0000-0001-7238-0290
+    affiliation: 4
+  - name: Andrew Ross
+    orcid: 0000-0002-2368-6979
+    affiliation: 5
+  - name: Scott Bachman
+    orcid: 0000-0002-6479-4300
+    affiliation: 4
+  - name: Julius Busecke
+    orcid: 0000-0001-8571-865X
+    affiliation: 2
+  - name: Elizabeth Yankovsky
+    orcid: 0000-0003-3612-549X
+    affiliation: 5
+  - name: Laure Zanna
+    orcid: 0000-0002-8472-4828
+    affiliation: 5
+  - name: Arthur Barthe
+    orcid: 0000-0003-1571-4228
+    affiliation: 5
 affiliations:
-  - name: TBD
+  - name: Department of Applied Mathematics, University of Colorado Boulder, Boulder, CO, USA
     index: 1
-date: 16 June 2021
+  - name: Lamont-Doherty Earth Observatory, Columbia University, New York, NY, USA
+    index: 2
+  - name: Earth, Ocean and Ecological Sciences, University of Liverpool, UK
+    index: 3
+  - name: Climate and Global Dynamics Division, National Center for Atmospheric Research, Boulder, CO, USA
+    index: 4
+  - name: Courant Institute of Mathematical Sciences, New York University, New York, NY, USA
+    index: 5
+  - name: Woods Hole Oceanographic Institution, Woods Hole, MA, USA
+    index: 6
+
+date: 1 November 2021
 bibliography: paper.bib
 
 ---
