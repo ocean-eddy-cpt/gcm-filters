@@ -1,5 +1,6 @@
 ## GCM Filters
 
+[![codecov](https://codecov.io/gh/ocean-eddy-cpt/gcm-filters/branch/master/graph/badge.svg?token=ZKRiulYe68)](https://codecov.io/gh/ocean-eddy-cpt/gcm-filters)
 [![pre-commit](https://github.com/ocean-eddy-cpt/gcm-filters/workflows/pre-commit/badge.svg)](https://github.com/ocean-eddy-cpt/gcm-filters/actions?query=workflow%3Apre-commit)
 [![Tests](https://github.com/ocean-eddy-cpt/gcm-filters/workflows/Tests/badge.svg)](https://github.com/ocean-eddy-cpt/gcm-filters/actions?query=workflow%3ATests)
 [![Documentation Status](https://readthedocs.org/projects/gcm-filters/badge/?version=latest)](https://gcm-filters.readthedocs.io/en/latest/?badge=latest)
