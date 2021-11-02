@@ -26,6 +26,7 @@ Contents
    examples/example_tripole_grid
    examples/example_vector_laplacian
    examples/example_numerical_instability
+   examples/example_satellite_observations
    api
    how_to_contribute
 
