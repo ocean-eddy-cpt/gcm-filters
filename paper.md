@@ -80,9 +80,11 @@ Spatial filtering is commonly used as a scientific tool for analyzing gridded da
 3. Earth Science applications benefit from configurable filters, where the definition of filter scale and shape is flexible.
 4. GCM output is often too large to process in memory, requiring distributed and / or delayed execution.
 
-# Usage
-
 The `GCM-Filters` algorithm [@grooms2021diffusion] applies a discrete Laplacian to smooth a field through an iterative process that resembles diffusion. The discrete Laplacian takes into account the varying grid-cell geometry and uses a no-flux boundary condition, mimicking how diffusion is internally implemented in GCMs. The no-flux boundary conditions ensures that the filter preserves the integral: $\int_{\Omega} \bar{f}(x,y) \,dA = \int_{\Omega} f (x,y)\, dA$, where $f$ is the original field, $\bar{f}$ the filtered field, and $\Omega$ the ocean domain. Conservation of the integral is a desirable filter property for many physical quantities, for example energy or ocean salinity. More details on the filter properties can be found in @grooms2021diffusion.
+
+An important goal of `GCM-Filters` is to enable computationally efficient filtering. The user can employ `GCM-Filters` on either CPUs or GPUs, with `NumPy` [@harris2020array] or `CuPy` [@cupy2017learningsys] input data. `GCM-Filters` leverages `Dask` [@dask] and `Xarray` [@hoyer2017xarray] to support filtering of larger-than-memory datasets and computational flexibility.
+
+# Usage
 
 The main `GCM-Filters` class that the user will interface with is the `gcm_filters.Filter` object. When creating a filter object, the user specifies how they want to smooth their data, including the desired filter shape and filter scale. At this stage, the user also picks the grid type that matches their GCM data, given a predefined list of grid types. Each grid type has an associated discrete Laplacian, and requires different *grid variables* that the user must provide (the latter are usually available to the user as part of the GCM output). Currently, `GCM-Filters` provides a number of different grid types and associated discrete Laplacians:
 
@@ -90,8 +92,6 @@ The main `GCM-Filters` class that the user will interface with is the `gcm_filte
 * Grid types with **vector Laplacians** that can be used for filtering vector fields, for example horizontal velocity $(u,v)$. The currently implemented grid type is compatible with ocean GCM grids that use an Arakawa C-grid convention; examples include MOM6 [@adcroft2019MOM6] and the MITgcm [@mitgcm].
 
 Atmospheric model grids are not yet supported, but could be implemented within the `GCM-Filters` package. Users are encouraged to contribute more grid types and Laplacians via pull requests.
-
-Finally, an important goal of `GCM-Filters` is to enable computationally efficient filtering. The user can employ `GCM-Filters` on either CPUs or GPUs, with `NumPy` [@harris2020array] or `CuPy` [@cupy2017learningsys] input data. `GCM-Filters` leverages `Dask` [@dask] and `Xarray` [@hoyer2017xarray] to support filtering of larger-than-memory datasets and computational flexibility.
 
 # Acknowledgements
 
