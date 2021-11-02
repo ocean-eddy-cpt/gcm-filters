@@ -30,7 +30,7 @@ authors:
   - name: Jacob Steinberg
     orcid: 0000-0002-2609-6405
     affiliation: 5
-  - name: Andrew Ross
+  - name: Andrew Slavin Ross
     orcid: 0000-0002-2368-6979
     affiliation: 3
   - name: Hemant Khatri
@@ -96,5 +96,6 @@ Atmospheric model grids are not yet supported, but could be implemented within t
 # Acknowledgements
 
 This work was supported by the National Science Foundation grants OCE 1912302, OCE 1912325, OCE 1912332, OCE 1912420, GEO 1912357, and the NOAA grant CVP NA19OAR4310364.
+Busecke received support from the Gordon and Betty Moore Foundation.
 
 # References
