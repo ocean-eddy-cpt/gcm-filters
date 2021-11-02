@@ -15,42 +15,45 @@ authors:
   - name: Ian Grooms
     orcid: 0000-0002-4678-7203
     affiliation: 1
-  - name: Hemant Khatri
-    orcid: 0000-0001-6559-9059
+  - name: Julius Busecke
+    orcid: 0000-0001-8571-865X
+    affiliation: 2
+  - name: Arthur Barthe
+    orcid: 0000-0003-1571-4228
+    affiliation: 3
+  - name: Elizabeth Yankovsky
+    orcid: 0000-0003-3612-549X
     affiliation: 3
   - name: Gustavo Marques
     orcid: 0000-0001-7238-0290
     affiliation: 4
+  - name: Jacob Steinberg
+    orcid: 0000-0002-2609-6405
+    affiliation: 5
   - name: Andrew Ross
     orcid: 0000-0002-2368-6979
-    affiliation: 5
+    affiliation: 3
+  - name: Hemant Khatri
+    orcid: 0000-0001-6559-9059
+    affiliation: 6
   - name: Scott Bachman
     orcid: 0000-0002-6479-4300
     affiliation: 4
-  - name: Julius Busecke
-    orcid: 0000-0001-8571-865X
-    affiliation: 2
-  - name: Elizabeth Yankovsky
-    orcid: 0000-0003-3612-549X
-    affiliation: 5
   - name: Laure Zanna
     orcid: 0000-0002-8472-4828
-    affiliation: 5
-  - name: Arthur Barthe
-    orcid: 0000-0003-1571-4228
-    affiliation: 5
+    affiliation: 3
 affiliations:
   - name: Department of Applied Mathematics, University of Colorado Boulder, Boulder, CO, USA
     index: 1
   - name: Lamont-Doherty Earth Observatory, Columbia University, New York, NY, USA
     index: 2
-  - name: Earth, Ocean and Ecological Sciences, University of Liverpool, UK
+  - name: Courant Institute of Mathematical Sciences, New York University, New York, NY, USA
     index: 3
   - name: Climate and Global Dynamics Division, National Center for Atmospheric Research, Boulder, CO, USA
     index: 4
-  - name: Courant Institute of Mathematical Sciences, New York University, New York, NY, USA
-    index: 5
   - name: Woods Hole Oceanographic Institution, Woods Hole, MA, USA
+    index: 5
+  - name: Earth, Ocean and Ecological Sciences, University of Liverpool, UK
     index: 6
 
 date: 1 November 2021
