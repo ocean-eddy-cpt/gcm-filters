@@ -8,7 +8,7 @@ Filter Theory
     import numpy as np
 
 The theory behind ``gcm-filters`` is described here at a high level.
-For a more detailed treatment, see `Grooms et al. (2021) <https://doi.org/10.1002/essoar.10506591.1>`_.
+For a more detailed treatment, see `Grooms et al. (2021) <https://doi.org/10.1029/2021MS002552>`_.
 
 Filter Scale and Shape
 ----------------------
@@ -105,6 +105,12 @@ Larger values for ``transition_width`` reduce the cost and the likelihood of pro
 
     @savefig wider_taper_shape.png
     wider_taper_filter.plot_shape()
+
+.. note:: The Taper filter is similar to the `Lanczos filter <https://journals.ametsoc.org/view/journals/apme/18/8/1520-0450_1979_018_1016_lfioat_2_0_co_2.xml>`_.
+    Both are 1 for a range of large scales and 0 for a range of small scales, with a transition in between.
+    The difference is in the transition region: in the transition region the Lanczos filter is straight line connecting 1 and 0, while the Taper filter is a smoother cubic.
+    The Lanczos filter is typically described in terms of its "half-power cutoff wavelength"; the Taper filter can be similarly described.
+    The half-power cutoff wavelength for the Taper filter with a ``filter_scale`` of :math:`L` and a ``transition_width`` of :math:`X` is :math:`2LX/(X+1)`.
 
 
 Filter Steps
@@ -212,7 +218,7 @@ The Laplacian steps are altered to
 
 and the Biharmonic steps are similarly altered by replacing :math:`\Delta` with :math:`\nabla\cdot(\kappa\nabla)`.
 With :math:`\kappa` the *local* filter scale is :math:`\sqrt{\kappa}\times` ``filter_scale``.
-For reasons given in `Grooms et al. (2021) <https://doi.org/10.1002/essoar.10506591.1>`_, we require :math:`\kappa\le 1`, and at least one place in the domain where :math:`\kappa = 1`.
+For reasons given in `Grooms et al. (2021) <https://doi.org/10.1029/2021MS002552>`_, we require :math:`\kappa\le 1`, and at least one place in the domain where :math:`\kappa = 1`.
 Thus, when using variable :math:`\kappa`, ``filter_scale`` sets the *largest* filter scale in the domain and the local filter scale can be reduced by making :math:`\kappa<1`.
 
 Suppose, for example, that you want the local filter scale to be :math:`L(x,y)`.

@@ -23,6 +23,8 @@ _grid_kwargs = {
         "kappa_w",
         "kappa_s",
     ],
+    GridType.MOM5U: ["wet_mask", "dxt", "dyt", "dxu", "dyu", "area_u"],
+    GridType.MOM5T: ["wet_mask", "dxt", "dyt", "dxu", "dyu", "area_t"],
     GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED: ["wet_mask", "area"],
     GridType.TRIPOLAR_POP_WITH_LAND: ["wet_mask", "dxe", "dye", "dxn", "dyn", "tarea"],
 }

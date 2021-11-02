@@ -6,12 +6,19 @@ Requirements
 
 GCM-Filters is compatible with python 3. It requires xarray_, numpy_, and dask_.
 
-Installation from Pip
+Installation from conda forge
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+GCM-Filters can be installed via conda forge::
+
+    conda install -c conda-forge gcm_filters
+
+Installation from pip
 ^^^^^^^^^^^^^^^^^^^^^
 
-GCM-Filters can be installed with pip::
+GCM-Filters can also be installed with pip::
 
-    pip install gcm-filters
+    pip install gcm_filters
 
 This will install the latest release from
 `pypi <https://pypi.python.org/pypi>`_.

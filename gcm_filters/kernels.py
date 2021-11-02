@@ -18,6 +18,8 @@ GridType = enum.Enum(
         "REGULAR_WITH_LAND",
         "REGULAR_WITH_LAND_AREA_WEIGHTED",
         "IRREGULAR_WITH_LAND",
+        "MOM5U",
+        "MOM5T",
         "TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED",
         "TRIPOLAR_POP_WITH_LAND",
         "VECTOR_C_GRID",
@@ -210,7 +212,14 @@ ALL_KERNELS[
 
 @dataclass
 class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
-    """̵Scalar Laplacian for locally orthogonal grids with land mask.
+
+    """Scalar Laplacian for locally orthogonal grids with land mask.
+       It is possible to vary the filter scale over the domain by
+       introducing a nondimensional "diffusivity" (attributes kappa_w and kappa_s).
+       For reasons given in Grooms et al. (2021) https://doi.org/10.1002/essoar.10506591.1,
+       we require that both kappa_w and kappa_s values must be <= 1 and that at least one
+       of them is set to 1 somewhere in the domain. Otherwise the scale of the filter will
+       not be equal to filter_scale anywhere in the domain.
 
     Attributes
     ----------
@@ -220,8 +229,11 @@ class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
     dxs: x-spacing centered at southern cell edge
     dys: y-spacing centered at southern cell edge
     area: cell area
-    kappa_w:  zonal diffusivity centered at western cell edge
-    kappa_s:  zonal diffusivity centered at southern cell edge
+    kappa_w: zonal diffusivity centered at western cell edge, values must be <= 1, and at
+             least one place in the domain must have kappa_w = 1 if kappa_s < 1.
+
+    kappa_s: meridional diffusivity centered at southern cell edge, values must be <= 1, and at
+             least one place in the domain must have kappa_s = 1 if kappa_w < 1.
     """
 
     wet_mask: ArrayType
@@ -235,6 +247,24 @@ class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
 
     def __post_init__(self):
         np = get_array_module(self.wet_mask)
+
+        if np.any(self.kappa_w > 1.0):
+            raise ValueError(
+                f"There are kappa_w values > 1 and this can cause the filter to blow up."
+                f"Please make sure all kappa_w are <=1."
+            )
+
+        if np.any(self.kappa_s > 1.0):
+            raise ValueError(
+                f"There are kappa_s values > 1 and this can cause the filter to blow up."
+                f"Please make sure all kappa_s are <=1."
+            )
+
+        if not (np.any(self.kappa_w == 1.0) or np.any(self.kappa_s == 1.0)):
+            raise ValueError(
+                f"At least one place in the domain must have either kappa_w = 1.0 or kappa_s = 1."
+                f"Otherwise the filter's scale will not be equal to filter_scale anywhere in the domain."
+            )
 
         # derive wet mask for western cell edge from wet_mask at T points via
         # w_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j,i-1)
@@ -272,6 +302,116 @@ class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
 
 
 ALL_KERNELS[GridType.IRREGULAR_WITH_LAND] = IrregularLaplacianWithLandMask
+
+
+@dataclass
+class MOM5LaplacianU(BaseScalarLaplacian):
+    """Laplacian for MOM5 (velocity points).
+    MOM5 uses a Northeast convention B-grid, where velocity point U(i,j) is NE of tracer point T(i,j).
+    For information on MOM5 discretization see: https://mom-ocean.github.io/assets/pdfs/MOM5_manual.pdf
+    Attributes
+    __________
+    wet_mask: Mask array, 1 for ocean, 0 for land
+    dxt: width in x of T-cell, model diagnostic dxt
+    dyt: height in y of T-cell, model diagnostic dyt
+    dxu: width in x of U-cell, model diagnostic dxu
+    dyu: height in y of U-cell, model diagnostic dyu
+    area_u: area of U-cell, dxu*dyu
+    """
+
+    wet_mask: ArrayType
+    dxt: ArrayType
+    dyt: ArrayType
+    dxu: ArrayType
+    dyu: ArrayType
+    area_u: ArrayType
+
+    def __post_init__(self):
+        np = get_array_module(self.wet_mask)
+
+        self.x_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-1)
+        self.y_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2)
+
+    def __call__(self, field: ArrayType):
+        np = get_array_module()
+        field = np.nan_to_num(field)
+        fx = 2 * (np.roll(field, shift=-1, axis=-2) - field)
+        fx /= np.roll(self.dxt, -1, axis=-2) + np.roll(self.dxt, (-1, -1), axis=(0, 1))
+        fy = 2 * (np.roll(field, shift=-1, axis=-1) - field)
+        fy /= np.roll(self.dyt, -1, axis=-1) + np.roll(self.dyt, (-1, -1), axis=(0, 1))
+        fx *= self.x_wet_mask
+        fy *= self.y_wet_mask
+
+        out1 = 0.5 * fx * (self.dyu + np.roll(self.dyu, -1, axis=-2))
+        out1 -= (
+            0.5 * np.roll(fx, 1, axis=-2) * (self.dyu + np.roll(self.dyu, 1, axis=-2))
+        )
+        out1 /= self.area_u
+
+        out2 = 0.5 * fy * (self.dxu + np.roll(self.dxu, -1, axis=-1))
+        out2 -= (
+            0.5 * np.roll(fy, 1, axis=-1) * (self.dxu + np.roll(self.dxu, 1, axis=-1))
+        )
+        out2 /= self.area_u
+        return out1 + out2
+
+
+ALL_KERNELS[GridType.MOM5U] = MOM5LaplacianU
+
+
+@dataclass
+class MOM5LaplacianT(BaseScalarLaplacian):
+    """Laplacian for MOM5 (tracer points).
+    MOM5 uses a Northeast convention B-grid, where velocity point U(i,j) is NE of tracer point T(i,j).
+    Attributes
+    __________
+    For information on MOM5 discretization see: https://mom-ocean.github.io/assets/pdfs/MOM5_manual.pdf
+    wet_mask: Mask array, 1 for ocean, 0 for land
+    dxt: width in x of T-cell, model diagnostic dxt
+    dyt: height in y of T-cell, model diagnostic dyt
+    dxu: width in x of U-cell, model diagnostic dxu
+    dyu: height in y of U-cell, model diagnostic dyu
+    area_t: area of T-cell, dxt*dyt
+    """
+
+    wet_mask: ArrayType
+    dxt: ArrayType
+    dyt: ArrayType
+    dxu: ArrayType
+    dyu: ArrayType
+    area_t: ArrayType
+
+    def __post_init__(self):
+        np = get_array_module(self.wet_mask)
+
+        self.x_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-1)
+        self.y_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2)
+
+    def __call__(self, field):
+        np = get_array_module(field)
+        field = np.nan_to_num(field)
+        fx = 2 * (np.roll(field, -1, axis=-2) - field)
+        fx /= self.dxu + np.roll(self.dxu, 1, axis=-1)
+        fy = 2 * (np.roll(field, -1, axis=-1) - field)
+        fy /= self.dyu + np.roll(self.dyu, 1, axis=-2)
+        fx *= self.x_wet_mask
+        fy *= self.y_wet_mask
+
+        out1 = fx * 0.5 * (self.dyt + np.roll(self.dyt, -1, axis=-2))
+        out1 -= (
+            np.roll(fx, 1, axis=-2) * 0.5 * (self.dyt + np.roll(self.dyt, 1, axis=-2))
+        )
+        out1 /= self.area_t
+
+        out2 = fy * 0.5 * (self.dxt + np.roll(self.dxt, -1, axis=-1))
+        out2 -= (
+            np.roll(fy, 1, axis=-1) * 0.5 * (self.dxt + np.roll(self.dxt, 1, axis=-1))
+        )
+        out2 /= self.area_t
+        return out1 + out2
+
+
+ALL_KERNELS[GridType.MOM5T] = MOM5LaplacianT
 
 
 @dataclass
@@ -335,7 +475,6 @@ ALL_KERNELS[
 @dataclass
 class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
     """̵Scalar Laplacian for locally orthogonal grid with land mask and tripole boundary condition, as for example used in the global POP configuration. This Laplacian works for scalar fields located at T-points.
-
     Attributes
     ----------
     wet_mask: Mask array, 1 for ocean, 0 for land; can be obtained via xr.where(KMT>0, 1, 0)
