@@ -1,5 +1,5 @@
 ---
-title: 'GCM-Filters: A Python package for Diffusion-based Spatial Filtering of Gridded Data from General Circulation Models'
+title: 'GCM-Filters: A Python package for Diffusion-based Spatial Filtering of Gridded Data'
 tags:
   - Python
   - ocean modeling
