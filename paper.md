@@ -97,6 +97,5 @@ Atmospheric model grids are not yet supported, but could be implemented within t
 
 This work was supported by the National Science Foundation grants OCE 1912302, OCE 1912325, OCE 1912332, OCE 1912420, GEO 1912357, and the NOAA grant CVP NA19OAR4310364.
 Busecke received support from the Gordon and Betty Moore Foundation.
-Busecke received support from the Gordon and Betty Moore Foundation.
 
 # References
