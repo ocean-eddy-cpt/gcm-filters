@@ -42,6 +42,6 @@ Report bugs, suggest features or view the source code on [GitHub](https://github
 
 ## License and copyright
 
-GCM-Filters is licensed under BSD 3-Clause "New" or "Revised" License (BSD-3-Clause).
+GCM-Filters is licensed under version 3 of the Gnu Lesser General Public License.
 
 Development occurs on GitHub at <https://github.com/ocean-eddy-cpt/gcm-filters>.
