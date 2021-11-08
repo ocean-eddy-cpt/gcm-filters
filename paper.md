@@ -82,7 +82,7 @@ Spatial filtering is commonly used as a scientific tool for analyzing gridded da
 
 The `GCM-Filters` algorithm [@grooms2021diffusion] applies a discrete Laplacian to smooth a field through an iterative process that resembles diffusion. The discrete Laplacian takes into account the varying grid-cell geometry and uses a no-flux boundary condition, mimicking how diffusion is internally implemented in GCMs. The no-flux boundary conditions ensures that the filter preserves the integral: $\int_{\Omega} \bar{f}(x,y) \,dA = \int_{\Omega} f (x,y)\, dA$, where $f$ is the original field, $\bar{f}$ the filtered field, and $\Omega$ the ocean domain. Conservation of the integral is a desirable filter property for many physical quantities, for example energy or ocean salinity. More details on the filter properties can be found in @grooms2021diffusion.
 
-An important goal of `GCM-Filters` is to enable computationally efficient filtering. The user can employ `GCM-Filters` on either CPUs or GPUs, with `NumPy` [@harris2020array] or `CuPy` [@cupy2017learningsys] input data. `GCM-Filters` leverages `Dask` [@rocklin_dask_2015] and `Xarray` [@hoyer2017xarray] to support filtering of larger-than-memory datasets and computational flexibility.
+An important goal of `GCM-Filters` is to enable computationally efficient filtering. The user can employ `GCM-Filters` on either CPUs or GPUs, with `NumPy` [@harris2020array] or `CuPy` [@cupy2017learningsys] input data. `GCM-Filters` leverages `Dask` [@dask] and `Xarray` [@hoyer2017xarray] to support filtering of larger-than-memory datasets and computational flexibility.
 
 # Usage
 
