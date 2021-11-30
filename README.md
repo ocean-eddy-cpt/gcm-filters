@@ -6,6 +6,7 @@
 [![Documentation Status](https://readthedocs.org/projects/gcm-filters/badge/?version=latest)](https://gcm-filters.readthedocs.io/en/latest/?badge=latest)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/gcm_filters.svg)](https://anaconda.org/conda-forge/gcm_filters)
 [![PyPI version](https://badge.fury.io/py/gcm-filters.svg)](https://badge.fury.io/py/gcm-filters)
+[![status](https://joss.theoj.org/papers/bc8ad806627f0d754347686e21f00d40/status.svg)](https://joss.theoj.org/papers/bc8ad806627f0d754347686e21f00d40)
 
 GCM-Filters: Diffusion-based Spatial Filtering of Gridded Data
 
