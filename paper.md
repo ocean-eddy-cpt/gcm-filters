@@ -98,5 +98,6 @@ While we are excited to share GCM-Filters in its current beta state at version `
 
 This work was supported by the National Science Foundation grants OCE 1912302, OCE 1912325, OCE 1912332, OCE 1912420, GEO 1912357, and the NOAA grant CVP NA19OAR4310364.
 Busecke received support from the Gordon and Betty Moore Foundation.
+This research is supported in part by the generosity of Eric and Wendy Schmidt by recommendation of Schmidt Futures, as part of its Virtual Earth System Research Institute (VESRI).
 
 # References
