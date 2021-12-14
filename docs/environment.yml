@@ -1,4 +1,4 @@
-name: gcm-filters-docs
+name: gcm-filters-test
 channels:
   - conda-forge
 dependencies:
@@ -21,9 +21,8 @@ dependencies:
   - myst-parser
   - myst-nb
   - sphinxcontrib-srclinks
-  - cupy
   - intake
   - intake-xarray
   - s3fs
   - cartopy
-  #- pooch>=1.5.0
+  - pooch>=1.5.0
