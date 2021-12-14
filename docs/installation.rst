@@ -13,6 +13,11 @@ GCM-Filters can be installed via conda forge::
 
     conda install -c conda-forge gcm_filters
 
+If you want to run the example notebooks in this documentation, you will need a few extra dependencies that you can install via::
+
+    conda install -c conda-forge gcm_filters[examples]
+
+
 Installation from pip
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -22,6 +27,11 @@ GCM-Filters can also be installed with pip::
 
 This will install the latest release from
 `pypi <https://pypi.python.org/pypi>`_.
+
+The following command will install optional dependencies that are necessary to run the example notebooks in this documentation::
+
+    pip install gcm_filters[examples]
+
 
 Installation from GitHub
 ^^^^^^^^^^^^^^^^^^^^^^^^
