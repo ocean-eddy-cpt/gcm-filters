@@ -21,7 +21,7 @@ Bug reports that follow these guidelines are easier to diagnose, and so are ofte
 
 **What you expected to happen**:
 
-**Minimal Complete Verifiable Example**:
+**Minimal Complete Verifiable Example (MCVE)**:
 
 ```python
 # Put your MCVE code here
