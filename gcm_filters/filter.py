@@ -411,7 +411,7 @@ class Filter:
         ax.grid(True)
         ax.legend()
 
-    def apply(self, field_or_dataset, dims):
+    def apply(self, dataarray_or_dataset, dims):
         """Filter an `xarray.DataArray` or `xarray.Dataset`
         with a scalar Laplacian across the dimensions specified by `dims`."""
         if issubclass(self.Laplacian, BaseVectorLaplacian):
@@ -420,25 +420,26 @@ class Filter:
                 f"The ``.apply`` method is only suitable for scalar Laplacians."
             )
 
-        if isinstance(field_or_dataset, xr.Dataset):
-            filtered = field_or_dataset.copy(deep=True)
+        if isinstance(dataarray_or_dataset, xr.Dataset):
+            filtered = dataarray_or_dataset.copy(deep=True)
             any_filtered = False
-            for key, field in filtered.variables.items():
-                if all(dim in field.dims for dim in dims):
-                    filtered[key] = self._apply_to_dataarray(field, dims=dims)
+            for key, var in filtered.variables.items():
+                if all(dim in var.dims for dim in dims):
+                    filtered[key] = self._apply_to_dataarray(var, dims=dims)
                     any_filtered = True
             if not any_filtered:
                 warnings.warn(
-                    f"No fields in the dataset had all of the given dimensions "
-                    f"({dims}), so nothing was filtered.",
+                    f"No variables in the dataset had all of the given "
+                    f"dimensions ({dims}), so nothing was filtered.",
                     stacklevel=2,
                 )
             return filtered
         else:
-            return self._apply_to_dataarray(field_or_dataset, dims=dims)
+            return self._apply_to_dataarray(dataarray_or_dataset, dims=dims)
 
     def _apply_to_dataarray(self, field, dims):
-        """Filter a field with scalar Laplacian across the dimensions specified by dims."""
+        """Filter an `xarray.DataArray` field with scalar Laplacian across the
+        dimensions specified by dims."""
         filter_func = _create_filter_func(self.filter_spec, self.Laplacian)
         grid_args = [self.grid_ds[name] for name in self.Laplacian.required_grid_args()]
         assert len(dims) == 2
