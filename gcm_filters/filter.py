@@ -412,7 +412,7 @@ class Filter:
         ax.legend()
 
     def apply(self, field_or_dataset, dims):
-        """Filter a `field_or_dataset` (`xarray.DataArray` or `xarray.Dataset`)
+        """Filter an `xarray.DataArray` or `xarray.Dataset`
         with a scalar Laplacian across the dimensions specified by `dims`."""
         if issubclass(self.Laplacian, BaseVectorLaplacian):
             raise ValueError(
@@ -425,7 +425,7 @@ class Filter:
             any_filtered = False
             for key, field in filtered.variables.items():
                 if all(dim in field.dims for dim in dims):
-                    filtered[key] = self._apply_to_field(field, dims=dims)
+                    filtered[key] = self._apply_to_dataarray(field, dims=dims)
                     any_filtered = True
             if not any_filtered:
                 warnings.warn(
@@ -435,9 +435,9 @@ class Filter:
                 )
             return filtered
         else:
-            return self._apply_to_field(field_or_dataset, dims=dims)
+            return self._apply_to_dataarray(field_or_dataset, dims=dims)
 
-    def _apply_to_field(self, field, dims):
+    def _apply_to_dataarray(self, field, dims):
         """Filter a field with scalar Laplacian across the dimensions specified by dims."""
         filter_func = _create_filter_func(self.filter_spec, self.Laplacian)
         grid_args = [self.grid_ds[name] for name in self.Laplacian.required_grid_args()]
