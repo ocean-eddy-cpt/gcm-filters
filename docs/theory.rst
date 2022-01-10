@@ -200,9 +200,10 @@ The usual manifestation of these roundoff errors is high-amplitude small-scale n
     In such cases, the user has a few options to try to regain stability.
 
     1. If the data being filtered is single-precision, it might help to promote it to double precision (or higher) before filtering.
-    2. The user can also try reducing ``n_steps``, but must not reduce it too much or the resulting filter will not behave as expected.
-    3. Users might elect to *coarsen* their data before filtering, i.e. to reduce the resolution of the input data before applying the filter. This has the effect of increasing the grid size, and thus decreasing the gap between the filter scale and the grid scale.
-    4. The final option is simply to use a different approach to filtering, not based on ``gcm-filters``.
+    2. Applying a Gaussian filter with ``filter_scale`` .math.:`L` twice is the same as applying a Gaussian filter with ``filter_scale`` .math.:`\sqrt{2} L` once. More generally, one can break a single large-scale Gaussian filter up into several Gaussian filters each of which has a smaller filter scale. The Filter class has an argument ``n_iterations`` that will automatically split a Gaussian filter into a sequence of smaller filters, each of which is less sensitive to roundoff errors. If a user is encountering instability with the standard Gaussian filter, the user can try setting ``n_iterations`` to an integer greater than 1. The user should input their desired filter scale, and then the code will automatically adjust it to reflect the scale of the smaller constituent filters. Applying the Taper filter twice is not equivalent to applying it once with a different scale, so this method only works for the Gaussian filter.
+    3. The user can also try reducing ``n_steps``, but must not reduce it too much or the resulting filter will not behave as expected.
+    4. Users might elect to *coarsen* their data before filtering, i.e. to reduce the resolution of the input data before applying the filter. This has the effect of increasing the grid size, and thus decreasing the gap between the filter scale and the grid scale.
+    5. The final option is simply to use a different approach to filtering, not based on ``gcm-filters``.
 
 :doc:`examples/example_numerical_instability` has an example of numerical instability, as well as examples of avoiding the instability by increasing the precision and coarsening the data.
 
