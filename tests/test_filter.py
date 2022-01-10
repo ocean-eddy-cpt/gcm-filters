@@ -16,6 +16,7 @@ def _check_equal_filter_spec(spec1, spec2):
     assert (spec1.is_laplacian == spec2.is_laplacian).all()
     assert spec1.s_max == spec2.s_max
     np.testing.assert_allclose(spec1.p, spec2.p, rtol=1e-07, atol=1e-07)
+    assert spec1.n_iterations == spec2.n_iterations
 
 
 # These values were just hard copied from my dev environment.
@@ -74,6 +75,7 @@ def _check_equal_filter_spec(spec1, spec2):
                     0.00995974,
                     -0.00454758,
                 ],
+                n_iterations=1,
             ),
         ),
         (
@@ -103,6 +105,7 @@ def _check_equal_filter_spec(spec1, spec2):
                     -0.00495532,
                     0.00168445,
                 ],
+                n_iterations=1,
             ),
         ),
     ],
@@ -294,7 +297,15 @@ def vector_grid_type_and_input_ds(request):
 #################### Diffusion-based filter tests ########################################
 @pytest.mark.parametrize(
     "filter_args",
-    [dict(filter_scale=3.0, dx_min=1.0, n_steps=0, filter_shape=FilterShape.GAUSSIAN)],
+    [
+        dict(
+            filter_scale=3.0,
+            dx_min=1.0,
+            n_steps=0,
+            filter_shape=FilterShape.GAUSSIAN,
+            n_iterations=1,
+        )
+    ],
 )
 def test_diffusion_filter(grid_type_and_input_ds, filter_args):
     """Test all diffusion-based filters: filters that use a scalar Laplacian."""
@@ -331,12 +342,23 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
             )
 
     bad_filter_args = copy.deepcopy(filter_args)
+    # check that we get an error when n_iterations < 1
+    bad_filter_args["n_iterations"] = 0
+    with pytest.raises(ValueError, match=r"Number of filters .*"):
+        filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
+    # check that we get an error when n_iterations > 1 with Taper
+    bad_filter_args["n_iterations"] = 2
+    bad_filter_args["filter_shape"] = FilterShape.TAPER
+    with pytest.raises(ValueError, match=r"n_iterations must be .*"):
+        filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
+    bad_filter_args["n_iterations"] = 1
+    bad_filter_args["filter_shape"] = FilterShape.GAUSSIAN
     # check that we get an error when transition_width <= 1
     bad_filter_args["transition_width"] = 1
     with pytest.raises(ValueError, match=r"Transition width .*"):
         filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
-    # check that we get an error if ndim > 2 and n_steps = 0
     bad_filter_args["transition_width"] = np.pi
+    # check that we get an error if ndim > 2 and n_steps = 0
     bad_filter_args["ndim"] = 3
     bad_filter_args["n_steps"] = 0
     with pytest.raises(ValueError, match=r"When ndim > 2, you .*"):
