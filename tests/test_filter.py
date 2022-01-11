@@ -344,7 +344,7 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
     bad_filter_args = copy.deepcopy(filter_args)
     # check that we get an error when n_iterations < 1
     bad_filter_args["n_iterations"] = 0
-    with pytest.raises(ValueError, match=r"Number of filters .*"):
+    with pytest.raises(ValueError, match=r"Number of intermediate .*"):
         filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
     # check that we get an error when n_iterations > 1 with Taper
     bad_filter_args["n_iterations"] = 2

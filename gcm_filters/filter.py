@@ -330,7 +330,7 @@ class Filter:
         # Check for n_iterations is < 1
         if self.n_iterations < 1:
             raise ValueError(
-                f"Number of filters into which the Gaussian is factored must be >= 1."
+                f"Number of intermediate filters into which the final filter is factored must be >= 1."
             )
 
         # Check for n_iterations != 1 with Taper
