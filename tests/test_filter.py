@@ -405,6 +405,24 @@ def test_application_to_dataset():
     )
     filtered_dataset = filter.apply(dataset, ["y", "x"])
 
+    # test iterated version of the Gaussian filter
+    filter_n2 = Filter(
+        filter_scale=4,
+        dx_min=1,
+        filter_shape=FilterShape.GAUSSIAN,
+        grid_type=GridType.REGULAR,
+        n_iterations=2,
+    )
+    filtered_dataset_n2 = filter_n2.apply(dataset, ["y", "x"])
+    # The following tests whether a relative error bound in L^2 holds.
+    # If the polynomial approximations are accurate to within 0.01,
+    # then the precise bound would have 0.0301 ** 2 instead of 0.04 ** 2.
+    # Bumped up because the default n_steps is not guaranteed to give
+    # error less than *exactly* 0.01; just quite close.
+    assert ((filtered_dataset.spatial - filtered_dataset_n2.spatial) ** 2).sum() < (
+        0.04 ** 2
+    ) * (filtered_dataset.spatial ** 2).sum()
+
     # Temporal variables should be unaffected because the filter is only
     # applied over space
     xr.testing.assert_allclose(dataset.temporal, filtered_dataset.temporal)
