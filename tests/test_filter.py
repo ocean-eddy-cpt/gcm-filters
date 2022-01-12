@@ -405,24 +405,6 @@ def test_application_to_dataset():
     )
     filtered_dataset = filter.apply(dataset, ["y", "x"])
 
-    # test iterated version of the Gaussian filter
-    filter_n2 = Filter(
-        filter_scale=4,
-        dx_min=1,
-        filter_shape=FilterShape.GAUSSIAN,
-        grid_type=GridType.REGULAR,
-        n_iterations=2,
-    )
-    filtered_dataset_n2 = filter_n2.apply(dataset, ["y", "x"])
-    # The following tests whether a relative error bound in L^2 holds.
-    # If the polynomial approximations are accurate to within 0.01,
-    # then the precise bound would have 0.0301 ** 2 instead of 0.04 ** 2.
-    # Bumped up because the default n_steps is not guaranteed to give
-    # error less than *exactly* 0.01; just quite close.
-    assert ((filtered_dataset.spatial - filtered_dataset_n2.spatial) ** 2).sum() < (
-        0.04 ** 2
-    ) * (filtered_dataset.spatial ** 2).sum()
-
     # Temporal variables should be unaffected because the filter is only
     # applied over space
     xr.testing.assert_allclose(dataset.temporal, filtered_dataset.temporal)
@@ -446,6 +428,50 @@ def test_application_to_dataset():
         filter.apply(dataset, ["foo", "bar"])
     with pytest.warns(UserWarning, match=r".* nothing was filtered."):
         filter.apply(dataset, ["yy", "x"])
+
+
+@pytest.mark.parametrize(
+    "filter_args",
+    [
+        dict(
+            filter_scale=8.0,
+            dx_min=1.0,
+            n_steps=0,
+            filter_shape=FilterShape.GAUSSIAN,
+            n_iterations=1,
+        )
+    ],
+)
+def test_iterated_filter(grid_type_and_input_ds, filter_args):
+    "Some description of the test"
+
+    grid_type, da, grid_vars = grid_type_and_input_ds
+
+    iterated_filter_args = filter_args.copy()
+    iterated_filter_args["n_iterations"] = 2
+
+    filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **filter_args)
+    iterated_filter = Filter(
+        grid_type=grid_type, grid_vars=grid_vars, **iterated_filter_args
+    )
+
+    filtered = filter.apply(da, dims=["y", "x"])
+    iteratively_filtered = iterated_filter.apply(da, dims=["y", "x"])
+
+    area = 1
+    for k, v in grid_vars.items():
+        if "area" in k:
+            area = v
+            break
+
+    # The following tests whether a relative error bound in L^2 holds.
+    # If the polynomial approximations are accurate to within 0.01,
+    # then the precise bound would have 0.0301 ** 2 instead of 0.04 ** 2.
+    # Bumped up because the default n_steps is not guaranteed to give
+    # error less than *exactly* 0.01; just quite close.
+    assert (((filtered - iteratively_filtered) ** 2) * area).sum() < (0.04 ** 2) * (
+        (filtered ** 2) * area
+    ).sum()
 
 
 #################### Visosity-based filter tests ########################################
