@@ -253,13 +253,13 @@ and the squared norm of this asymptotic approximation is exactly
 The default choice of ``n_steps`` implies that :math:`|e_1(k)|` and :math:`|e_N(k)|` are both less than about 0.01, and the approximating polynomial is approximately bounded between 0 and 1.
 Together these imply that
 
-.. math :: (- e_1(k) + N p_N(k^2)^{N-1} e_N(k))^2 < 0.0001 (1+N)
+.. math :: (- e_1(k) + N p_N(k^2)^{N-1} e_N(k))^2 < 0.0001 (1+N)^2
 
 The squared norm of the difference in the filtered fields is thus approximately bounded by
 
-.. math :: 0.0001 (1+N) \sum_i \hat{f}_i^2 = 0.0001(1+N)\|\vec{f}\|^2
+.. math :: 0.0001 (1+N)^2 \sum_i \hat{f}_i^2 = 0.0001(1+N)^2\|\vec{f}\|^2
 
-The norm of the difference divided by the norm of the unfiltered field is thus approximately bounded by :math:`0.01\sqrt{1+N}`.
+The norm of the difference divided by the norm of the unfiltered field is thus approximately bounded by :math:`0.01(1+N)`.
 
 Note that the same ideas can be used to bound the norm of the difference between the filtered field that would be obtained using the exact filter :math:`g`, and the filtered field obtained using the polynomial approximation.
 In this case the analysis is simpler and the result is that the norm of the difference divided by the norm of the unfiltered field is bounded by 0.01.
