@@ -232,7 +232,7 @@ and for :math:`p_N` we have the error
 
 The aforementioned property of the Gaussian implies that
 
-.. math:: g_{L}(k) = (p_N(k)^2 + e_N(k))^N = (p_N(k^2))^N + N (p_N(k^2))^{N-1} e_N(k) + \ldots + (e_N(k))^N
+.. math:: g_{L}(k) = (p_N(k^2) + e_N(k))^N = (p_N(k^2))^N + N (p_N(k^2))^{N-1} e_N(k) + \ldots + (e_N(k))^N
 
 (using the binomial expansion.)
 Subtracting gives us an expression for the difference between the polynomial approximation with scale :math:`L` and the factored approximation using :math:`N` filters each with scale :math:`L/\sqrt{N}`:

@@ -443,7 +443,7 @@ def test_application_to_dataset():
     ],
 )
 def test_iterated_filter(grid_type_and_input_ds, filter_args):
-    "Some description of the test"
+    "Test that the iterated Gaussian filter gives a result close to the original"
 
     grid_type, da, grid_vars = grid_type_and_input_ds
 
