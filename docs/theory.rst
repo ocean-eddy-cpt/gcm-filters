@@ -225,6 +225,7 @@ We can bound the 2-norm of this error as follows.
 For :math:`p_1` we have the error
 
 .. math:: g_L(k) = p_1(k^2) + e_1(k)
+    :label: unfactored-error
 
 and for :math:`p_N` we have the error
 
@@ -233,16 +234,17 @@ and for :math:`p_N` we have the error
 The aforementioned property of the Gaussian implies that
 
 .. math:: g_{L}(k) = (p_N(k^2) + e_N(k))^N = (p_N(k^2))^N + N (p_N(k^2))^{N-1} e_N(k) + \ldots + (e_N(k))^N
+    :label: factored-error
 
 (using the binomial expansion.)
-Subtracting gives us an expression for the difference between the polynomial approximation with scale :math:`L` and the factored approximation using :math:`N` filters each with scale :math:`L/\sqrt{N}`:
+Subtracting :eq:`factored-error` from :eq:`unfactored-error` gives us an expression for the difference between the polynomial approximation with scale :math:`L` and the factored approximation using :math:`N` filters each with scale :math:`L/\sqrt{N}`:
 
 .. math:: p_1(k^2) - (p_N(k^2))^N = - e_1(k) + N p_N(k^2)^{N-1} e_N(k) + \ldots + e_N(k)^N \sim - e_1(k) + N p_N(k^2)^{N-1} e_N(k)
 
 where the last expression is in the limit of small errors :math:`|e_1(k)|` and :math:`|e_N(k)|` with :math:`N` fixed.
 The difference in the two filtered fields is thus
 
-.. math:: \sum_i \hat{f}_i(p_1(k_i^2) - (p_N(k^2))^N)\vec{q}_i\sim\sum_i \hat{f}_i(- e_1(k) + N p_N(k^2)^{N-1} e_N(k))\vec{q}_i
+.. math:: \sum_i \hat{f}_i(p_1(k_i^2) - (p_N(k_i^2))^N)\vec{q}_i\sim\sum_i \hat{f}_i(- e_1(k_i) + N p_N(k_i^2)^{N-1} e_N(k_i))\vec{q}_i
 
 and the squared norm of this asymptotic approximation is exactly
 
