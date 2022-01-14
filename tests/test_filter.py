@@ -467,8 +467,9 @@ def test_iterated_filter(grid_type_and_input_ds, filter_args):
     # The following tests whether a relative error bound in L^2 holds.
     # If the polynomial approximations are accurate to within 0.01,
     # then the precise bound would have 0.0301 ** 2 instead of 0.04 ** 2.
-    # Bumped up because the default n_steps is not guaranteed to give
-    # error less than *exactly* 0.01; just quite close.
+    # See the "Factoring the Gaussian Filter" section of the docs for details.
+    # Bumped up the tolerance because the default n_steps is not
+    # guaranteed to give error less than *exactly* 0.01; just quite close.
     assert (((filtered - iteratively_filtered) ** 2) * area).sum() < (0.04 ** 2) * (
         (filtered ** 2) * area
     ).sum()
@@ -507,3 +508,42 @@ def test_viscosity_filter(vector_grid_type_and_input_ds, filter_args):
             filter = Filter(
                 grid_type=grid_type, grid_vars=grid_vars_missing, **filter_args
             )
+
+
+@pytest.mark.parametrize(
+    "filter_args",
+    [dict(filter_scale=4.0, dx_min=1.0, n_steps=0, filter_shape=FilterShape.GAUSSIAN)],
+)
+def test_iterated_viscosity_filter(vector_grid_type_and_input_ds, filter_args):
+    """Test error in the iterated Gaussian filter for vectors"""
+    grid_type, da_u, da_v, grid_vars, geolat_u = vector_grid_type_and_input_ds
+
+    filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **filter_args)
+    filtered_u, filtered_v = filter.apply_to_vector(da_u, da_v, dims=["y", "x"])
+
+    iterated_filter_args = filter_args.copy()
+    iterated_filter_args["n_iterations"] = 4
+    iterated_filter = Filter(
+        grid_type=grid_type, grid_vars=grid_vars, **iterated_filter_args
+    )
+    iteratively_filtered_u, iteratively_filtered_v = iterated_filter.apply_to_vector(
+        da_u, da_v, dims=["y", "x"]
+    )
+
+    area = 1
+    for k, v in grid_vars.items():
+        if "area" in k:
+            area = v
+            break
+
+    # The following tests whether a relative error bound in L^2 holds.
+    # If the polynomial approximations are accurate to within 0.01,
+    # the bound developed in the "Factoring the Gaussian Filter"
+    # section of the docs has coefficient 0.0001 * (1+4) ** 2 = .0025
+    # Bumped up the tolerance because the default n_steps is not
+    # guaranteed to give error less than *exactly* 0.01; just quite close.
+    difference = (filtered_u - iteratively_filtered_u) ** 2 + (
+        filtered_v - iteratively_filtered_v
+    ) ** 2
+    unfiltered = da_u ** 2 + da_v ** 2
+    assert (difference * area).sum() < 0.003 * (unfiltered * area).sum()
