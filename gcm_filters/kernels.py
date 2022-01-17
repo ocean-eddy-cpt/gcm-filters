@@ -23,6 +23,7 @@ GridType = enum.Enum(
         "TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED",
         "TRIPOLAR_POP_WITH_LAND",
         "VECTOR_C_GRID",
+        "VECTOR_B_GRID",
     ],
 )
 
@@ -665,6 +666,30 @@ class CgridVectorLaplacian(BaseVectorLaplacian):
 
 
 ALL_KERNELS[GridType.VECTOR_C_GRID] = CgridVectorLaplacian
+
+
+@dataclass
+class BgridVectorLaplacian(BaseVectorLaplacian):
+    """̵Vector Laplacian on B-Grid. To be implemented for viscosity operators on B-grids based on POP code and Griffies (2000).
+
+    Attributes
+    ----------
+    [To be added]
+    """
+
+    # [Required variables: to be added]
+    
+
+    def __post_init__(self):
+        [To be added]
+
+    def __call__(self, ufield: ArrayType, vfield: ArrayType):
+        [To be added]
+
+        return (u_component, v_component)
+
+
+ALL_KERNELS[GridType.VECTOR_B_GRID] = BgridVectorLaplacian
 
 
 def required_grid_vars(grid_type: GridType):
