@@ -471,7 +471,7 @@ def test_iterated_filter(grid_type_and_input_ds, filter_args):
     # Bumped up the tolerance because the default n_steps is not
     # guaranteed to give error less than *exactly* 0.01; just quite close.
     assert (((filtered - iteratively_filtered) ** 2) * area).sum() < (0.04 ** 2) * (
-        (filtered ** 2) * area
+        (da ** 2) * area
     ).sum()
 
 
@@ -516,7 +516,7 @@ def test_viscosity_filter(vector_grid_type_and_input_ds, filter_args):
 )
 def test_iterated_viscosity_filter(vector_grid_type_and_input_ds, filter_args):
     """Test error in the iterated Gaussian filter for vectors"""
-    grid_type, da_u, da_v, grid_vars, geolat_u = vector_grid_type_and_input_ds
+    grid_type, da_u, da_v, grid_vars, _ = vector_grid_type_and_input_ds
 
     filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **filter_args)
     filtered_u, filtered_v = filter.apply_to_vector(da_u, da_v, dims=["y", "x"])
