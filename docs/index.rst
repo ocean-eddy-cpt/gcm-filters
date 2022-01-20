@@ -19,7 +19,7 @@ GCM Filters: Diffusion-based Spatial Filtering of Gridded Data
    :target: https://badge.fury.io/py/gcm-filters
 
 .. image:: https://pepy.tech/badge/gcm-filters
-   :target: https://pepy.tech/badge/gcm-filters
+   :target: https://pepy.tech/project/gcm-filters
 
 .. image:: https://joss.theoj.org/papers/bc8ad806627f0d754347686e21f00d40/status.svg
    :target: https://joss.theoj.org/papers/bc8ad806627f0d754347686e21f00d40
