@@ -3,6 +3,26 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. image:: https://github.com/ocean-eddy-cpt/gcm-filters/workflows/Tests/badge.svg
+   :target: https://github.com/ocean-eddy-cpt/gcm-filters/actions?query=workflow%3ATests
+
+.. image:: https://codecov.io/gh/ocean-eddy-cpt/gcm-filters/branch/master/graph/badge.svg?token=ZKRiulYe68
+   :target: https://codecov.io/gh/ocean-eddy-cpt/gcm-filters
+
+.. image:: https://img.shields.io/conda/vn/conda-forge/gcm_filters.svg
+   :target: https://anaconda.org/conda-forge/gcm_filters
+
+.. image:: https://badge.fury.io/py/gcm-filters.svg
+   :target: https://badge.fury.io/py/gcm-filters
+
+.. image:: https://pepy.tech/badge/gcm-filters
+   :target: https://pepy.tech/badge/gcm-filters
+
+.. image:: https://joss.theoj.org/papers/bc8ad806627f0d754347686e21f00d40/status.svg
+   :target: https://joss.theoj.org/papers/bc8ad806627f0d754347686e21f00d40
+
+
+
 GCM Filters: Diffusion-based Spatial Filtering of Gridded Data
 ===============================================================
 
@@ -11,6 +31,8 @@ The GCM-Filters algorithm applies a discrete Laplacian to smooth a field through
 The package can be used for either gridded observational data or gridded data that is produced by General Circulation Models (GCMs) of ocean, weather, and climate.
 Such GCM data come on complex curvilinear grids, whose geometry is respected by the GCM-Filters Laplacians.
 Through integration with `dask <https://dask.org/>`_, GCM-Filters enables parallel, out-of-core filter analysis on both CPUs and GPUs.
+
+`AMS 2022 Talk <https://noraloose.github.io/ams2022-talk/>`_
 
 Contents
 --------
