@@ -42,6 +42,9 @@ authors:
   - name: Laure Zanna
     orcid: 0000-0002-8472-4828
     affiliation: 3
+  - name: Paige Martin
+    orcid: 0000-0003-3538-633X
+    affiliation: "2, 7"
 affiliations:
   - name: Department of Applied Mathematics, University of Colorado Boulder, Boulder, CO, USA
     index: 1
@@ -55,6 +58,8 @@ affiliations:
     index: 5
   - name: Earth, Ocean and Ecological Sciences, University of Liverpool, UK
     index: 6
+  - name: Australian National University, Canberra, Australia
+    index: 7
 
 date: 1 November 2021
 bibliography: paper.bib
