@@ -3,6 +3,9 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+GCM Filters: Diffusion-based Spatial Filtering of Gridded Data
+===============================================================
+
 .. image:: https://github.com/ocean-eddy-cpt/gcm-filters/workflows/Tests/badge.svg
    :target: https://github.com/ocean-eddy-cpt/gcm-filters/actions?query=workflow%3ATests
 
@@ -21,11 +24,7 @@
 .. image:: https://joss.theoj.org/papers/bc8ad806627f0d754347686e21f00d40/status.svg
    :target: https://joss.theoj.org/papers/bc8ad806627f0d754347686e21f00d40
 
-
-
-GCM Filters: Diffusion-based Spatial Filtering of Gridded Data
-===============================================================
-
+|
 **GCM-Filters** is a python package that performs spatial filtering analysis in a flexible and efficient way.
 The GCM-Filters algorithm applies a discrete Laplacian to smooth a field through an iterative process that resembles diffusion (see :doc:`theory` or `Grooms et al., 2021 <https://doi.org/10.1029/2021MS002552>`_).
 The package can be used for either gridded observational data or gridded data that is produced by General Circulation Models (GCMs) of ocean, weather, and climate.
