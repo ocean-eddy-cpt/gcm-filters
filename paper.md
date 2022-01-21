@@ -18,7 +18,7 @@ authors:
   - name: Julius Busecke
     orcid: 0000-0001-8571-865X
     affiliation: 2
-  - name: Arthur Barthe
+  - name: Arthur Guillaumin
     orcid: 0000-0003-1571-4228
     affiliation: 3
   - name: Elizabeth Yankovsky
