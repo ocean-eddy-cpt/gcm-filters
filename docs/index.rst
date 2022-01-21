@@ -31,10 +31,8 @@ The package can be used for either gridded observational data or gridded data th
 Such GCM data come on complex curvilinear grids, whose geometry is respected by the GCM-Filters Laplacians.
 Through integration with `dask <https://dask.org/>`_, GCM-Filters enables parallel, out-of-core filter analysis on both CPUs and GPUs.
 
-`AMS 2022 Talk <https://noraloose.github.io/ams2022-talk/>`_
-
-Contents
---------
+Getting Started
+----------------
 
 .. toctree::
    :maxdepth: 1
@@ -48,13 +46,20 @@ Contents
    examples/example_vector_laplacian
    examples/example_numerical_instability
    examples/example_satellite_observations
+
+References
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   AMS 2022 Talk <https://noraloose.github.io/ams2022-talk/>
    api
    how_to_contribute
 
 
-
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
