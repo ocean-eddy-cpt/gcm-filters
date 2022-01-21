@@ -442,13 +442,17 @@ def test_application_to_dataset():
         )
     ],
 )
-def test_iterated_filter(grid_type_and_input_ds, filter_args):
+@pytest.mark.parametrize(
+    "n_iterations",
+    [2, 3, 4],
+)
+def test_iterated_filter(grid_type_and_input_ds, filter_args, n_iterations):
     "Test that the iterated Gaussian filter gives a result close to the original"
 
     grid_type, da, grid_vars = grid_type_and_input_ds
 
     iterated_filter_args = filter_args.copy()
-    iterated_filter_args["n_iterations"] = 2
+    iterated_filter_args["n_iterations"] = n_iterations
 
     filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **filter_args)
     iterated_filter = Filter(
@@ -465,14 +469,10 @@ def test_iterated_filter(grid_type_and_input_ds, filter_args):
             break
 
     # The following tests whether a relative error bound in L^2 holds.
-    # If the polynomial approximations are accurate to within 0.01,
-    # then the precise bound would have 0.0301 ** 2 instead of 0.04 ** 2.
     # See the "Factoring the Gaussian Filter" section of the docs for details.
-    # Bumped up the tolerance because the default n_steps is not
-    # guaranteed to give error less than *exactly* 0.01; just quite close.
-    assert (((filtered - iteratively_filtered) ** 2) * area).sum() < (0.04 ** 2) * (
-        (da ** 2) * area
-    ).sum()
+    assert (((filtered - iteratively_filtered) ** 2) * area).sum() < (
+        (0.01 * (1 + n_iterations)) ** 2
+    ) * ((da ** 2) * area).sum()
 
 
 #################### Visosity-based filter tests ########################################
@@ -514,7 +514,13 @@ def test_viscosity_filter(vector_grid_type_and_input_ds, filter_args):
     "filter_args",
     [dict(filter_scale=4.0, dx_min=1.0, n_steps=0, filter_shape=FilterShape.GAUSSIAN)],
 )
-def test_iterated_viscosity_filter(vector_grid_type_and_input_ds, filter_args):
+@pytest.mark.parametrize(
+    "n_iterations",
+    [2, 3, 4],
+)
+def test_iterated_viscosity_filter(
+    vector_grid_type_and_input_ds, filter_args, n_iterations
+):
     """Test error in the iterated Gaussian filter for vectors"""
     grid_type, da_u, da_v, grid_vars, _ = vector_grid_type_and_input_ds
 
@@ -522,7 +528,7 @@ def test_iterated_viscosity_filter(vector_grid_type_and_input_ds, filter_args):
     filtered_u, filtered_v = filter.apply_to_vector(da_u, da_v, dims=["y", "x"])
 
     iterated_filter_args = filter_args.copy()
-    iterated_filter_args["n_iterations"] = 4
+    iterated_filter_args["n_iterations"] = n_iterations
     iterated_filter = Filter(
         grid_type=grid_type, grid_vars=grid_vars, **iterated_filter_args
     )
@@ -537,13 +543,11 @@ def test_iterated_viscosity_filter(vector_grid_type_and_input_ds, filter_args):
             break
 
     # The following tests whether a relative error bound in L^2 holds.
-    # If the polynomial approximations are accurate to within 0.01,
-    # the bound developed in the "Factoring the Gaussian Filter"
-    # section of the docs has coefficient 0.0001 * (1+4) ** 2 = .0025
-    # Bumped up the tolerance because the default n_steps is not
-    # guaranteed to give error less than *exactly* 0.01; just quite close.
+    # See the "Factoring the Gaussian Filter" section of the docs for details.
     difference = (filtered_u - iteratively_filtered_u) ** 2 + (
         filtered_v - iteratively_filtered_v
     ) ** 2
     unfiltered = da_u ** 2 + da_v ** 2
-    assert (difference * area).sum() < 0.003 * (unfiltered * area).sum()
+    assert (difference * area).sum() < ((0.01 * (1 + n_iterations)) ** 2) * (
+        unfiltered * area
+    ).sum()
