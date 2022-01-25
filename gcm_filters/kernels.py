@@ -524,8 +524,8 @@ class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
         # note: grid data goes crazy for POP model land points so we don't want to check for land points
         nx = np.shape(self.dxn)[-1]  # number of longitudes or columns
         # grab second to last row since we have already appended one extra row
-        first_half = np.where(self.n_wet_mask == 1, self.dxn, 0)[...,-2, :(nx // 2)]
-        second_half = np.where(self.n_wet_mask == 1, self.dxn, 0)[...,-2, (nx // 2):]
+        first_half = np.where(self.n_wet_mask == 1, self.dxn, 0)[..., -2, : (nx // 2)]
+        second_half = np.where(self.n_wet_mask == 1, self.dxn, 0)[..., -2, (nx // 2) :]
         if not np.all(first_half[..., ::-1] == second_half):
             raise AssertionError(
                 "Northernmost row of dxn does not fold onto itself. This is a requirement for using a tripole boundary condition."
