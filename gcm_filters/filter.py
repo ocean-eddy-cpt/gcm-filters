@@ -76,6 +76,7 @@ class FilterSpec(NamedTuple):
     is_laplacian: Iterable[bool]
     s_max: float
     p: Iterable[float]
+    n_iterations: int
 
 
 def _compute_filter_spec(
@@ -85,6 +86,7 @@ def _compute_filter_spec(
     transition_width=np.pi,
     ndim=2,
     n_steps=0,
+    n_iterations=1,
     root_tolerance=1e-8,
 ):
 
@@ -159,7 +161,7 @@ def _compute_filter_spec(
     s = np.array([y for x in s for y in x])
     is_laplacian = np.abs(s.imag / s.real) < root_tolerance
 
-    return FilterSpec(n_steps_total, s, is_laplacian, s_max, p)
+    return FilterSpec(n_steps_total, s, is_laplacian, s_max, p, n_iterations)
 
 
 def _create_filter_func(
@@ -184,19 +186,22 @@ def _create_filter_func(
         # filters, and does nothing for all other filters)
         field_bar = laplacian.prepare(field_bar)
 
-        for i in range(filter_spec.n_steps_total):
-            if filter_spec.is_laplacian[i]:
-                s_l = np.real(filter_spec.s[i])
-                tendency = laplacian(field_bar)  # Compute Laplacian
-                field_bar += (1 / s_l) * tendency  # Update filtered field
-            else:
-                s_b = filter_spec.s[i]
-                temp_l = laplacian(field_bar)  # Compute Laplacian
-                temp_b = laplacian(temp_l)  # Compute Biharmonic (apply Laplacian twice)
-                field_bar += (
-                    temp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
-                    + temp_b * 1 / np.abs(s_b) ** 2
-                )
+        for n in range(filter_spec.n_iterations):
+            for i in range(filter_spec.n_steps_total):
+                if filter_spec.is_laplacian[i]:
+                    s_l = np.real(filter_spec.s[i])
+                    tendency = laplacian(field_bar)  # Compute Laplacian
+                    field_bar += (1 / s_l) * tendency  # Update filtered field
+                else:
+                    s_b = filter_spec.s[i]
+                    temp_l = laplacian(field_bar)  # Compute Laplacian
+                    temp_b = laplacian(
+                        temp_l
+                    )  # Compute Biharmonic (apply Laplacian twice)
+                    field_bar += (
+                        temp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
+                        + temp_b * 1 / np.abs(s_b) ** 2
+                    )
 
         # finalize filtering (this divides by area for simple fixed factor filters,
         # and does nothing for all other filters)
@@ -230,30 +235,31 @@ def _create_filter_func_vec(
         # filters, and does nothing for all other filters)
         (ufield_bar, vfield_bar) = laplacian.prepare(ufield_bar, vfield_bar)
 
-        for i in range(filter_spec.n_steps_total):
-            if filter_spec.is_laplacian[i]:
-                s_l = np.real(filter_spec.s[i])
-                (utendency, vtendency) = laplacian(
-                    ufield_bar, vfield_bar
-                )  # Compute Laplacian
-                ufield_bar += (1 / s_l) * utendency  # Update filtered ufield
-                vfield_bar += (1 / s_l) * vtendency  # Update filtered vfield
-            else:
-                s_b = filter_spec.s[i]
-                (utemp_l, vtemp_l) = laplacian(
-                    ufield_bar, vfield_bar
-                )  # Compute Laplacian
-                (utemp_b, vtemp_b) = laplacian(
-                    utemp_l, vtemp_l
-                )  # Compute Biharmonic (apply Laplacian twice)
-                ufield_bar += (
-                    utemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
-                    + utemp_b * 1 / np.abs(s_b) ** 2
-                )
-                vfield_bar += (
-                    vtemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
-                    + vtemp_b * 1 / np.abs(s_b) ** 2
-                )
+        for n in range(filter_spec.n_iterations):
+            for i in range(filter_spec.n_steps_total):
+                if filter_spec.is_laplacian[i]:
+                    s_l = np.real(filter_spec.s[i])
+                    (utendency, vtendency) = laplacian(
+                        ufield_bar, vfield_bar
+                    )  # Compute Laplacian
+                    ufield_bar += (1 / s_l) * utendency  # Update filtered ufield
+                    vfield_bar += (1 / s_l) * vtendency  # Update filtered vfield
+                else:
+                    s_b = filter_spec.s[i]
+                    (utemp_l, vtemp_l) = laplacian(
+                        ufield_bar, vfield_bar
+                    )  # Compute Laplacian
+                    (utemp_b, vtemp_b) = laplacian(
+                        utemp_l, vtemp_l
+                    )  # Compute Biharmonic (apply Laplacian twice)
+                    ufield_bar += (
+                        utemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
+                        + utemp_b * 1 / np.abs(s_b) ** 2
+                    )
+                    vfield_bar += (
+                        vtemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
+                        + vtemp_b * 1 / np.abs(s_b) ** 2
+                    )
 
         # finalize filtering (this divides by area for simple fixed factor filters,
         # and does nothing for all other filters)
@@ -277,6 +283,9 @@ class Filter:
     n_steps : int, optional
         Number of total steps in the filter (A biharmonic step counts as two steps)
         ``n_steps == 0`` means the number of steps is chosen automatically
+    n_iterations : int, optional
+        Achieve a Gaussian filter of scale L by applying n_iterations times a Gaussian filter of scale
+        L / np.sqrt(n_iterations)
     filter_shape : FilterShape
         - ``FilterShape.GAUSSIAN``: The target filter has shape :math:`e^{-(k filter_scale)^2/24}`
         - ``FilterShape.TAPER``: The target filter has target grid scale Lf. Smaller scales are zeroed out.
@@ -301,6 +310,7 @@ class Filter:
     transition_width: float = np.pi
     ndim: int = 2
     n_steps: int = 0
+    n_iterations: int = 1
     grid_type: GridType = GridType.REGULAR
     grid_vars: dict = field(default_factory=dict, repr=False)
 
@@ -317,9 +327,22 @@ class Filter:
                     "dx_min must be set to 1."
                 )
 
+        # Check for n_iterations is < 1
+        if self.n_iterations < 1:
+            raise ValueError(
+                f"Number of intermediate filters into which the final filter is factored must be >= 1."
+            )
+
+        # Check for n_iterations != 1 with Taper
+        if self.n_iterations > 1 and self.filter_shape == FilterShape.TAPER:
+            raise ValueError(f"n_iterations must be 1 for the Taper filter shape.")
+
         # Check if transition_width is <=1
         if self.transition_width <= 1:
             raise ValueError(f"Transition width must be > 1.")
+
+        # If n_iterations is > 1 then modify the filter scale
+        self.filter_scale = self.filter_scale / np.sqrt(self.n_iterations)
 
         # Get default number of steps
         filter_factor = self.filter_scale / self.dx_min
@@ -365,6 +388,7 @@ class Filter:
             self.transition_width,
             self.ndim,
             self.n_steps,
+            self.n_iterations,
         )
 
         # check that we have all the required grid aguments
@@ -388,10 +412,10 @@ class Filter:
         k = np.sqrt(s_max * (x + 1) / 2)
         if ax is None:
             fig, ax = plt.subplots()
-        ax.plot(k, F(x), "g", label="target filter", linewidth=4)
+        ax.plot(k, F(x) ** self.n_iterations, "g", label="target filter", linewidth=4)
         ax.plot(
             k,
-            np.polynomial.chebyshev.chebval(x, self.filter_spec.p),
+            np.polynomial.chebyshev.chebval(x, self.filter_spec.p) ** self.n_iterations,
             "m",
             label="approximation",
             linewidth=4,
