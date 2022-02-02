@@ -9,6 +9,8 @@ flake8-print
 interrogate
 isort
 nbsphinx
+netcdf4
+pooch
 pre-commit
 pylint
 pytest

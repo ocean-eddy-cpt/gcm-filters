@@ -2,6 +2,7 @@ from typing import Tuple
 
 import numpy as np
 import pytest
+import xarray as xr
 
 from numpy.random import PCG64, Generator
 
@@ -104,6 +105,17 @@ def _make_scalar_grid_data(grid_type):
     return grid_type, data, extra_kwargs
 
 
+def pop_test_data():
+    import pooch
+
+    fname = pooch.retrieve(
+        url="doi:10.5281/zenodo.5947728/pop_hires_test_data.nc",
+        known_hash="md5:e88ee4d310f476abe5fa3aac72d2e51e",
+    )
+    ds = xr.open_dataset(fname)
+    return ds
+
+
 @pytest.fixture(scope="session", params=scalar_grids)
 def scalar_grid_type_data_and_extra_kwargs(request):
     return _make_scalar_grid_data(request.param)
@@ -158,7 +170,9 @@ def spherical_geometry(ny, nx):
     return geolon_u, geolat_u, geolon_v, geolat_v
 
 
-def gen_mom_cgrid_extra_kwargs(ny, nx):
+def gen_mom_vector_data():
+    ny, nx = (128, 256)
+
     geolon_u, geolat_u, geolon_v, geolat_v = spherical_geometry(ny, nx)
     ny, nx = geolon_u.shape
 
@@ -192,22 +206,31 @@ def gen_mom_cgrid_extra_kwargs(ny, nx):
     extra_kwargs["wet_mask_t"] = mask_data
     extra_kwargs["wet_mask_q"] = mask_data
 
-    return extra_kwargs
+    data_u = _make_random_data((ny, nx), 42)
+    data_v = _make_random_data((ny, nx), 43)
+
+    return (data_u, data_v), extra_kwargs
+
+
+def gen_pop_vector_data():
+    ds = pop_test_data()
+    grid_vars = ["DXU", "DYU", "HUS", "HUW", "HTE", "HTN", "UAREA", "TAREA"]
+    extra_kwargs = {name: ds[name].values for name in grid_vars}
+    u_data = ds.U1_1
+    v_data = ds.V1_1
+    return (u_data, v_data), extra_kwargs
 
 
 @pytest.fixture(
     scope="session",
     params=[
-        (GridType.VECTOR_C_GRID, gen_mom_cgrid_extra_kwargs),
+        (GridType.VECTOR_C_GRID, gen_mom_vector_data),
+        (GridType.VECTOR_B_GRID, gen_pop_vector_data),
     ],
 )
 def vector_grid_type_data_and_extra_kwargs(request):
-    ny, nx = (128, 256)
     grid_type, gen_kwargs = request.param
-    extra_kwargs = gen_kwargs(ny, nx)
-
-    data_u = _make_random_data((ny, nx), 42)
-    data_v = _make_random_data((ny, nx), 43)
+    (data_u, data_v), extra_kwargs = gen_kwargs()
 
     # use same return signature as other kernel fixtures
     return grid_type, (data_u, data_v), extra_kwargs

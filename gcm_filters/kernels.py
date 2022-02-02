@@ -685,7 +685,6 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
 
     DXU: x-spacing centered at U points
     DYU: y-spacing centered at U points
-    AMF: variable mixing factor for momentum mixing
     HUS: cell widths on south side of U cell
     HUW: cell widths on west side of U cell
     HTE: cell widths on east side of T cell
@@ -696,7 +695,6 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
 
     DXU: ArrayType
     DYU: ArrayType
-    AMF: ArrayType
     HUS: ArrayType
     HUW: ArrayType
     HTE: ArrayType
@@ -713,6 +711,11 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
 
         self.DXUR = 1 / self.DXU
         self.DYUR = 1 / self.DYU
+
+        c2 = 2
+        radius = 6370.0e5
+        ny, nx = self.TAREA.shape
+        self.AMF = np.sqrt(self.UAREA / (c2 * np.pi * radius / nx) ** 2)
 
     def __call__(self, ufield: ArrayType, vfield: ArrayType):
         np = get_array_module(ufield)
