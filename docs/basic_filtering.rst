@@ -142,6 +142,12 @@ We now mask our data with the ``wet_mask``.
 
 Now that we have some data, we can apply our filter. We need to specify which dimension names to apply the filter over. In this case, it is ``y``, ``x``.
 
+.. warning:: The dimension order matters! Since some filters deal
+    with anisotropic grids, the latitude / y dimension must appear first
+    in order to obtain the correct result. That is not an issue for this simple
+    (isotropic) toy example but needs to be kept in mind for applications on
+    real GCM grids.
+
 .. ipython:: python
 
     %time da_filtered = filter.apply(da_masked, dims=['y', 'x'])
