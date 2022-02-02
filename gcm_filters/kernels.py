@@ -678,21 +678,161 @@ ALL_KERNELS[GridType.VECTOR_C_GRID] = CgridVectorLaplacian
 
 @dataclass
 class BgridVectorLaplacian(BaseVectorLaplacian):
-    """̵Vector Laplacian on B-Grid. To be implemented for viscosity operators on B-grids based on POP code and Griffies (2000).
+    """̵Vector Laplacian on B-Grid. To be implemented for viscosity operators on B-grids based on POP code.
 
     Attributes
     ----------
-    [To be added]
+
+    DXU: x-spacing centered at U points
+    DYU: y-spacing centered at U points
+    AMF: variable mixing factor for momentum mixing
+    HUS: cell widths on south side of U cell
+    HUW: cell widths on west side of U cell
+    HTE: cell widths on east side of T cell
+    HTN: cell widths on north side of T cell
+    UAREA: U-cell area
+    TAREA: T-cell area
     """
 
-    # [Required variables: to be added]
-    
+    DXU: ArrayType
+    DYU: ArrayType
+    AMF: ArrayType
+    HUS: ArrayType
+    HUW: ArrayType
+    HTE: ArrayType
+    HTN: ArrayType
+    UAREA: ArrayType
+    TAREA: ArrayType
 
     def __post_init__(self):
-        [To be added]
+        np = get_array_module(self.DXU)
+
+        # Derived quantities
+        self.UAREA_R = 1 / self.UAREA
+        self.TAREA_R = 1 / self.TAREA
+
+        self.DXUR = 1 / self.DXU
+        self.DYUR = 1 / self.DYU
 
     def __call__(self, ufield: ArrayType, vfield: ArrayType):
-        [To be added]
+        np = get_array_module(ufield)
+
+        # Constants
+        c2 = 2
+        p5 = 0.5
+
+        # Calculate coefficients for the stencil without metric terms
+        WORK1 = (self.HUS / self.HTE) * p5 * (self.AMF + np.roll(self.AMF, -1, axis=1))
+
+        DUS = (
+            WORK1 * self.UAREA_R
+        )  # South coefficient of 5-point stencil for the Del**2 operator acting at U points
+        DUN = (
+            np.roll(WORK1, 1, axis=1) * self.UAREA_R
+        )  # North coefficient of 5-point stencil
+
+        WORK1 = (self.HUW / self.HTN) * p5 * (self.AMF + np.roll(self.AMF, -1, axis=0))
+
+        DUW = WORK1 * self.UAREA_R  # West coefficient of 5-point stencil
+        DUE = (
+            np.roll(WORK1, 1, axis=0) * self.UAREA_R
+        )  # East coefficient of 5-point stencil
+
+        # Calculate coefficients for metric terms and for metric advection terms (KXU,KYU)
+        KXU = (
+            np.roll(self.HUW, 1, axis=0) - self.HUW
+        ) * self.UAREA_R  # defined in (3.24) of POP manual
+        KYU = (np.roll(self.HUS, 1, axis=1) - self.HUS) * self.UAREA_R
+
+        WORK1 = (self.HTE - np.roll(self.HTE, -1, axis=0)) * self.TAREA_R  # KXT
+        WORK2 = (
+            p5
+            * (WORK1 + np.roll(WORK1, 1, axis=1))
+            * p5
+            * (np.roll(self.AMF, -1, axis=0) + self.AMF)
+        )
+        DXKX = (np.roll(WORK2, 1, axis=0) - WORK2) * self.DXUR
+
+        WORK2 = (
+            p5
+            * (WORK1 + np.roll(WORK1, 1, axis=0))
+            * p5
+            * (np.roll(self.AMF, -1, axis=1) + self.AMF)
+        )
+        DYKX = (np.roll(WORK2, 1, axis=1) - WORK2) * self.DYUR
+
+        WORK1 = (self.HTN - np.roll(self.HTN, -1, axis=1)) * self.TAREA_R  # KYT
+        WORK2 = (
+            p5
+            * (WORK1 + np.roll(WORK1, 1, axis=0))
+            * p5
+            * (np.roll(self.AMF, -1, axis=1) + self.AMF)
+        )
+        DYKY = (np.roll(WORK2, 1, axis=1) - WORK2) * self.DYUR
+
+        WORK2 = (
+            p5
+            * (WORK1 + np.roll(WORK1, 1, axis=1))
+            * p5
+            * (np.roll(self.AMF, -1, axis=0) + self.AMF)
+        )
+        DXKY = (np.roll(WORK2, axis=0, shift=1) - WORK2) * self.DXUR
+
+        DUM = -(
+            DXKX + DYKY + c2 * self.AMF * (KXU ** 2 + KYU ** 2)
+        )  # central coefficient for metric terms that do not mix U,V
+        DMC = (
+            DXKY - DYKX
+        )  # central coefficient of 5-point stencil for the metric terms that mix U,V
+
+        # Calculate the central coefficient for metric mixing terms that mix U,V
+        WORK1 = (
+            np.roll(self.AMF, axis=1, shift=1) - np.roll(self.AMF, axis=1, shift=-1)
+        ) / (self.HTE + np.roll(self.HTE, axis=1, shift=1))
+        DME = (c2 * self.AMF * KYU + WORK1) / (
+            self.HTN + np.roll(self.HTN, axis=0, shift=1)
+        )  # East coefficient of 5-point stencil for the metric terms that mix U,V
+
+        WORK1 = (
+            np.roll(self.AMF, axis=0, shift=1) - np.roll(self.AMF, axis=0, shift=-1)
+        ) / (self.HTN + np.roll(self.HTN, axis=0, shift=1))
+        DMN = -(c2 * self.AMF * KXU + WORK1) / (
+            self.HTE + np.roll(self.HTE, axis=1, shift=1)
+        )  # North coefficient of 5-point stencil
+
+        DUC = -(DUN + DUS + DUE + DUW)  # central coefficient of 5-point stencil
+        DMW = -DME  # West coefficient of 5-point stencil
+        DMS = -DMN  # East coefficient of 5-point stencil
+
+        # Compute the horizontal diffusion of momentum
+        am = 1
+        cc = DUC + DUM
+
+        u_component = am * (
+            cc * ufield
+            + DUN * np.roll(ufield, -1, axis=0)
+            + DUS * np.roll(ufield, 1, axis=0)
+            + DUE * np.roll(ufield, -1, axis=1)
+            + DUW * np.roll(ufield, 1, axis=1)
+            + DMC * vfield
+            + DMN * np.roll(vfield, -1, axis=0)
+            + DMS * np.roll(vfield, 1, axis=0)
+            + DME * np.roll(vfield, -1, axis=1)
+            + DMW * np.roll(vfield, 1, axis=1)
+        )
+
+        v_component = am * (
+            cc * vfield
+            + DUN * np.roll(vfield, -1, axis=0)
+            + DUS * np.roll(vfield, 1, axis=0)
+            + DUE * np.roll(vfield, -1, axis=1)
+            + DUW * np.roll(vfield, 1, axis=1)
+            + DMC * ufield
+            + DMN * np.roll(ufield, -1, axis=0)
+            + DMS * np.roll(ufield, 1, axis=0)
+            + DME * np.roll(ufield, -1, axis=1)
+            + DMW * np.roll(ufield, 1, axis=1)
+        )
 
         return (u_component, v_component)
 
