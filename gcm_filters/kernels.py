@@ -712,10 +712,9 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
         self.DXUR = 1 / self.DXU
         self.DYUR = 1 / self.DYU
 
-        c2 = 2
         radius = 6370.0e5
         ny, nx = self.TAREA.shape
-        self.AMF = np.sqrt(self.UAREA / (c2 * np.pi * radius / nx) ** 2)
+        self.AMF = np.sqrt(self.UAREA / (2 * np.pi * radius / nx) ** 2)
 
     def __call__(self, ufield: ArrayType, vfield: ArrayType):
         np = get_array_module(ufield)

@@ -206,6 +206,14 @@ def gen_mom_vector_data():
     extra_kwargs["wet_mask_t"] = mask_data
     extra_kwargs["wet_mask_q"] = mask_data
 
+    # fill area_u, area_v with zeros over land; e.g., you will find that in MOM6 model output
+    extra_kwargs["area_u"] = np.where(
+        extra_kwargs["wet_mask_t"] > 0, extra_kwargs["area_u"], 0
+    )
+    extra_kwargs["area_v"] = np.where(
+        extra_kwargs["wet_mask_t"] > 0, extra_kwargs["area_v"], 0
+    )
+
     data_u = _make_random_data((ny, nx), 42)
     data_v = _make_random_data((ny, nx), 43)
 
@@ -216,8 +224,8 @@ def gen_pop_vector_data():
     ds = pop_test_data()
     grid_vars = ["DXU", "DYU", "HUS", "HUW", "HTE", "HTN", "UAREA", "TAREA"]
     extra_kwargs = {name: ds[name].values for name in grid_vars}
-    u_data = ds.U1_1
-    v_data = ds.V1_1
+    u_data = ds.U1_1.values
+    v_data = ds.V1_1.values
     return (u_data, v_data), extra_kwargs
 
 
@@ -227,6 +235,7 @@ def gen_pop_vector_data():
         (GridType.VECTOR_C_GRID, gen_mom_vector_data),
         (GridType.VECTOR_B_GRID, gen_pop_vector_data),
     ],
+    ids=["MOM-C-GRID", "POP-B-GRID"],
 )
 def vector_grid_type_data_and_extra_kwargs(request):
     grid_type, gen_kwargs = request.param

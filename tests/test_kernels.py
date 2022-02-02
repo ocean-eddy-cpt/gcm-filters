@@ -257,16 +257,8 @@ def test_zero_area(vector_grid_type_data_and_extra_kwargs):
 
     grid_type, (data_u, data_v), extra_kwargs = vector_grid_type_data_and_extra_kwargs
 
-    test_kwargs = copy.deepcopy(extra_kwargs)
-    # fill area_u, area_v with zeros over land; e.g., you will find that in MOM6 model output
-    test_kwargs["area_u"] = np.where(
-        extra_kwargs["wet_mask_t"] > 0, test_kwargs["area_u"], 0
-    )
-    test_kwargs["area_v"] = np.where(
-        extra_kwargs["wet_mask_t"] > 0, test_kwargs["area_v"], 0
-    )
     LaplacianClass = ALL_KERNELS[grid_type]
-    laplacian = LaplacianClass(**test_kwargs)
+    laplacian = LaplacianClass(**extra_kwargs)
     res_u, res_v = laplacian(data_u, data_v)
     assert not np.any(np.isinf(res_u))
     assert not np.any(np.isnan(res_u))
