@@ -44,7 +44,7 @@ tripolar_grids = [
     GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED,
     GridType.TRIPOLAR_POP_WITH_LAND,
 ]
-vector_grids = [GridType.VECTOR_C_GRID]
+vector_grids = [GridType.VECTOR_C_GRID, GridType.VECTOR_B_GRID]
 
 
 def _make_random_data(shape: Tuple[int, int], seed: int) -> np.ndarray:
@@ -133,10 +133,7 @@ def tripolar_grid_type_data_and_extra_kwargs(request):
     return grid_type, data, extra_kwargs
 
 
-@pytest.fixture(scope="session")
-def spherical_geometry():
-    ny, nx = (128, 256)
-
+def spherical_geometry(ny, nx):
     # construct spherical coordinate system similar to MOM6 NeverWorld2 grid
     # define latitudes and longitudes
     lat_min = -70
@@ -161,17 +158,11 @@ def spherical_geometry():
     return geolon_u, geolat_u, geolon_v, geolat_v
 
 
-@pytest.fixture(scope="session", params=vector_grids)
-def vector_grid_type_data_and_extra_kwargs(request, spherical_geometry):
-    grid_type = request.param
-    geolon_u, geolat_u, geolon_v, geolat_v = spherical_geometry
+def gen_mom_cgrid_extra_kwargs(ny, nx):
+    geolon_u, geolat_u, geolon_v, geolat_v = spherical_geometry(ny, nx)
     ny, nx = geolon_u.shape
 
     extra_kwargs = {}
-
-    # for now, we assume that the only implemented vector grid is VECTOR_C_GRID
-    # we can relax this if we implement other vector grids
-    assert grid_type == GridType.VECTOR_C_GRID
 
     R = 6378000
     # dx varies spatially
@@ -200,6 +191,20 @@ def vector_grid_type_data_and_extra_kwargs(request, spherical_geometry):
     mask_data[: (ny // 2), : (nx // 2)] = 0
     extra_kwargs["wet_mask_t"] = mask_data
     extra_kwargs["wet_mask_q"] = mask_data
+
+    return extra_kwargs
+
+
+@pytest.fixture(
+    scope="session",
+    params=[
+        (GridType.VECTOR_C_GRID, gen_mom_cgrid_extra_kwargs),
+    ],
+)
+def vector_grid_type_data_and_extra_kwargs(request):
+    ny, nx = (128, 256)
+    grid_type, gen_kwargs = request.param
+    extra_kwargs = gen_kwargs(ny, nx)
 
     data_u = _make_random_data((ny, nx), 42)
     data_v = _make_random_data((ny, nx), 43)
