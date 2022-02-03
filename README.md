@@ -25,18 +25,10 @@ GCM-Filters can be installed using conda:
 ```shell
 conda install -c conda-forge gcm_filters
 ```
-If you want to run the example notebooks in the [GCM-Filters documentation](https://gcm-filters.readthedocs.io/), you will need a few extra dependencies that you can install via:
-```shell
-conda install -c conda-forge gcm_filters[examples]
-```
 
 GCM-Filters can also be installed with pip:
 ```shell
 pip install gcm_filters
-```
-The following command will install optional dependencies that are necessary to run the example notebooks in the documentation:
-```shell
-pip install gcm_filters[examples]
 ```
 
 ### Getting Started
