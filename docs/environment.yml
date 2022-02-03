@@ -1,4 +1,4 @@
-name: gcm-filters-test
+name: gcm-filters-docs
 channels:
   - conda-forge
 dependencies:
@@ -26,3 +26,4 @@ dependencies:
   - s3fs
   - cartopy
   - pooch>=1.5.0
+  - cupy
