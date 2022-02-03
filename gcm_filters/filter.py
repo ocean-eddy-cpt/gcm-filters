@@ -435,17 +435,32 @@ class Filter:
         ax.grid(True)
         ax.legend()
 
-    def apply(self, dataarray_or_dataset, dims):
+    def apply(self, ds, dims):
         """Filter an `xarray.DataArray` or `xarray.Dataset`
-        with a scalar Laplacian across the dimensions specified by `dims`."""
+        with a scalar Laplacian across the dimensions specified by `dims`.
+
+        Parameters
+        ----------
+        ds : xarray.DataArray or xarray.Dataset
+            The data to be filtered. If Dataset, filter will be applied to
+            all data variables.
+        dims : sequence of str
+            The names of the dimensions over which to apply the filter.
+            Usually this is two spatial dimensions, e.g. ``('lat', 'lon')``
+            or ``('y', 'x')``.
+
+            .. warning:: The dimension order matters! Since some filters deal
+                with anisotropic grids, the latitude dimension must appear first
+                in order to obtain the correct result.
+        """
         if issubclass(self.Laplacian, BaseVectorLaplacian):
             raise ValueError(
                 f"Provided Laplacian {self.Laplacian} is a vector Laplacian. "
                 f"The ``.apply`` method is only suitable for scalar Laplacians."
             )
 
-        if isinstance(dataarray_or_dataset, xr.Dataset):
-            filtered = dataarray_or_dataset.copy(deep=True)
+        if isinstance(ds, xr.Dataset):
+            filtered = ds.copy(deep=True)
             any_filtered = False
             for key, var in filtered.variables.items():
                 if all(dim in var.dims for dim in dims):
@@ -459,7 +474,7 @@ class Filter:
                 )
             return filtered
         else:
-            return self._apply_to_dataarray(dataarray_or_dataset, dims=dims)
+            return self._apply_to_dataarray(ds, dims=dims)
 
     def _apply_to_dataarray(self, field, dims):
         """Filter an `xarray.DataArray` field with scalar Laplacian across the
@@ -481,7 +496,23 @@ class Filter:
         return field_smooth
 
     def apply_to_vector(self, ufield, vfield, dims):
-        """Filter a vector field with vector Laplacian across the dimensions specified by dims."""
+        """Filter a vector field with vector Laplacian across the dimensions specified by dims.
+
+        Parameters
+        ----------
+        ufield : xarray.DataArray
+            The zonal component of the data to be filtered.
+        vfield : xarray.DataArray
+            The meridional component of the data to be filtered.
+        dims : sequence of str
+            The names of the dimensions over which to apply the filter.
+            Usually this is two spatial dimensions, e.g. ``('lat', 'lon')``
+            or ``('y', 'x')``.
+
+            .. warning:: The dimension order matters! Since some filters deal
+                with anisotropic grids, the latitude dimension must appear first
+                in order to obtain the correct result.
+        """
         if not issubclass(self.Laplacian, BaseVectorLaplacian):
             raise ValueError(
                 f"Provided Laplacian {self.Laplacian} is a scalar Laplacian. "
