@@ -719,6 +719,9 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
     def __call__(self, ufield: ArrayType, vfield: ArrayType):
         np = get_array_module(ufield)
 
+        ufield = np.nan_to_num(ufield)
+        vfield = np.nan_to_num(vfield)
+
         # Constants
         c2 = 2
         p5 = 0.5
