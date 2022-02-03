@@ -33,7 +33,6 @@ def test_conservation(scalar_grid_type_data_and_extra_kwargs):
 
     res = laplacian(data)
 
-    # currently failing only for TRIPOLAR_POP_WITH_LAND. Why?
     np.testing.assert_allclose((area * res).sum(), 0.0, atol=1e-12)
 
 

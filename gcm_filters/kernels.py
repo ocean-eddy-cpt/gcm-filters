@@ -499,27 +499,16 @@ class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
         if self.wet_mask[..., 0, :].any():
             raise AssertionError("Wet mask requires zeros in southernmost row")
 
-        # check that northern edge grid data folds onto itself
-        nx = np.shape(self.dxn)[-1]
-        first_half = self.dxn[..., [-1], : (nx // 2)]
-        second_half = self.dxn[..., [-1], (nx // 2) :]
-        if not np.all(first_half[..., ::-1] == second_half):
-            raise AssertionError(
-                "Northernmost row of dxn does not fold onto itself. This is a requirement for using a tripole boundary condition."
-            )
-        first_half = self.dyn[..., [-1], : (nx // 2)]
-        second_half = self.dyn[..., [-1], (nx // 2) :]
-        if not np.all(first_half[..., ::-1] == second_half):
-            raise AssertionError(
-                "Northernmost row of dyn does not fold onto itself. This is a requirement for using a tripole boundary condition."
-            )
-
         # prepare grid information for northern boundary exchanges
+        self.wet_mask = _prepare_tripolar_exchanges(self.wet_mask)
+        # note: extending the next 4 fields (dxe, dye, dxn, dyn) consistent with the tripolar geometry would actually require
+        # some more complex mirroring than what _prepare_tripolar_exchanges does; but the following is sufficient because the way we
+        # extend dxe, dye, dxn, dyn only affects filtered data in the nothernmost appended row, which we will disregard at the end of
+        # the call routine; in other words: anything will do the job as long as we change the shape from (..., ny, nx) --> (..., ny+1, nx)
         self.dxe = _prepare_tripolar_exchanges(self.dxe)
         self.dye = _prepare_tripolar_exchanges(self.dye)
         self.dxn = _prepare_tripolar_exchanges(self.dxn)
         self.dyn = _prepare_tripolar_exchanges(self.dyn)
-        self.wet_mask = _prepare_tripolar_exchanges(self.wet_mask)
 
         # derive wet mask for eastern cell edge from wet_mask at T points via
         # e_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j,i+1)
@@ -530,6 +519,25 @@ class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
         # n_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j+1,i)
         # note: wet_mask(j+1,i) corresponds to np.roll(wet_mask, -1, axis=-2)
         self.n_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2)
+
+        # check that northern edge grid data folds onto itself if not on land;
+        # note: grid data goes crazy for POP model land points so we don't want to check for land points
+        nx = np.shape(self.dxn)[-1]  # number of longitudes or columns
+        # grab second to last row since we have already appended one extra row
+        first_half = np.where(self.n_wet_mask == 1, self.dxn, 0)[..., -2, : (nx // 2)]
+        second_half = np.where(self.n_wet_mask == 1, self.dxn, 0)[..., -2, (nx // 2) :]
+        if not np.all(first_half[..., ::-1] == second_half):
+            raise AssertionError(
+                "Northernmost row of dxn does not fold onto itself. This is a requirement for using a tripole boundary condition."
+            )
+        first_half = np.where(self.n_wet_mask == 1, self.dyn, 0)[..., -2, : (nx // 2)]
+        second_half = np.where(self.n_wet_mask == 1, self.dyn, 0)[..., -2, (nx // 2) :]
+        # need np.allclose for dyn because there are small residuals for POP grid data
+        # (for 0.1 degree POP grid, residuals are of order 1e-12 where dyn is order 1000 at northern boundary)
+        if not np.allclose(first_half[..., ::-1], second_half):
+            raise AssertionError(
+                "Northernmost row of dyn does not fold onto itself. This is a requirement for using a tripole boundary condition."
+            )
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
