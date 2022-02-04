@@ -58,7 +58,7 @@ affiliations:
     index: 5
   - name: Earth, Ocean and Ecological Sciences, University of Liverpool, UK
     index: 6
-  - name: Australian National University, Canberra, Australia
+  - name: Research School of Earth Sciences, Australian National University, Canberra, Australia
     index: 7
 
 date: 1 November 2021
