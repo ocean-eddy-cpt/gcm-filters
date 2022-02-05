@@ -341,11 +341,11 @@ class Filter:
         if self.transition_width <= 1:
             raise ValueError(f"Transition width must be > 1.")
 
-        # If n_iterations is > 1 then modify the filter scale
-        self.filter_scale = self.filter_scale / np.sqrt(self.n_iterations)
+        # If n_iterations is > 1 then modify the filter scale of the iterated filter
+        self.filter_scale_iterated = self.filter_scale / np.sqrt(self.n_iterations)
 
         # Get default number of steps
-        filter_factor = self.filter_scale / self.dx_min
+        filter_factor = self.filter_scale_iterated / self.dx_min
         if self.ndim > 2:
             if self.n_steps < 3:
                 raise ValueError(f"When ndim > 2, you must set n_steps manually")
@@ -382,7 +382,7 @@ class Filter:
             )
 
         self.filter_spec = _compute_filter_spec(
-            self.filter_scale,
+            self.filter_scale_iterated,
             self.dx_min,
             self.filter_shape,
             self.transition_width,
@@ -406,7 +406,9 @@ class Filter:
 
         # Plot the target filter and the approximate filter
         s_max = self.filter_spec.s_max
-        target_spec = TargetSpec(s_max, self.filter_scale, self.transition_width)
+        target_spec = TargetSpec(
+            s_max, self.filter_scale_iterated, self.transition_width
+        )
         F = _target_function[self.filter_shape](target_spec)
         x = np.linspace(-1, 1, 10001)
         k = np.sqrt(s_max * (x + 1) / 2)
@@ -421,14 +423,14 @@ class Filter:
             linewidth=4,
         )
         ax.axvline(
-            2 * np.pi / self.filter_scale,
+            2 * np.pi / self.filter_scale_iterated,
             color="k",
             label="filter cutoff wavenumber",
             linewidth=2,
         )
         ax.set_xlim(left=0)
-        if self.filter_scale / self.dx_min > 10:
-            ax.set_xlim(right=4 * np.pi / self.filter_scale)
+        if self.filter_scale_iterated / self.dx_min > 10:
+            ax.set_xlim(right=4 * np.pi / self.filter_scale_iterated)
         ax.set_ylim(bottom=-0.1)
         ax.set_ylim(top=1.1)
         ax.set_xlabel("Wavenumber k", fontsize=18)
