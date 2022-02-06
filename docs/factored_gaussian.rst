@@ -5,10 +5,33 @@ This section provides background on applying a Gaussian filter with a large filt
 This was not discussed in `Grooms et al. (2021) <https://doi.org/10.1029/2021MS002552>`_, so this section provides extra detail.
 
 The :py:class:`gcm_filters.Filter` class has an argument ``n_iterations`` that will automatically split a Gaussian filter into a sequence of Gaussian filters with smaller scales, each of which is less sensitive to roundoff errors. If a user is encountering instability with the standard Gaussian filter, the user can try setting ``n_iterations`` to an integer greater than 1. In general ``n_iterations`` should be set to the smallest value that avoids numerical instability. The user should input their desired filter scale, and then the code will automatically select a smaller filter scale for each of the constituent filters in such a way that the final result achieves the filter scale input by the user.
+
+.. ipython:: python
+
+    factored_gaussian_filter_x2 = gcm_filters.Filter(
+        filter_scale=40,
+        dx_min=1,
+        n_iterations=2,  # number of constituent filters
+        filter_shape=gcm_filters.FilterShape.GAUSSIAN,
+        grid_type=gcm_filters.GridType.REGULAR,
+    )
+    factored_gaussian_filter_x2
+
+.. ipython:: python
+
+    factored_gaussian_filter_x3 = gcm_filters.Filter(
+        filter_scale=40,
+        dx_min=1,
+        n_iterations=3,  # number of constituent filters
+        filter_shape=gcm_filters.FilterShape.GAUSSIAN,
+        grid_type=gcm_filters.GridType.REGULAR,
+    )
+    factored_gaussian_filter_x3
+
+
+.. note:: When ``n_iterations`` is greater than 1, ``n_steps`` is the number of steps in a single small-scale Gaussian filter. The total number of steps taken by the algorithm is the product of ``n_iterations`` and ``n_steps``. If ``n_steps`` is not set by the user, the code automatically changes ``n_steps`` to a default value that gives an accurate approximation to the small-scale Gaussian filters that comprise the factored filter. In the example above, the code determined a smaller ``n_steps`` for the second filter compared to the first filter because the filter scale for each of the constituent filters is smaller.
+
 Applying the Taper filter repeatedly is not equivalent to applying it once with a different scale, so this method only works for the Gaussian filter.
-
-.. note:: When ``n_iterations`` is greater than 1, ``n_steps`` is the number of steps in a single small-scale Gaussian filter. The total number of steps taken by the algorithm is the product of ``n_iterations`` and ``n_steps``. If ``n_steps`` is not set by the user, or if it is set to a value less than 3, the code automatically changes ``n_steps`` to a default value that gives an accurate approximation to the small-scale Gaussian filters that comprise the factored filter.
-
 
 Mathematical Background
 -----------------------
