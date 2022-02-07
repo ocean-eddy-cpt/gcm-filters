@@ -423,14 +423,14 @@ class Filter:
             linewidth=4,
         )
         ax.axvline(
-            2 * np.pi / self.filter_scale_iterated,
+            2 * np.pi / self.filter_scale,
             color="k",
             label="filter cutoff wavenumber",
             linewidth=2,
         )
         ax.set_xlim(left=0)
-        if self.filter_scale_iterated / self.dx_min > 10:
-            ax.set_xlim(right=4 * np.pi / self.filter_scale_iterated)
+        if self.filter_scale / self.dx_min > 10:
+            ax.set_xlim(right=4 * np.pi / self.filter_scale)
         ax.set_ylim(bottom=-0.1)
         ax.set_ylim(top=1.1)
         ax.set_xlabel("Wavenumber k", fontsize=18)
