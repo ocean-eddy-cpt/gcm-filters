@@ -1,0 +1,47 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Loose
+    given-names: Nora
+    orcid: https://orcid.org/0000-0002-3684-9634
+  - family-names: Abernathey
+    given-names: Ryan
+    orcid: https://orcid.org/0000-0001-5999-4917
+  - family-names: Grooms
+    given-names: Ian
+    orcid: https://orcid.org/0000-0002-4678-7203
+  - family-names: Busecke
+    given-names: Julius
+    orcid: https://orcid.org/0000-0001-8571-865X
+  - family-names: Guillaumin
+    given-names: Arthur
+    orcid: https://orcid.org/0000-0003-1571-4228
+  - family-names: Yankovsky
+    given-names: Elizabeth
+    orcid: https://orcid.org/0000-0003-3612-549X
+  - family-names: Marques
+    given-names: Gustavo
+    orcid: https://orcid.org/0000-0001-7238-0290
+  - family-names: Steinberg
+    given-names: Jacob
+    orcid: https://orcid.org/0000-0002-2609-6405
+  - family-names: Ross
+    given-names: Andrew Slavin
+    orcid: https://orcid.org/0000-0002-2368-6979
+  - family-names: Khatri
+    given-names: Hemant
+    orcid: https://orcid.org/0000-0001-6559-9059
+  - family-names: Bachman
+    given-names: Scott
+    orcid: https://orcid.org/0000-0002-6479-4300
+  - family-names: Zanna
+    given-names: Laure
+    orcid: https://orcid.org/0000-0002-8472-4828
+  - family-names: Martin
+    given-names: Paige
+    orcid: https://orcid.org/0000-0003-3538-633X
+
+
+title: GCM-Filters: A Python Package for Diffusion-based Spatial Filtering of Gridded Data
+version: v0.2
+date-released: 2022-02-10
