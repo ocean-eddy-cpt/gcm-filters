@@ -43,5 +43,5 @@ authors:
 
 
 title: "GCM-Filters: A Python Package for Diffusion-based Spatial Filtering of Gridded Data"
-version: v0.2
+version: v0.2.1
 date-released: 2022-02-10
