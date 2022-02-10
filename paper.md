@@ -97,7 +97,7 @@ The main `GCM-Filters` class that the user will interface with is the `gcm_filte
 * Grid types with **vector Laplacians** that can be used for filtering vector fields, for example horizontal velocity $(u,v)$. The currently implemented grid type is compatible with ocean GCM grids that use an Arakawa C-grid convention; examples include MOM6 [@adcroft2019MOM6] and the MITgcm [@mitgcm].
 
 Atmospheric model grids are not yet supported, but could be implemented in `GCM-Filters`. Users are encouraged to contribute more grid types and Laplacians via pull requests.
-While we are excited to share GCM-Filters in its current beta state at version `0.1.3`, we plan to continue improving and maintaining the package for the long run and welcome new contributors from the broader community.
+While we are excited to share `GCM-Filters` at version `0.2`, we plan to continue improving and maintaining the package for the long run and welcome new contributors from the broader community.
 
 # Acknowledgements
 
