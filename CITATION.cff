@@ -42,6 +42,6 @@ authors:
     orcid: https://orcid.org/0000-0003-3538-633X
 
 
-title: GCM-Filters: A Python Package for Diffusion-based Spatial Filtering of Gridded Data
+title: "GCM-Filters: A Python Package for Diffusion-based Spatial Filtering of Gridded Data"
 version: v0.2
 date-released: 2022-02-10

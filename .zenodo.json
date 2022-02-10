@@ -2,7 +2,7 @@
     "description": "<p>New feature:</p>\n<ul>\n<li>Option to factor the Gaussian to avoid numerical instability (#127, #130, #134)</li>\n</ul>",
     "license": "other-open",
     "title": "GCM-Filters: A Python Package for Diffusion-based Spatial Filtering of Gridded Data",
-    "version": "v0.2",
+    "version": "v0.2.1",
     "upload_type": "software",
     "publication_date": "2022-02-10",
     "creators": [
@@ -76,7 +76,7 @@
     "related_identifiers": [
         {
             "scheme": "url",
-            "identifier": "https://github.com/ocean-eddy-cpt/gcm-filters/tree/v0.2",
+            "identifier": "https://github.com/ocean-eddy-cpt/gcm-filters/tree/v0.2.1",
             "relation": "isSupplementTo"
         },
         {
