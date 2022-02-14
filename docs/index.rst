@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-GCM Filters: Diffusion-based Spatial Filtering of Gridded Data
+GCM-Filters: Diffusion-based Spatial Filtering of Gridded Data
 ===============================================================
 
 .. image:: https://github.com/ocean-eddy-cpt/gcm-filters/workflows/Tests/badge.svg
@@ -21,8 +21,8 @@ GCM Filters: Diffusion-based Spatial Filtering of Gridded Data
 .. image:: https://pepy.tech/badge/gcm-filters
    :target: https://pepy.tech/project/gcm-filters
 
-.. image:: https://joss.theoj.org/papers/bc8ad806627f0d754347686e21f00d40/status.svg
-   :target: https://joss.theoj.org/papers/bc8ad806627f0d754347686e21f00d40
+.. image:: https://joss.theoj.org/papers/10.21105/joss.03947/status.svg
+   :target: https://doi.org/10.21105/joss.03947
 
 |
 **GCM-Filters** is a python package that performs spatial filtering analysis in a flexible and efficient way.
@@ -57,6 +57,7 @@ References
    AMS 2022 Talk <https://noraloose.github.io/ams2022-talk/>
    api
    how_to_contribute
+   how_to_cite
 
 
 Indices and tables
