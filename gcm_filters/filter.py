@@ -77,6 +77,7 @@ class FilterSpec(NamedTuple):
     s_max: float
     p: Iterable[float]
     n_iterations: int
+    dx_min_sq: float
 
 
 def _compute_filter_spec(
@@ -161,7 +162,9 @@ def _compute_filter_spec(
     s = np.array([y for x in s for y in x])
     is_laplacian = np.abs(s.imag / s.real) < root_tolerance
 
-    return FilterSpec(n_steps_total, s, is_laplacian, s_max, p, n_iterations)
+    dx_min_sq = dx_min ** 2
+
+    return FilterSpec(n_steps_total, s, is_laplacian, s_max, p, n_iterations, dx_min_sq)
 
 
 def _create_filter_func(
@@ -191,6 +194,8 @@ def _create_filter_func(
                 if filter_spec.is_laplacian[i]:
                     s_l = np.real(filter_spec.s[i])
                     tendency = laplacian(field_bar)  # Compute Laplacian
+                    if Laplacian.is_nondimensional:
+                        tendency /= filter_spec.dx_min_sq  # dimensionalize
                     field_bar += (1 / s_l) * tendency  # Update filtered field
                 else:
                     s_b = filter_spec.s[i]
@@ -198,6 +203,9 @@ def _create_filter_func(
                     temp_b = laplacian(
                         temp_l
                     )  # Compute Biharmonic (apply Laplacian twice)
+                    if Laplacian.is_nondimensional:
+                        temp_l /= filter_spec.dx_min_sq  # dimensionalize
+                        temp_b /= filter_spec.dx_min_sq ** 2  # dimensionalize
                     field_bar += (
                         temp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
                         + temp_b * 1 / np.abs(s_b) ** 2
@@ -242,6 +250,9 @@ def _create_filter_func_vec(
                     (utendency, vtendency) = laplacian(
                         ufield_bar, vfield_bar
                     )  # Compute Laplacian
+                    if Laplacian.is_nondimensional:
+                        utendency /= filter_spec.dx_min_sq  # dimensionalize
+                        vtendency /= filter_spec.dx_min_sq  # dimensionalize
                     ufield_bar += (1 / s_l) * utendency  # Update filtered ufield
                     vfield_bar += (1 / s_l) * vtendency  # Update filtered vfield
                 else:
@@ -252,10 +263,15 @@ def _create_filter_func_vec(
                     (utemp_b, vtemp_b) = laplacian(
                         utemp_l, vtemp_l
                     )  # Compute Biharmonic (apply Laplacian twice)
-                    ufield_bar += (
-                        utemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
-                        + utemp_b * 1 / np.abs(s_b) ** 2
-                    )
+                    if Laplacian.is_nondimensional:
+                        utemp_l /= filter_spec.dx_min_sq  # dimensionalize
+                        vtemp_l /= filter_spec.dx_min_sq  # dimensionalize
+                        utemp_b /= filter_spec.dx_min_sq ** 2  # dimensionalize
+                        vtemp_b /= filter_spec.dx_min_sq ** 2  # dimensionalize
+                        ufield_bar += (
+                            utemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
+                            + utemp_b * 1 / np.abs(s_b) ** 2
+                        )
                     vfield_bar += (
                         vtemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
                         + vtemp_b * 1 / np.abs(s_b) ** 2

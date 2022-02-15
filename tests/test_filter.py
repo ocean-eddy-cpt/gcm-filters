@@ -17,6 +17,7 @@ def _check_equal_filter_spec(spec1, spec2):
     assert spec1.s_max == spec2.s_max
     np.testing.assert_allclose(spec1.p, spec2.p, rtol=1e-07, atol=1e-07)
     assert spec1.n_iterations == spec2.n_iterations
+    np.testing.assert_allclose(spec1.dx_min_sq, spec2.dx_min_sq)
 
 
 # These values were just hard copied from my dev environment.
@@ -76,6 +77,7 @@ def _check_equal_filter_spec(spec1, spec2):
                     -0.00454758,
                 ],
                 n_iterations=1,
+                dx_min_sq=1.0,
             ),
         ),
         (
@@ -106,6 +108,7 @@ def _check_equal_filter_spec(spec1, spec2):
                     0.00168445,
                 ],
                 n_iterations=1,
+                dx_min_sq=1.0,
             ),
         ),
     ],
