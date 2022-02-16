@@ -268,10 +268,10 @@ def _create_filter_func_vec(
                         vtemp_l /= filter_spec.dx_min_sq  # dimensionalize
                         utemp_b /= filter_spec.dx_min_sq ** 2  # dimensionalize
                         vtemp_b /= filter_spec.dx_min_sq ** 2  # dimensionalize
-                        ufield_bar += (
-                            utemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
-                            + utemp_b * 1 / np.abs(s_b) ** 2
-                        )
+                    ufield_bar += (
+                        utemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
+                        + utemp_b * 1 / np.abs(s_b) ** 2
+                    )
                     vfield_bar += (
                         vtemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
                         + vtemp_b * 1 / np.abs(s_b) ** 2
