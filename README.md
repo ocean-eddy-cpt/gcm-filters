@@ -69,7 +69,7 @@ would certainly appreciate it. We recommend two citations.
   @article{Loose2022,
      author = {Nora Loose and Ryan Abernathey and Ian Grooms and Julius Busecke and Arthur Guillaumin and Elizabeth Yankovsky and Gustavo Marques and Jacob Steinberg and Andrew Slavin Ross and Hemant Khatri and Scott Bachman and Laure Zanna and Paige Martin},
      title = {GCM-Filters: A Python Package for Diffusion-based Spatial Filtering of Gridded Data},
-     journal = {Journal of Open Source Software}
+     journal = {Journal of Open Source Software},
      volume = {7},
      number = {70},
      pages = {3947},
