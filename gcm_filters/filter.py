@@ -30,8 +30,8 @@ filter_params = {
         2: {"offset": 1.1, "factor": 0.0, "exponent": 1, "max_filter_factor": 77},
     },
     FilterShape.TAPER: {
-        1: {"offset": 2.2, "factor": 0.6, "exponent": 2.5, "max_filter_factor": 19},
-        2: {"offset": 3.2, "factor": 0.7, "exponent": 2.7, "max_filter_factor": 20},
+        1: {"offset": 2.2, "factor": 0.6, "exponent": 2.5, "max_filter_factor": 67},
+        2: {"offset": 3.2, "factor": 0.7, "exponent": 2.7, "max_filter_factor": 77},
     },
 }
 
@@ -71,9 +71,7 @@ _target_function = {
 
 
 class FilterSpec(NamedTuple):
-    n_steps_total: int
-    s: Iterable[complex]
-    is_laplacian: Iterable[bool]
+    n_steps: int
     s_max: float
     p: Iterable[float]
     n_iterations: int
@@ -87,7 +85,6 @@ def _compute_filter_spec(
     ndim=2,
     n_steps=0,
     n_iterations=1,
-    root_tolerance=1e-8,
 ):
 
     # Set up the mass matrix for the Galerkin basis from Shen (SISC95)
@@ -130,38 +127,7 @@ def _compute_filter_spec(
     p[n_steps - 1] = -c_hat[n_steps - 3]
     p[n_steps] = -c_hat[n_steps - 2]
 
-    # Get roots of the polynomial
-    r = np.polynomial.chebyshev.chebroots(p)
-
-    # convert back to s in [0,sMax]
-    s = s_max / 2 * (r + 1)
-    # Separate out the real and complex roots
-    n_lap_steps = np.size(s[np.where(np.abs(r.imag / r.real) < root_tolerance)])
-    s_l = np.real(s[np.where(np.abs(r.imag / r.real) < root_tolerance)])
-    n_bih_steps = (n_steps - n_lap_steps) // 2
-    s_b_re, indices = np.unique(
-        np.real(s[np.where(np.abs(r.imag / r.real) > root_tolerance)]),
-        return_index=True,
-    )
-    s_b_im = np.imag(s[np.where(np.abs(r.imag / r.real) > root_tolerance)])[indices]
-    s_b = s_b_re + s_b_im * 1j
-
-    # Alternate stages that damp and amplify small scales
-    s = np.concatenate((s_l, s_b))
-    n_steps_total = s.shape[0]
-    indices = np.argsort(np.abs(1 - s_max / s))
-    s = s[indices]  # sorted from most damping to most amplifying
-    ind_damping = np.argwhere(np.abs(1 - s_max / s) <= 1)
-    ind_amplifying = np.argwhere(np.abs(1 - s_max / s) > 1)
-    s_damping = s[ind_damping].tolist()  # Damping roots, sorted most to least damping
-    s_amplifying = s[
-        ind_amplifying
-    ].tolist()  # Amplifying roots, sorted least to most amplifying
-    s = [x for x in chain(*zip_longest(s_damping, s_amplifying)) if x is not None]
-    s = np.array([y for x in s for y in x])
-    is_laplacian = np.abs(s.imag / s.real) < root_tolerance
-
-    return FilterSpec(n_steps_total, s, is_laplacian, s_max, p, n_iterations)
+    return FilterSpec(n_steps, s_max, p, n_iterations)
 
 
 def _create_filter_func(
@@ -169,8 +135,19 @@ def _create_filter_func(
     Laplacian: BaseScalarLaplacian,
 ):
     """Returns a function whose first argument is the field to be filtered
-    and whose subsequent arguments are the require grid variables
+    and whose subsequent arguments are the required grid variables
     """
+
+    def shifted_laplacian(
+        field,
+        s_max,
+        laplacian,
+    ):
+        # This function computes -(field + (2/s_max) * laplacian(field))
+        output = laplacian(field)
+        # Could put an if statement here to fix dimensionality of REGULAR Laplacians
+        output = -field - (2 / s_max) * output
+        return output
 
     def filter_func(field, *args):
         # these next steps are a kind of hack we have to turn keyword arugments into regular arguments
@@ -187,21 +164,17 @@ def _create_filter_func(
         field_bar = laplacian.prepare(field_bar)
 
         for n in range(filter_spec.n_iterations):
-            for i in range(filter_spec.n_steps_total):
-                if filter_spec.is_laplacian[i]:
-                    s_l = np.real(filter_spec.s[i])
-                    tendency = laplacian(field_bar)  # Compute Laplacian
-                    field_bar += (1 / s_l) * tendency  # Update filtered field
-                else:
-                    s_b = filter_spec.s[i]
-                    temp_l = laplacian(field_bar)  # Compute Laplacian
-                    temp_b = laplacian(
-                        temp_l
-                    )  # Compute Biharmonic (apply Laplacian twice)
-                    field_bar += (
-                        temp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
-                        + temp_b * 1 / np.abs(s_b) ** 2
-                    )
+            T_minus_2 = field_bar.copy()
+            T_minus_1 = shifted_laplacian(field_bar, filter_spec.s_max, laplacian)
+            field_bar = filter_spec.p[0] * T_minus_2 + filter_spec.p[1] * T_minus_1
+            for i in range(2, filter_spec.n_steps + 1):
+                T_minus_0 = (
+                    2 * shifted_laplacian(T_minus_1, filter_spec.s_max, laplacian)
+                    - T_minus_2
+                )
+                field_bar += filter_spec.p[i] * T_minus_0
+                T_minus_2 = T_minus_1.copy()
+                T_minus_1 = T_minus_0.copy()
 
         # finalize filtering (this divides by area for simple fixed factor filters,
         # and does nothing for all other filters)
@@ -220,6 +193,19 @@ def _create_filter_func_vec(
     and whose subsequent arguments are the require grid variables
     """
 
+    def shifted_laplacian_vec(
+        ufield,
+        vfield,
+        s_max,
+        laplacian,
+    ):
+        # This function computes -(field + (2/s_max) * laplacian(field))
+        (u_output, v_output) = laplacian(ufield, vfield)
+        # Could put an if statement here to fix dimensionality of REGULAR Laplacians
+        u_output = -ufield - (2 / s_max) * u_output
+        v_output = -vfield - (2 / s_max) * v_output
+        return (u_output, v_output)
+
     def filter_func_vec(ufield, vfield, *args):
         # these next steps are a kind of hack we have to turn keyword arugments into regular arguments
         # the reason for doing this is that Xarray's apply_ufunc machinery works a lot better
@@ -236,30 +222,25 @@ def _create_filter_func_vec(
         (ufield_bar, vfield_bar) = laplacian.prepare(ufield_bar, vfield_bar)
 
         for n in range(filter_spec.n_iterations):
-            for i in range(filter_spec.n_steps_total):
-                if filter_spec.is_laplacian[i]:
-                    s_l = np.real(filter_spec.s[i])
-                    (utendency, vtendency) = laplacian(
-                        ufield_bar, vfield_bar
-                    )  # Compute Laplacian
-                    ufield_bar += (1 / s_l) * utendency  # Update filtered ufield
-                    vfield_bar += (1 / s_l) * vtendency  # Update filtered vfield
-                else:
-                    s_b = filter_spec.s[i]
-                    (utemp_l, vtemp_l) = laplacian(
-                        ufield_bar, vfield_bar
-                    )  # Compute Laplacian
-                    (utemp_b, vtemp_b) = laplacian(
-                        utemp_l, vtemp_l
-                    )  # Compute Biharmonic (apply Laplacian twice)
-                    ufield_bar += (
-                        utemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
-                        + utemp_b * 1 / np.abs(s_b) ** 2
-                    )
-                    vfield_bar += (
-                        vtemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
-                        + vtemp_b * 1 / np.abs(s_b) ** 2
-                    )
+            uT_minus_2 = ufield_bar.copy()
+            vT_minus_2 = vfield_bar.copy()
+            (uT_minus_1, vT_minus_1) = shifted_laplacian_vec(
+                ufield_bar, vfield_bar, filter_spec.s_max, laplacian
+            )
+            ufield_bar = filter_spec.p[0] * uT_minus_2 + filter_spec.p[1] * uT_minus_1
+            vfield_bar = filter_spec.p[0] * vT_minus_2 + filter_spec.p[1] * vT_minus_1
+            for i in range(2, filter_spec.n_steps + 1):
+                (uT_minus_0, vT_minus_0) = shifted_laplacian_vec(
+                    uT_minus_1, vT_minus_1, filter_spec.s_max, laplacian
+                )
+                uT_minus_0 = 2 * uT_minus_0 - uT_minus_2
+                vT_minus_0 = 2 * vT_minus_0 - vT_minus_2
+                ufield_bar += filter_spec.p[i] * uT_minus_0
+                vfield_bar += filter_spec.p[i] * vT_minus_0
+                uT_minus_2 = uT_minus_1.copy()
+                uT_minus_1 = uT_minus_0.copy()
+                vT_minus_2 = vT_minus_1.copy()
+                vT_minus_1 = vT_minus_0.copy()
 
         # finalize filtering (this divides by area for simple fixed factor filters,
         # and does nothing for all other filters)

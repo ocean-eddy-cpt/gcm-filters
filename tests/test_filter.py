@@ -11,9 +11,7 @@ from gcm_filters.filter import FilterSpec
 
 
 def _check_equal_filter_spec(spec1, spec2):
-    assert spec1.n_steps_total == spec2.n_steps_total
-    np.testing.assert_allclose(spec1.s, spec2.s)
-    assert (spec1.is_laplacian == spec2.is_laplacian).all()
+    assert spec1.n_steps == spec2.n_steps
     assert spec1.s_max == spec2.s_max
     np.testing.assert_allclose(spec1.p, spec2.p, rtol=1e-07, atol=1e-07)
     assert spec1.n_iterations == spec2.n_iterations
@@ -35,31 +33,7 @@ def _check_equal_filter_spec(spec1, spec2):
                 grid_vars={},
             ),
             FilterSpec(
-                n_steps_total=10,
-                s=[
-                    8.0 + 0.0j,
-                    3.42929331 + 0.0j,
-                    7.71587822 + 0.0j,
-                    2.41473596 + 0.0j,
-                    7.18021542 + 0.0j,
-                    1.60752541 + 0.0j,
-                    6.42502377 + 0.0j,
-                    0.81114415 - 0.55260985j,
-                    5.50381534 + 0.0j,
-                    4.48146765 + 0.0j,
-                ],
-                is_laplacian=[
-                    True,
-                    True,
-                    True,
-                    True,
-                    True,
-                    True,
-                    True,
-                    False,
-                    True,
-                    True,
-                ],
+                n_steps=11,
                 s_max=8.0,
                 p=[
                     0.09887381,
@@ -88,13 +62,7 @@ def _check_equal_filter_spec(spec1, spec2):
                 grid_vars={},
             ),
             FilterSpec(
-                n_steps_total=3,
-                s=[
-                    5.23887374 - 1.09644141j,
-                    -0.76856043 - 1.32116962j,
-                    3.00058907 - 2.95588288j,
-                ],
-                is_laplacian=[False, False, False],
+                n_steps=6,
                 s_max=4.0,
                 p=[
                     0.83380304,
