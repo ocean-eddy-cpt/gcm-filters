@@ -341,11 +341,11 @@ class Filter:
         if self.transition_width <= 1:
             raise ValueError(f"Transition width must be > 1.")
 
-        # If n_iterations is > 1 then modify the filter scale
-        self.filter_scale = self.filter_scale / np.sqrt(self.n_iterations)
+        # If n_iterations is > 1 then modify the filter scale of the iterated filter
+        self.filter_scale_iterated = self.filter_scale / np.sqrt(self.n_iterations)
 
         # Get default number of steps
-        filter_factor = self.filter_scale / self.dx_min
+        filter_factor = self.filter_scale_iterated / self.dx_min
         if self.ndim > 2:
             if self.n_steps < 3:
                 raise ValueError(f"When ndim > 2, you must set n_steps manually")
@@ -382,7 +382,7 @@ class Filter:
             )
 
         self.filter_spec = _compute_filter_spec(
-            self.filter_scale,
+            self.filter_scale_iterated,
             self.dx_min,
             self.filter_shape,
             self.transition_width,
@@ -406,7 +406,9 @@ class Filter:
 
         # Plot the target filter and the approximate filter
         s_max = self.filter_spec.s_max
-        target_spec = TargetSpec(s_max, self.filter_scale, self.transition_width)
+        target_spec = TargetSpec(
+            s_max, self.filter_scale_iterated, self.transition_width
+        )
         F = _target_function[self.filter_shape](target_spec)
         x = np.linspace(-1, 1, 10001)
         k = np.sqrt(s_max * (x + 1) / 2)
@@ -435,17 +437,32 @@ class Filter:
         ax.grid(True)
         ax.legend()
 
-    def apply(self, dataarray_or_dataset, dims):
+    def apply(self, ds, dims):
         """Filter an `xarray.DataArray` or `xarray.Dataset`
-        with a scalar Laplacian across the dimensions specified by `dims`."""
+        with a scalar Laplacian across the dimensions specified by `dims`.
+
+        Parameters
+        ----------
+        ds : xarray.DataArray or xarray.Dataset
+            The data to be filtered. If Dataset, filter will be applied to
+            all data variables.
+        dims : sequence of str
+            The names of the dimensions over which to apply the filter.
+            Usually this is two spatial dimensions, e.g. ``('lat', 'lon')``
+            or ``('y', 'x')``.
+
+            .. warning:: The dimension order matters! Since some filters deal
+                with anisotropic grids, the latitude dimension must appear first
+                in order to obtain the correct result.
+        """
         if issubclass(self.Laplacian, BaseVectorLaplacian):
             raise ValueError(
                 f"Provided Laplacian {self.Laplacian} is a vector Laplacian. "
                 f"The ``.apply`` method is only suitable for scalar Laplacians."
             )
 
-        if isinstance(dataarray_or_dataset, xr.Dataset):
-            filtered = dataarray_or_dataset.copy(deep=True)
+        if isinstance(ds, xr.Dataset):
+            filtered = ds.copy(deep=True)
             any_filtered = False
             for key, var in filtered.variables.items():
                 if all(dim in var.dims for dim in dims):
@@ -459,7 +476,7 @@ class Filter:
                 )
             return filtered
         else:
-            return self._apply_to_dataarray(dataarray_or_dataset, dims=dims)
+            return self._apply_to_dataarray(ds, dims=dims)
 
     def _apply_to_dataarray(self, field, dims):
         """Filter an `xarray.DataArray` field with scalar Laplacian across the
@@ -481,7 +498,23 @@ class Filter:
         return field_smooth
 
     def apply_to_vector(self, ufield, vfield, dims):
-        """Filter a vector field with vector Laplacian across the dimensions specified by dims."""
+        """Filter a vector field with vector Laplacian across the dimensions specified by dims.
+
+        Parameters
+        ----------
+        ufield : xarray.DataArray
+            The zonal component of the data to be filtered.
+        vfield : xarray.DataArray
+            The meridional component of the data to be filtered.
+        dims : sequence of str
+            The names of the dimensions over which to apply the filter.
+            Usually this is two spatial dimensions, e.g. ``('lat', 'lon')``
+            or ``('y', 'x')``.
+
+            .. warning:: The dimension order matters! Since some filters deal
+                with anisotropic grids, the latitude dimension must appear first
+                in order to obtain the correct result.
+        """
         if not issubclass(self.Laplacian, BaseVectorLaplacian):
             raise ValueError(
                 f"Provided Laplacian {self.Laplacian} is a scalar Laplacian. "

@@ -1,0 +1,74 @@
+{
+    "license": "other-open",
+    "title": "GCM-Filters: A Python Package for Diffusion-based Spatial Filtering of Gridded Data",
+    "version": "v0.2.1",
+    "upload_type": "software",
+    "publication_date": "2022-02-10",
+    "creators": [
+        {
+            "name": "Nora Loose",
+            "affiliation": "University of Colorado Boulder",
+            "orcid": "0000-0002-3684-9634"
+        },
+        {
+            "name": "Ryan Abernathey",
+            "affiliation": "Columbia University",
+            "orcid": "0000-0001-5999-4917"
+        },
+        {
+            "name": "Ian Grooms",
+            "affiliation": "University of Colorado Boulder",
+            "orcid": "0000-0002-4678-7203"
+        },
+        {
+            "name": "Julius Busecke",
+            "affiliation": "Columbia University",
+            "orcid": "0000-0001-8571-865X"
+        },
+        {
+            "name": "Arthur P. Guillaumin",
+            "affiliation": "New York University",
+            "orcid": "0000-0003-1571-4228"
+        },
+        {
+            "name": "Elizabeth Yankovsky",
+            "affiliation": "New York University",
+            "orcid": "0000-0003-3612-549X"
+        },
+        {
+            "name": "Gustavo Marques",
+            "affiliation": "National Center for Atmospheric Research",
+            "orcid": "0000-0001-7238-0290"
+        },
+        {
+            "name": "Jacob Steinberg",
+            "affiliation": "Woods Hole Oceanographic Institution",
+            "orcid": "0000-0002-2609-6405"
+        },
+        {
+            "name": "Andrew Slavin Ross",
+            "affiliation": "New York University",
+            "orcid": "0000-0002-2368-6979"
+        },
+        {
+            "name": "Hemant Khatri",
+            "affiliation": "University of Liverpool",
+            "orcid": "0000-0001-6559-9059"
+        },
+        {
+            "name": "Scott Bachman",
+            "affiliation": "National Center for Atmospheric Research",
+            "orcid": "0000-0002-6479-4300"
+        },
+        {
+            "name": "Laure Zanna",
+            "affiliation": "New York University",
+            "orcid": "0000-0002-8472-4828"
+        },
+        {
+            "name": "Paige Martin",
+            "affiliation": "Columbia University",
+            "orcid": "0000-0003-3538-633X"
+        }
+    ]
+}
