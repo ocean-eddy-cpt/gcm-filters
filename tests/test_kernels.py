@@ -42,6 +42,25 @@ def test_required_grid_vars(scalar_grid_type_data_and_extra_kwargs):
     assert set(grid_vars) == set(extra_kwargs)
 
 
+def test_dimensionality_scalar(scalar_grid_type_data_and_extra_kwargs):
+    """This test checks that REGULAR Laplacians are marked as nondimensional"""
+    grid_type, data, extra_kwargs = scalar_grid_type_data_and_extra_kwargs
+
+    LaplacianClass = ALL_KERNELS[grid_type]
+    switch = {
+        GridType.REGULAR: True,
+        GridType.REGULAR_AREA_WEIGHTED: True,
+        GridType.REGULAR_WITH_LAND: True,
+        GridType.REGULAR_WITH_LAND_AREA_WEIGHTED: True,
+        GridType.IRREGULAR_WITH_LAND: False,
+        GridType.MOM5U: False,
+        GridType.MOM5T: False,
+        GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED: True,
+        GridType.TRIPOLAR_POP_WITH_LAND: False,
+    }
+    assert switch.get(grid_type, "Invalid input") == LaplacianClass.is_nondimensional
+
+
 ################## Irregular grid tests for scalar Laplacians ##############################################
 # Irregular grids are grids that allow spatially varying dx, dy
 
@@ -275,3 +294,14 @@ def test_required_vector_grid_vars(vector_grid_type_data_and_extra_kwargs):
     grid_type, _, extra_kwargs = vector_grid_type_data_and_extra_kwargs
     grid_vars = required_grid_vars(grid_type)
     assert set(grid_vars) == set(extra_kwargs)
+
+
+def test_dimensionality_vector(vector_grid_type_data_and_extra_kwargs):
+    """This test checks that REGULAR Laplacians are marked as nondimensional"""
+    grid_type, (data_u, data_v), extra_kwargs = vector_grid_type_data_and_extra_kwargs
+
+    LaplacianClass = ALL_KERNELS[grid_type]
+    switch = {
+        GridType.VECTOR_C_GRID: False,
+    }
+    assert switch.get(grid_type, "Invalid input") == LaplacianClass.is_nondimensional
