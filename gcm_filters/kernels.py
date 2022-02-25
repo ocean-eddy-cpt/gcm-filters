@@ -712,10 +712,6 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
         self.DXUR = 1 / self.DXU
         self.DYUR = 1 / self.DYU
 
-        radius = 6370.0e5
-        ny, nx = self.TAREA.shape
-        self.AMF = np.sqrt(self.UAREA / (2 * np.pi * radius / nx) ** 2)
-
     def __call__(self, ufield: ArrayType, vfield: ArrayType):
         np = get_array_module(ufield)
 
@@ -727,7 +723,7 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
         p5 = 0.5
 
         # Calculate coefficients for the stencil without metric terms
-        WORK1 = (self.HUS / self.HTE) * p5 * (self.AMF + np.roll(self.AMF, -1, axis=1))
+        WORK1 = (self.HUS / self.HTE)
 
         DUS = (
             WORK1 * self.UAREA_R
@@ -736,7 +732,7 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
             np.roll(WORK1, 1, axis=1) * self.UAREA_R
         )  # North coefficient of 5-point stencil
 
-        WORK1 = (self.HUW / self.HTN) * p5 * (self.AMF + np.roll(self.AMF, -1, axis=0))
+        WORK1 = (self.HUW / self.HTN)
 
         DUW = WORK1 * self.UAREA_R  # West coefficient of 5-point stencil
         DUE = (
@@ -753,16 +749,12 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
         WORK2 = (
             p5
             * (WORK1 + np.roll(WORK1, 1, axis=1))
-            * p5
-            * (np.roll(self.AMF, -1, axis=0) + self.AMF)
         )
         DXKX = (np.roll(WORK2, 1, axis=0) - WORK2) * self.DXUR
 
         WORK2 = (
             p5
             * (WORK1 + np.roll(WORK1, 1, axis=0))
-            * p5
-            * (np.roll(self.AMF, -1, axis=1) + self.AMF)
         )
         DYKX = (np.roll(WORK2, 1, axis=1) - WORK2) * self.DYUR
 
@@ -770,38 +762,28 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
         WORK2 = (
             p5
             * (WORK1 + np.roll(WORK1, 1, axis=0))
-            * p5
-            * (np.roll(self.AMF, -1, axis=1) + self.AMF)
         )
         DYKY = (np.roll(WORK2, 1, axis=1) - WORK2) * self.DYUR
 
         WORK2 = (
             p5
             * (WORK1 + np.roll(WORK1, 1, axis=1))
-            * p5
-            * (np.roll(self.AMF, -1, axis=0) + self.AMF)
         )
         DXKY = (np.roll(WORK2, axis=0, shift=1) - WORK2) * self.DXUR
 
         DUM = -(
-            DXKX + DYKY + c2 * self.AMF * (KXU ** 2 + KYU ** 2)
+            DXKX + DYKY + c2 * (KXU ** 2 + KYU ** 2)
         )  # central coefficient for metric terms that do not mix U,V
         DMC = (
             DXKY - DYKX
         )  # central coefficient of 5-point stencil for the metric terms that mix U,V
 
         # Calculate the central coefficient for metric mixing terms that mix U,V
-        WORK1 = (
-            np.roll(self.AMF, axis=1, shift=1) - np.roll(self.AMF, axis=1, shift=-1)
-        ) / (self.HTE + np.roll(self.HTE, axis=1, shift=1))
-        DME = (c2 * self.AMF * KYU + WORK1) / (
+        DME = (c2 * KYU) / (
             self.HTN + np.roll(self.HTN, axis=0, shift=1)
         )  # East coefficient of 5-point stencil for the metric terms that mix U,V
 
-        WORK1 = (
-            np.roll(self.AMF, axis=0, shift=1) - np.roll(self.AMF, axis=0, shift=-1)
-        ) / (self.HTN + np.roll(self.HTN, axis=0, shift=1))
-        DMN = -(c2 * self.AMF * KXU + WORK1) / (
+        DMN = -(c2 * KXU) / (
             self.HTE + np.roll(self.HTE, axis=1, shift=1)
         )  # North coefficient of 5-point stencil
 
