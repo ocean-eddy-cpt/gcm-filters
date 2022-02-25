@@ -433,6 +433,40 @@ def test_application_to_dataset():
         filter.apply(dataset, ["yy", "x"])
 
 
+def test_nondimensional_invariance():
+    # Create a dataset with spatial variables, as above
+    dataset = xr.Dataset(
+        data_vars=dict(
+            spatial=(("y", "x"), np.random.normal(size=(100, 100))),
+        ),
+        coords=dict(
+            x=np.linspace(0, 1e6, 100),
+            y=np.linspace(0, 1e6, 100),
+        ),
+    )
+
+    # Filter it using a nondimenisional filter, dx_min = 1
+    filter = Filter(
+        filter_scale=4,
+        dx_min=1,
+        filter_shape=FilterShape.GAUSSIAN,
+        grid_type=GridType.REGULAR,
+    )
+    filtered_dataset = filter.apply(dataset, ["y", "x"])
+
+    # Filter it using a nondimensional filter, dx_min = 2
+    filter = Filter(
+        filter_scale=8,
+        dx_min=2,
+        filter_shape=FilterShape.GAUSSIAN,
+        grid_type=GridType.REGULAR,
+    )
+    filtered_dataset_v2 = filter.apply(dataset, ["y", "x"])
+
+    # Check if they are the same
+    xr.testing.assert_allclose(filtered_dataset.spatial, filtered_dataset_v2.spatial)
+
+
 @pytest.mark.parametrize(
     "filter_args",
     [
