@@ -75,6 +75,7 @@ class FilterSpec(NamedTuple):
     s_max: float
     p: Iterable[float]
     n_iterations: int
+    dx_min_sq: float
 
 
 def _compute_filter_spec(
@@ -127,7 +128,9 @@ def _compute_filter_spec(
     p[n_steps - 1] = -c_hat[n_steps - 3]
     p[n_steps] = -c_hat[n_steps - 2]
 
-    return FilterSpec(n_steps, s_max, p, n_iterations)
+    dx_min_sq = dx_min**2  # For nondimensional Laplacians
+
+    return FilterSpec(n_steps, s_max, p, n_iterations, dx_min_sq)
 
 
 def _create_filter_func(
@@ -142,11 +145,15 @@ def _create_filter_func(
         field,
         s_max,
         laplacian,
+        dx_min_sq,
     ):
         # This function computes -(field + (2/s_max) * laplacian(field))
         output = laplacian(field)
-        # Could put an if statement here to fix dimensionality of REGULAR Laplacians
-        output = -field - (2 / s_max) * output
+        if laplacian.is_dimensional:
+            output = -field - (2 / s_max) * output
+        else:
+            output = -field - (2 / (s_max * dx_min_sq)) * output
+
         return output
 
     def filter_func(field, *args):
@@ -165,11 +172,16 @@ def _create_filter_func(
 
         for n in range(filter_spec.n_iterations):
             T_minus_2 = field_bar.copy()
-            T_minus_1 = shifted_laplacian(field_bar, filter_spec.s_max, laplacian)
+            T_minus_1 = shifted_laplacian(
+                field_bar, filter_spec.s_max, laplacian, filter_spec.dx_min_sq
+            )
             field_bar = filter_spec.p[0] * T_minus_2 + filter_spec.p[1] * T_minus_1
             for i in range(2, filter_spec.n_steps + 1):
                 T_minus_0 = (
-                    2 * shifted_laplacian(T_minus_1, filter_spec.s_max, laplacian)
+                    2
+                    * shifted_laplacian(
+                        T_minus_1, filter_spec.s_max, laplacian, filter_spec.dx_min_sq
+                    )
                     - T_minus_2
                 )
                 field_bar += filter_spec.p[i] * T_minus_0
@@ -198,12 +210,16 @@ def _create_filter_func_vec(
         vfield,
         s_max,
         laplacian,
+        dx_min_sq,
     ):
         # This function computes -(field + (2/s_max) * laplacian(field))
         (u_output, v_output) = laplacian(ufield, vfield)
-        # Could put an if statement here to fix dimensionality of REGULAR Laplacians
-        u_output = -ufield - (2 / s_max) * u_output
-        v_output = -vfield - (2 / s_max) * v_output
+        if laplacian.is_dimensional:
+            u_output = -ufield - (2 / s_max) * u_output
+            v_output = -vfield - (2 / s_max) * v_output
+        else:
+            u_output = -ufield - (2 / (s_max * dx_min_sq)) * u_output
+            v_output = -vfield - (2 / (s_max * dx_min_sq)) * v_output
         return (u_output, v_output)
 
     def filter_func_vec(ufield, vfield, *args):
@@ -225,13 +241,21 @@ def _create_filter_func_vec(
             uT_minus_2 = ufield_bar.copy()
             vT_minus_2 = vfield_bar.copy()
             (uT_minus_1, vT_minus_1) = shifted_laplacian_vec(
-                ufield_bar, vfield_bar, filter_spec.s_max, laplacian
+                ufield_bar,
+                vfield_bar,
+                filter_spec.s_max,
+                laplacian,
+                filter_spec.dx_min_sq,
             )
             ufield_bar = filter_spec.p[0] * uT_minus_2 + filter_spec.p[1] * uT_minus_1
             vfield_bar = filter_spec.p[0] * vT_minus_2 + filter_spec.p[1] * vT_minus_1
             for i in range(2, filter_spec.n_steps + 1):
                 (uT_minus_0, vT_minus_0) = shifted_laplacian_vec(
-                    uT_minus_1, vT_minus_1, filter_spec.s_max, laplacian
+                    uT_minus_1,
+                    vT_minus_1,
+                    filter_spec.s_max,
+                    laplacian,
+                    filter_spec.dx_min_sq,
                 )
                 uT_minus_0 = 2 * uT_minus_0 - uT_minus_2
                 vT_minus_0 = 2 * vT_minus_0 - vT_minus_2
