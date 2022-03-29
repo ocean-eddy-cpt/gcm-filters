@@ -58,7 +58,7 @@ def test_dimensionality_scalar(scalar_grid_type_data_and_extra_kwargs):
         GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED: True,
         GridType.TRIPOLAR_POP_WITH_LAND: False,
     }
-    assert switch.get(grid_type, "Invalid input") == LaplacianClass.is_nondimensional
+    assert switch.get(grid_type, "Invalid input") != LaplacianClass.is_dimensional
 
 
 ################## Irregular grid tests for scalar Laplacians ##############################################
@@ -304,4 +304,4 @@ def test_dimensionality_vector(vector_grid_type_data_and_extra_kwargs):
     switch = {
         GridType.VECTOR_C_GRID: False,
     }
-    assert switch.get(grid_type, "Invalid input") == LaplacianClass.is_nondimensional
+    assert switch.get(grid_type, "Invalid input") != LaplacianClass.is_dimensional

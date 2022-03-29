@@ -107,7 +107,7 @@ class AreaWeightedMixin(ABC):
 class RegularLaplacian(BaseScalarLaplacian):
     """̵Scalar Laplacian for regularly spaced Cartesian grids."""
 
-    is_nondimensional = True
+    is_dimensional = False
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
@@ -136,7 +136,7 @@ class RegularLaplacianWithArea(AreaWeightedMixin, RegularLaplacian):
     area: cell area
     """
 
-    is_nondimensional = True
+    is_dimensional = False
 
     area: ArrayType
 
@@ -155,7 +155,7 @@ class RegularLaplacianWithLandMask(BaseScalarLaplacian):
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
 
-    is_nondimensional = True
+    is_dimensional = False
 
     wet_mask: ArrayType
 
@@ -205,7 +205,7 @@ class RegularLaplacianWithLandMaskAndArea(
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
 
-    is_nondimensional = True
+    is_dimensional = False
 
     area: ArrayType
     wet_mask: ArrayType
@@ -244,7 +244,7 @@ class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
              least one place in the domain must have kappa_s = 1 if kappa_w < 1.
     """
 
-    is_nondimensional = False
+    is_dimensional = True
 
     wet_mask: ArrayType
     dxw: ArrayType
@@ -329,7 +329,7 @@ class MOM5LaplacianU(BaseScalarLaplacian):
     area_u: area of U-cell, dxu*dyu
     """
 
-    is_nondimensional = False
+    is_dimensional = True
 
     wet_mask: ArrayType
     dxt: ArrayType
@@ -386,7 +386,7 @@ class MOM5LaplacianT(BaseScalarLaplacian):
     area_t: area of T-cell, dxt*dyt
     """
 
-    is_nondimensional = False
+    is_dimensional = True
 
     wet_mask: ArrayType
     dxt: ArrayType
@@ -442,7 +442,7 @@ class TripolarRegularLaplacianTpoint(AreaWeightedMixin, BaseScalarLaplacian):
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
 
-    is_nondimensional = True
+    is_dimensional = False
 
     area: ArrayType
     wet_mask: ArrayType
@@ -501,7 +501,7 @@ class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
     tarea: cell area, provided by POP model diagnostic TAREA(nlat, nlon)
     """
 
-    is_nondimensional = False
+    is_dimensional = True
 
     wet_mask: ArrayType
     dxe: ArrayType
@@ -606,7 +606,7 @@ class CgridVectorLaplacian(BaseVectorLaplacian):
     kappa_aniso: additive anisotropic viscosity aligned with x-direction
     """
 
-    is_nondimensional = False
+    is_dimensional = True
 
     wet_mask_t: ArrayType
     wet_mask_q: ArrayType

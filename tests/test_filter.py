@@ -334,7 +334,7 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
         filtered_u, filtered_v = filter.apply_to_vector(da, da, dims=["y", "x"])
 
     # check variance reduction
-    assert (filtered ** 2).sum() < (da ** 2).sum()
+    assert (filtered**2).sum() < (da**2).sum()
 
     # check that we get an error if we leave out any required grid_vars
     for gv in grid_vars:
@@ -509,7 +509,7 @@ def test_iterated_filter(grid_type_and_input_ds, filter_args, n_iterations):
     # See the "Factoring the Gaussian Filter" section of the docs for details.
     assert (((filtered - iteratively_filtered) ** 2) * area).sum() < (
         (0.01 * (1 + n_iterations)) ** 2
-    ) * ((da ** 2) * area).sum()
+    ) * ((da**2) * area).sum()
 
 
 #################### Visosity-based filter tests ########################################
@@ -584,7 +584,7 @@ def test_iterated_viscosity_filter(
     difference = (filtered_u - iteratively_filtered_u) ** 2 + (
         filtered_v - iteratively_filtered_v
     ) ** 2
-    unfiltered = da_u ** 2 + da_v ** 2
+    unfiltered = da_u**2 + da_v**2
     assert (difference * area).sum() < ((0.01 * (1 + n_iterations)) ** 2) * (
         unfiltered * area
     ).sum()
