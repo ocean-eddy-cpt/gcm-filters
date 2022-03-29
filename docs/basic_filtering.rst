@@ -97,6 +97,11 @@ Each grid type from the above two tables has different *grid variables* that mus
 
 We have made a big island.
 
+
+.. note:: Some more complicated grid types require more grid variables.
+    The units for these variables should be *consistent*, but no specific system of units is required.
+    For example, if grid cell edge lengths are defined using kilometers, then the filter scale and ``dx_min`` should also be defined using kilometers, and the grid cell areas should be defined in square kilometers.
+
 Creating the Filter Object
 --------------------------
 

@@ -17,6 +17,7 @@ def _check_equal_filter_spec(spec1, spec2):
     assert spec1.s_max == spec2.s_max
     np.testing.assert_allclose(spec1.p, spec2.p, rtol=1e-07, atol=1e-07)
     assert spec1.n_iterations == spec2.n_iterations
+    np.testing.assert_allclose(spec1.dx_min_sq, spec2.dx_min_sq)
 
 
 # These values were just hard copied from my dev environment.
@@ -76,6 +77,7 @@ def _check_equal_filter_spec(spec1, spec2):
                     -0.00454758,
                 ],
                 n_iterations=1,
+                dx_min_sq=1.0,
             ),
         ),
         (
@@ -106,6 +108,7 @@ def _check_equal_filter_spec(spec1, spec2):
                     0.00168445,
                 ],
                 n_iterations=1,
+                dx_min_sq=1.0,
             ),
         ),
     ],
@@ -331,7 +334,7 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
         filtered_u, filtered_v = filter.apply_to_vector(da, da, dims=["y", "x"])
 
     # check variance reduction
-    assert (filtered ** 2).sum() < (da ** 2).sum()
+    assert (filtered**2).sum() < (da**2).sum()
 
     # check that we get an error if we leave out any required grid_vars
     for gv in grid_vars:
@@ -430,6 +433,40 @@ def test_application_to_dataset():
         filter.apply(dataset, ["yy", "x"])
 
 
+def test_nondimensional_invariance():
+    # Create a dataset with spatial variables, as above
+    dataset = xr.Dataset(
+        data_vars=dict(
+            spatial=(("y", "x"), np.random.normal(size=(100, 100))),
+        ),
+        coords=dict(
+            x=np.linspace(0, 1e6, 100),
+            y=np.linspace(0, 1e6, 100),
+        ),
+    )
+
+    # Filter it using a nondimenisional filter, dx_min = 1
+    filter = Filter(
+        filter_scale=4,
+        dx_min=1,
+        filter_shape=FilterShape.GAUSSIAN,
+        grid_type=GridType.REGULAR,
+    )
+    filtered_dataset = filter.apply(dataset, ["y", "x"])
+
+    # Filter it using a nondimensional filter, dx_min = 2
+    filter = Filter(
+        filter_scale=8,
+        dx_min=2,
+        filter_shape=FilterShape.GAUSSIAN,
+        grid_type=GridType.REGULAR,
+    )
+    filtered_dataset_v2 = filter.apply(dataset, ["y", "x"])
+
+    # Check if they are the same
+    xr.testing.assert_allclose(filtered_dataset.spatial, filtered_dataset_v2.spatial)
+
+
 @pytest.mark.parametrize(
     "filter_args",
     [
@@ -472,7 +509,7 @@ def test_iterated_filter(grid_type_and_input_ds, filter_args, n_iterations):
     # See the "Factoring the Gaussian Filter" section of the docs for details.
     assert (((filtered - iteratively_filtered) ** 2) * area).sum() < (
         (0.01 * (1 + n_iterations)) ** 2
-    ) * ((da ** 2) * area).sum()
+    ) * ((da**2) * area).sum()
 
 
 #################### Visosity-based filter tests ########################################
@@ -547,7 +584,7 @@ def test_iterated_viscosity_filter(
     difference = (filtered_u - iteratively_filtered_u) ** 2 + (
         filtered_v - iteratively_filtered_v
     ) ** 2
-    unfiltered = da_u ** 2 + da_v ** 2
+    unfiltered = da_u**2 + da_v**2
     assert (difference * area).sum() < ((0.01 * (1 + n_iterations)) ** 2) * (
         unfiltered * area
     ).sum()

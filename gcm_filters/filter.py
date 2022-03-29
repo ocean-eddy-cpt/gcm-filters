@@ -77,6 +77,7 @@ class FilterSpec(NamedTuple):
     s_max: float
     p: Iterable[float]
     n_iterations: int
+    dx_min_sq: float
 
 
 def _compute_filter_spec(
@@ -161,7 +162,20 @@ def _compute_filter_spec(
     s = np.array([y for x in s for y in x])
     is_laplacian = np.abs(s.imag / s.real) < root_tolerance
 
-    return FilterSpec(n_steps_total, s, is_laplacian, s_max, p, n_iterations)
+    dx_min_sq = dx_min**2
+
+    return FilterSpec(n_steps_total, s, is_laplacian, s_max, p, n_iterations, dx_min_sq)
+
+
+def _maybe_dimensionalize(data, dx_min_sq):
+    """The point of this function is to avoid the expense of
+    dividing a large array by 1 when dealing with nondimensional
+    Laplacians
+    """
+    if dx_min_sq == 1:
+        return data
+    else:
+        return data / dx_min_sq
 
 
 def _create_filter_func(
@@ -191,6 +205,10 @@ def _create_filter_func(
                 if filter_spec.is_laplacian[i]:
                     s_l = np.real(filter_spec.s[i])
                     tendency = laplacian(field_bar)  # Compute Laplacian
+                    if not Laplacian.is_dimensional:
+                        tendency = _maybe_dimensionalize(
+                            tendency, filter_spec.dx_min_sq
+                        )  # dimensionalize
                     field_bar += (1 / s_l) * tendency  # Update filtered field
                 else:
                     s_b = filter_spec.s[i]
@@ -198,6 +216,13 @@ def _create_filter_func(
                     temp_b = laplacian(
                         temp_l
                     )  # Compute Biharmonic (apply Laplacian twice)
+                    if not Laplacian.is_dimensional:
+                        temp_l = _maybe_dimensionalize(
+                            temp_l, filter_spec.dx_min_sq
+                        )  # dimensionalize
+                        temp_b = _maybe_dimensionalize(
+                            temp_b, filter_spec.dx_min_sq**2
+                        )  # dimensionalize
                     field_bar += (
                         temp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
                         + temp_b * 1 / np.abs(s_b) ** 2
@@ -242,6 +267,13 @@ def _create_filter_func_vec(
                     (utendency, vtendency) = laplacian(
                         ufield_bar, vfield_bar
                     )  # Compute Laplacian
+                    if not Laplacian.is_dimensional:
+                        utendency = _maybe_dimensionalize(
+                            utendency, filter_spec.dx_min_sq
+                        )  # dimensionalize
+                        vtendency = _maybe_dimensionalize(
+                            vtendency, filter_spec.dx_min_sq
+                        )  # dimensionalize
                     ufield_bar += (1 / s_l) * utendency  # Update filtered ufield
                     vfield_bar += (1 / s_l) * vtendency  # Update filtered vfield
                 else:
@@ -252,6 +284,19 @@ def _create_filter_func_vec(
                     (utemp_b, vtemp_b) = laplacian(
                         utemp_l, vtemp_l
                     )  # Compute Biharmonic (apply Laplacian twice)
+                    if not Laplacian.is_dimensional:
+                        utemp_l = _maybe_dimensionalize(
+                            utemp_l, filter_spec.dx_min_sq
+                        )  # dimensionalize
+                        vtemp_l = _maybe_dimensionalize(
+                            vtemp_l, filter_spec.dx_min_sq
+                        )  # dimensionalize
+                        utemp_b = _maybe_dimensionalize(
+                            utemp_b, filter_spec.dx_min_sq**2
+                        )  # dimensionalize
+                        vtemp_b = _maybe_dimensionalize(
+                            vtemp_b, filter_spec.dx_min_sq**2
+                        )  # dimensionalize
                     ufield_bar += (
                         utemp_l * 2 * np.real(s_b) / np.abs(s_b) ** 2
                         + utemp_b * 1 / np.abs(s_b) ** 2
@@ -291,7 +336,8 @@ class Filter:
         - ``FilterShape.TAPER``: The target filter has target grid scale Lf. Smaller scales are zeroed out.
           Scales larger than ``pi * filter_scale / 2`` are left as-is. In between is a smooth transition.
     transition_width : float, optional
-        Width of the transition region in the "Taper" filter. Theoretical minimum is 1; not recommended.
+        Width of the transition region in the "Taper" filter.
+        This is a nondimensional parameter. Theoretical minimum is 1; not recommended.
     ndim : int, optional
          Laplacian is applied on a grid of dimension ndim
     grid_type : GridType
