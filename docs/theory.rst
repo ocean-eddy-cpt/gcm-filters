@@ -192,20 +192,52 @@ The minimum number of steps is 3; if ``n_steps`` is not set by the user, or if i
 Numerical Stability
 -------------------
 
-When the filter scale is much larger than the grid scale the filter can become unstable to roundoff errors.
-The usual manifestation of these roundoff errors is high-amplitude small-scale noise in the filtered field.
-(This problem is worse for the Taper filter than the Gaussian filter.)
+The foregoing algorithm approximates the target filter using a polynomial.
+Applying the polynomial to the data is accomplished via the stepwise algorithm described above, which relies on the following representation of the polynomial
 
-.. tip::
-    In such cases, the user has a few options to try to regain stability.
+.. math:: p(s) = \Pi_{i=1}^N\left(1 - \frac{s}{s_i}\right)
 
-    1. If the data being filtered is single-precision, it might help to promote it to double precision (or higher) before filtering.
-    2. If a user is encountering instability with the standard Gaussian filter, the user can try setting ``n_iterations`` to an integer greater than 1. Read more about this in :doc:`factored_gaussian`.
-    3. The user can also try reducing ``n_steps``, but must not reduce it too much or the resulting filter will not behave as expected.
-    4. Users might elect to *coarsen* their data before filtering, i.e. to reduce the resolution of the input data before applying the filter. This has the effect of increasing the grid size, and thus decreasing the gap between the filter scale and the grid scale.
-    5. The final option is simply to use a different approach to filtering, not based on ``gcm-filters``.
+where :math:`-s` corresponds to the discrete Laplacian and :math:`s_i` are the roots of the polynomial.
+The numerical stability of this algorithm depends strongly on the ordering of the steps, i.e. of the polynomial roots.
+As described by `Grooms et al. (2021) <https://doi.org/10.1029/2021MS002552>` , roundoff error can accumulate and corrupt the results, especially when the filter scale is much larger than the grid scale.
 
-:doc:`examples/example_numerical_instability` has an example of numerical instability, as well as examples of avoiding the instability by increasing the precision and coarsening the data.
+A different iterative algorithm for applying the filter to data can be formulated based on a different representation of the polynomial.
+The polynomial approximation is actually found using a new variable :math:`t` (which does not represent time!)
+
+.. math:: t(s) = \frac{2}{s_{\text{math}}}s -1, s(t) = s_{\text{max}}\frac{t+1}{2}
+
+and it is represented using Chebyshev coordinates :math:`c_i` rather than roots :math:`s_i`:
+
+.. math:: p(s) = \sum_{i=0}^Nc_iT_i(t(s))
+
+where :math:`T_i(t)` are Chebyshev polynomials of the first kind.
+Where the variable :math:`-s` corresponds to the discrete Laplacian, the new variable :math:`t` corresponds to a scaled and shifted Laplacian.
+
+This suggests an alternative way of applying the filter to data.
+Let
+
+.. math:: \mathbf{A} = -\left(\frac{2}{s_{\text{max}}}\Delta + \mathbf{I}\right)
+
+be the discrete Laplacian :math:`\Delta` with a rescaling and a shift.
+In principle one could apply the filter to a vector of data :math:`\mathbf{f}` by computing the vectors :math:`T_i(\mathbf{A})\mathbf{f}` and then taking a linear combination with weights :math:`c_i`.
+This begs the question of how to compute the vectors :math:`T_i(\mathbf{A})\mathbf{f}`.
+
+Fortunately, this can be done using the three-term recurrence for Chebyshev polynomials.
+Chebyshev polynomials satisfy the following recurrence relation
+
+.. math:: T_0(x) = x
+.. math:: T_1(x) = x
+.. math:: T_{i+1}(x) = 2xT_i(x)-T_{i-1}(x).
+
+This relation implies that we can evaluate the vectors :math:`T_i(\mathbf{A})\mathbf{f}` using the following recurrence
+
+.. math:: T_0(\mathbf{A})\mathbf{f} = \mathbf{f}
+.. math:: T_1(\mathbf{A})\mathbf{f} = \mathbf{Af}
+.. math:: T_{i+1}(\mathbf{A})\mathbf{f} = 2\mathbf{A}T_i(\mathbf{A})\mathbf{f}-T_{i-1}(\mathbf{A})\mathbf{f}.
+
+In summary, the Chebyshev representation of the filter polynomial, together with the three-term recurrence for Chebyshev polynomials and a method for applying a *scaled and shifted* discrete Laplacian to data, result in an alternative algorithm for applying the filter to data that is different from the one described in `Grooms et al. (2021) <https://doi.org/10.1029/2021MS002552>`_.
+Despite being a different *algorithm*, in the absence of roundoff errors this will produce exactly the same result as the original algorithm.
+Experience has shown that the Chebyshev-based algorithm is much more stable to roundoff errors.
 
 Spatially-Varying Filter Scale
 ------------------------------
