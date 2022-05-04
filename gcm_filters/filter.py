@@ -26,12 +26,12 @@ FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
 
 filter_params = {
     FilterShape.GAUSSIAN: {
-        1: {"offset": 0.8, "factor": 0.0, "exponent": 1, "max_filter_factor": 67},
-        2: {"offset": 1.1, "factor": 0.0, "exponent": 1, "max_filter_factor": 77},
+        1: {"offset": 0.8, "factor": 0.0, "exponent": 1},
+        2: {"offset": 1.1, "factor": 0.0, "exponent": 1},
     },
     FilterShape.TAPER: {
-        1: {"offset": 2.2, "factor": 0.6, "exponent": 2.5, "max_filter_factor": 67},
-        2: {"offset": 3.2, "factor": 0.7, "exponent": 2.7, "max_filter_factor": 77},
+        1: {"offset": 2.2, "factor": 0.6, "exponent": 2.5},
+        2: {"offset": 3.2, "factor": 0.7, "exponent": 2.7},
     },
 }
 
@@ -373,17 +373,6 @@ class Filter:
         if self.n_steps < n_steps_default:
             warnings.warn(
                 "You have set n_steps below the default. Results might not be accurate.",
-                stacklevel=2,
-            )
-
-        # Issue numerical stability warning, if needed
-        max_filter_factor = filter_params[self.filter_shape][self.ndim][
-            "max_filter_factor"
-        ]
-        if filter_factor >= max_filter_factor:
-            warnings.warn(
-                "Filter scale much larger than grid scale -> numerical instability possible. "
-                "More information on numerical instability can be found at https://gcm-filters.readthedocs.io/en/latest/theory.html.",
                 stacklevel=2,
             )
 
