@@ -199,12 +199,14 @@ Applying the polynomial to the data is accomplished via the stepwise algorithm d
 
 where :math:`-s` corresponds to the discrete Laplacian and :math:`s_i` are the roots of the polynomial.
 The numerical stability of this algorithm depends strongly on the ordering of the steps, i.e. of the polynomial roots.
-As described by `Grooms et al. (2021) <https://doi.org/10.1029/2021MS002552>` , roundoff error can accumulate and corrupt the results, especially when the filter scale is much larger than the grid scale.
+As described by `Grooms et al. (2021) <https://doi.org/10.1029/2021MS002552>`_, roundoff error can accumulate and corrupt the results, especially when the filter scale is much larger than the grid scale.
 
 A different iterative algorithm for applying the filter to data can be formulated based on a different representation of the polynomial.
 The polynomial approximation is actually found using a new variable :math:`t` (which does not represent time!)
 
-.. math:: t(s) = \frac{2}{s_{\text{math}}}s -1, s(t) = s_{\text{max}}\frac{t+1}{2}
+.. math:: 
+       t(s) &= \frac{2}{s_{\text{max}}}s -1,\\
+       s(t) &= s_{\text{max}}\frac{t+1}{2}
 
 and it is represented using Chebyshev coordinates :math:`c_i` rather than roots :math:`s_i`:
 
@@ -225,9 +227,10 @@ This begs the question of how to compute the vectors :math:`T_i(\mathbf{A})\math
 Fortunately, this can be done using the three-term recurrence for Chebyshev polynomials.
 Chebyshev polynomials satisfy the following recurrence relation
 
-.. math:: T_0(x) = x
-.. math:: T_1(x) = x
-.. math:: T_{i+1}(x) = 2xT_i(x)-T_{i-1}(x).
+.. math:: 
+        T_0(x) &= 1 \\
+        T_1(x) &= x \\
+        T_{i+1}(x) &= 2xT_i(x)-T_{i-1}(x).
 
 This relation implies that we can evaluate the vectors :math:`T_i(\mathbf{A})\mathbf{f}` using the following recurrence
 
@@ -238,7 +241,7 @@ This relation implies that we can evaluate the vectors :math:`T_i(\mathbf{A})\ma
 In summary, the Chebyshev representation of the filter polynomial, together with the three-term recurrence for Chebyshev polynomials and a method for applying a *scaled and shifted* discrete Laplacian to data, result in an alternative algorithm for applying the filter to data that is different from the one described in `Grooms et al. (2021) <https://doi.org/10.1029/2021MS002552>`_.
 Despite being a different *algorithm*, in the absence of roundoff errors this will produce exactly the same result as the original algorithm.
 Experience has shown that the Chebyshev-based algorithm is much more stable to roundoff errors.
-
+As of version v0.3, the code uses the more stable Chebyshev-based algorithm described in this section.
 Spatially-Varying Filter Scale
 ------------------------------
 
