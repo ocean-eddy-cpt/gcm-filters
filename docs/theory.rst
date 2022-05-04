@@ -204,7 +204,7 @@ As described by `Grooms et al. (2021) <https://doi.org/10.1029/2021MS002552>`_, 
 A different iterative algorithm for applying the filter to data can be formulated based on a different representation of the polynomial.
 The polynomial approximation is actually found using a new variable :math:`t` (which does not represent time!)
 
-.. math:: 
+.. math::
        t(s) &= \frac{2}{s_{\text{max}}}s -1,\\
        s(t) &= s_{\text{max}}\frac{t+1}{2}
 
@@ -227,7 +227,7 @@ This begs the question of how to compute the vectors :math:`T_i(\mathbf{A})\math
 Fortunately, this can be done using the three-term recurrence for Chebyshev polynomials.
 Chebyshev polynomials satisfy the following recurrence relation
 
-.. math:: 
+.. math::
         T_0(x) &= 1 \\
         T_1(x) &= x \\
         T_{i+1}(x) &= 2xT_i(x)-T_{i-1}(x).
