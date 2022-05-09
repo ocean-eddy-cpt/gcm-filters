@@ -120,184 +120,14 @@ def test_filter_spec(filter_args, expected_filter_spec):
     # TODO: check other properties of filter_spec?
 
 
-# define (for now: hard-code) which grids are associated with vector Laplacians
-vector_grids = [gt for gt in GridType if gt.name in {"VECTOR_C_GRID"}]
-# all remaining grids are for scalar Laplacians
-scalar_grids = [gt for gt in GridType if gt not in vector_grids]
-scalar_transformed_regular_grids = [
-    gt
-    for gt in GridType
-    if gt.name
-    in {
-        "REGULAR_AREA_WEIGHTED",
-        "REGULAR_WITH_LAND_AREA_WEIGHTED",
-        "TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED",
-    }
+#################### Diffusion-based filter tests ########################################
+area_weighted_regular_grids = [
+    GridType.REGULAR_AREA_WEIGHTED,
+    GridType.REGULAR_WITH_LAND_AREA_WEIGHTED,
+    GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED,
 ]
 
-_grid_kwargs = {
-    GridType.REGULAR: [],
-    GridType.REGULAR_AREA_WEIGHTED: ["area"],
-    GridType.REGULAR_WITH_LAND: ["wet_mask"],
-    GridType.REGULAR_WITH_LAND_AREA_WEIGHTED: ["wet_mask", "area"],
-    GridType.IRREGULAR_WITH_LAND: [
-        "wet_mask",
-        "dxw",
-        "dyw",
-        "dxs",
-        "dys",
-        "area",
-        "kappa_w",
-        "kappa_s",
-    ],
-    GridType.MOM5U: ["wet_mask", "dxt", "dyt", "dxu", "dyu", "area_u"],
-    GridType.MOM5T: ["wet_mask", "dxt", "dyt", "dxu", "dyu", "area_t"],
-    GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED: ["wet_mask", "area"],
-    GridType.TRIPOLAR_POP_WITH_LAND: ["wet_mask", "dxe", "dye", "dxn", "dyn", "tarea"],
-}
 
-
-def _make_random_data(ny, nx):
-    data = np.random.rand(ny, nx)
-    da = xr.DataArray(data, dims=["y", "x"])
-    return da
-
-
-def _make_mask_data(ny, nx):
-    mask_data = np.ones((ny, nx))
-    mask_data[0, :] = 0  #  Antarctica; required for some kernels
-    mask_data[: (ny // 2), : (nx // 2)] = 0
-    da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-    return da_mask
-
-
-def _make_kappa_data(ny, nx):
-    kappa_data = np.ones((ny, nx))
-    da_kappa = xr.DataArray(kappa_data, dims=["y", "x"])
-    return da_kappa
-
-
-def _make_irregular_grid_data(ny, nx):
-    # avoid large-amplitude variation, ensure positive values, mean of 1
-    grid_data = 0.9 + 0.2 * np.random.rand(ny, nx)
-    assert np.all(grid_data > 0)
-    da_grid = xr.DataArray(grid_data, dims=["y", "x"])
-    return da_grid
-
-
-def _make_irregular_tripole_grid_data(ny, nx):
-    # avoid large-amplitude variation, ensure positive values, mean of 1
-    grid_data = 0.9 + 0.2 * np.random.rand(ny, nx)
-    assert np.all(grid_data > 0)
-    # make northern edge grid data fold onto itself
-    half_northern_edge = grid_data[-1, : (nx // 2)]
-    grid_data[-1, (nx // 2) :] = half_northern_edge[::-1]
-    da_grid = xr.DataArray(grid_data, dims=["y", "x"])
-    return da_grid
-
-
-@pytest.fixture(scope="module", params=scalar_grids)
-def grid_type_and_input_ds(request):
-    grid_type = request.param
-    ny, nx = 128, 256
-
-    da = _make_random_data(ny, nx)
-
-    grid_vars = {}
-    for name in _grid_kwargs[grid_type]:
-        if name == "wet_mask":
-            grid_vars[name] = _make_mask_data(ny, nx)
-        elif "kappa" in name:
-            grid_vars[name] = _make_kappa_data(ny, nx)
-        else:
-            grid_vars[name] = _make_irregular_grid_data(ny, nx)
-
-    if grid_type == GridType.TRIPOLAR_POP_WITH_LAND:
-        for name in _grid_kwargs[grid_type]:
-            if name in ["dxn", "dyn"]:
-                grid_vars[name] = _make_irregular_tripole_grid_data(ny, nx)
-
-    return grid_type, da, grid_vars
-
-
-@pytest.fixture(scope="module", params=vector_grids)
-def vector_grid_type_and_input_ds(request):
-    grid_type = request.param
-    ny, nx = (128, 256)
-
-    grid_vars = {}
-    if grid_type == GridType.VECTOR_C_GRID:
-        # construct spherical coordinate system similar to MOM6 NeverWorld2 grid
-        # define latitudes and longitudes
-        lat_min = -70
-        lat_max = 70
-        lat_u = np.linspace(
-            lat_min + 0.5 * (lat_max - lat_min) / ny,
-            lat_max - 0.5 * (lat_max - lat_min) / ny,
-            ny,
-        )
-        lat_v = np.linspace(lat_min + (lat_max - lat_min) / ny, lat_max, ny)
-        lon_min = 0
-        lon_max = 60
-        lon_u = np.linspace(lon_min + (lon_max - lon_min) / nx, lon_max, nx)
-        lon_v = np.linspace(
-            lon_min + 0.5 * (lon_max - lon_min) / nx,
-            lon_max - 0.5 * (lon_max - lon_min) / nx,
-            nx,
-        )
-        (geolon_u, geolat_u) = np.meshgrid(lon_u, lat_u)
-        (geolon_v, geolat_v) = np.meshgrid(lon_v, lat_v)
-        # radius of a random planet smaller than Earth
-        R = 6378000 * np.random.rand(1)
-        # dx varies spatially
-        dxCu = R * np.cos(geolat_u / 360 * 2 * np.pi)
-        dxCv = R * np.cos(geolat_v / 360 * 2 * np.pi)
-        dxBu = dxCv + np.roll(dxCv, -1, axis=1)
-        dxT = dxCu + np.roll(dxCu, 1, axis=1)
-        da_dxCu = xr.DataArray(dxCu, dims=["y", "x"])
-        da_dxCv = xr.DataArray(dxCv, dims=["y", "x"])
-        da_dxBu = xr.DataArray(dxBu, dims=["y", "x"])
-        da_dxT = xr.DataArray(dxT, dims=["y", "x"])
-        # dy is set constant, equal to dx at the equator
-        dy = np.max(dxCu) * np.ones((ny, nx))
-        da_dy = xr.DataArray(dy, dims=["y", "x"])
-        # compute grid cell areas
-        area_u = dxCu * dy
-        area_v = dxCv * dy
-        da_area_u = xr.DataArray(area_u, dims=["y", "x"])
-        da_area_v = xr.DataArray(area_v, dims=["y", "x"])
-        # set isotropic and anisotropic kappas
-        kappa_data = np.ones((ny, nx))
-        da_kappa = xr.DataArray(kappa_data, dims=["y", "x"])
-        # put a big island in the middle
-        mask_data = np.ones((ny, nx))
-        mask_data[: (ny // 2), : (nx // 2)] = 0
-        da_mask = xr.DataArray(mask_data, dims=["y", "x"])
-        grid_vars = {
-            "wet_mask_t": da_mask,
-            "wet_mask_q": da_mask,
-            "dxT": da_dxT,
-            "dyT": da_dy,
-            "dxCu": da_dxCu,
-            "dyCu": da_dy,
-            "dxCv": da_dxCv,
-            "dyCv": da_dy,
-            "dxBu": da_dxBu,
-            "dyBu": da_dy,
-            "area_u": da_area_u,
-            "area_v": da_area_v,
-            "kappa_iso": da_kappa,
-            "kappa_aniso": da_kappa,
-        }
-    data_u = np.random.rand(ny, nx)
-    data_v = np.random.rand(ny, nx)
-    da_u = xr.DataArray(data_u, dims=["y", "x"])
-    da_v = xr.DataArray(data_v, dims=["y", "x"])
-
-    return grid_type, da_u, da_v, grid_vars, geolat_u
-
-
-#################### Diffusion-based filter tests ########################################
 @pytest.mark.parametrize(
     "filter_args",
     [
@@ -377,7 +207,7 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
     with pytest.warns(UserWarning, match=r"Filter scale much larger .*"):
         filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
     # check that we get an error if we pass dx_min != 1 to a regular scalar Laplacian
-    if grid_type in scalar_transformed_regular_grids:
+    if grid_type in area_weighted_regular_grids:
         bad_filter_args["filter_scale"] = 3  # restore good value for filter scale
         bad_filter_args["dx_min"] = 3
         with pytest.raises(ValueError, match=r"Provided Laplacian .*"):
@@ -517,12 +347,15 @@ def test_iterated_filter(grid_type_and_input_ds, filter_args, n_iterations):
     "filter_args",
     [dict(filter_scale=1.0, dx_min=1.0, n_steps=10, filter_shape=FilterShape.TAPER)],
 )
-def test_viscosity_filter(vector_grid_type_and_input_ds, filter_args):
+def test_viscosity_filter(
+    vector_grid_type_and_input_ds, filter_args, spherical_geometry
+):
     """Test all viscosity-based filters: filters that use a vector Laplacian."""
-    grid_type, da_u, da_v, grid_vars, geolat_u = vector_grid_type_and_input_ds
+    grid_type, _, grid_vars = vector_grid_type_and_input_ds
+
+    _, geolat_u, _, _ = spherical_geometry
 
     filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **filter_args)
-    filtered_u, filtered_v = filter.apply_to_vector(da_u, da_v, dims=["y", "x"])
 
     # check conservation under solid body rotation: u = cos(lat), v=0;
     data_u = np.cos(geolat_u / 360 * 2 * np.pi)
@@ -559,7 +392,7 @@ def test_iterated_viscosity_filter(
     vector_grid_type_and_input_ds, filter_args, n_iterations
 ):
     """Test error in the iterated Gaussian filter for vectors"""
-    grid_type, da_u, da_v, grid_vars, _ = vector_grid_type_and_input_ds
+    grid_type, (da_u, da_v), grid_vars = vector_grid_type_and_input_ds
 
     filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **filter_args)
     filtered_u, filtered_v = filter.apply_to_vector(da_u, da_v, dims=["y", "x"])
