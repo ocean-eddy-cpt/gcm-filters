@@ -345,7 +345,7 @@ def test_iterated_filter(grid_type_and_input_ds, filter_args, n_iterations):
 #################### Visosity-based filter tests ########################################
 @pytest.mark.parametrize(
     "filter_args",
-    [dict(filter_scale=1.0, dx_min=1.0, n_steps=10, filter_shape=FilterShape.TAPER)],
+    [dict(filter_scale=5.0, dx_min=1.0, n_steps=10, filter_shape=FilterShape.TAPER)],
 )
 def test_viscosity_filter(
     vector_grid_type_and_input_ds, filter_args, spherical_geometry
