@@ -42,7 +42,7 @@ def _prepare_tripolar_exchanges(field):
 
 @dataclass
 class BaseScalarLaplacian(ABC):
-    """̵Base class for scalar Laplacians."""
+    """Base class for scalar Laplacians."""
 
     def prepare(self, field):
         return field
@@ -108,6 +108,8 @@ class AreaWeightedMixin(ABC):
 class RegularLaplacian(BaseScalarLaplacian):
     """̵Scalar Laplacian for regularly spaced Cartesian grids."""
 
+    is_dimensional = False
+
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
         return (
@@ -135,6 +137,8 @@ class RegularLaplacianWithArea(AreaWeightedMixin, RegularLaplacian):
     area: cell area
     """
 
+    is_dimensional = False
+
     area: ArrayType
 
     pass
@@ -151,6 +155,8 @@ class RegularLaplacianWithLandMask(BaseScalarLaplacian):
     ----------
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
+
+    is_dimensional = False
 
     wet_mask: ArrayType
 
@@ -200,6 +206,8 @@ class RegularLaplacianWithLandMaskAndArea(
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
 
+    is_dimensional = False
+
     area: ArrayType
     wet_mask: ArrayType
 
@@ -236,6 +244,8 @@ class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
     kappa_s: meridional diffusivity centered at southern cell edge, values must be <= 1, and at
              least one place in the domain must have kappa_s = 1 if kappa_w < 1.
     """
+
+    is_dimensional = True
 
     wet_mask: ArrayType
     dxw: ArrayType
@@ -320,6 +330,8 @@ class MOM5LaplacianU(BaseScalarLaplacian):
     area_u: area of U-cell, dxu*dyu
     """
 
+    is_dimensional = True
+
     wet_mask: ArrayType
     dxt: ArrayType
     dyt: ArrayType
@@ -375,6 +387,8 @@ class MOM5LaplacianT(BaseScalarLaplacian):
     area_t: area of T-cell, dxt*dyt
     """
 
+    is_dimensional = True
+
     wet_mask: ArrayType
     dxt: ArrayType
     dyt: ArrayType
@@ -428,6 +442,8 @@ class TripolarRegularLaplacianTpoint(AreaWeightedMixin, BaseScalarLaplacian):
     area: cell area
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
+
+    is_dimensional = False
 
     area: ArrayType
     wet_mask: ArrayType
@@ -485,6 +501,8 @@ class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
     dyn: y-spacing centered at northern T-cell edge, provided by POP model diagnostic HUW(nlat, nlon)
     tarea: cell area, provided by POP model diagnostic TAREA(nlat, nlon)
     """
+
+    is_dimensional = True
 
     wet_mask: ArrayType
     dxe: ArrayType
@@ -588,6 +606,8 @@ class CgridVectorLaplacian(BaseVectorLaplacian):
     kappa_iso: isotropic viscosity
     kappa_aniso: additive anisotropic viscosity aligned with x-direction
     """
+
+    is_dimensional = True
 
     wet_mask_t: ArrayType
     wet_mask_q: ArrayType

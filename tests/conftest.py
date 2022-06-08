@@ -45,7 +45,7 @@ tripolar_grids = [
     GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED,
     GridType.TRIPOLAR_POP_WITH_LAND,
 ]
-vector_grids = [GridType.VECTOR_C_GRID, GridType.VECTOR_B_GRID]
+vector_grids = [GridType.VECTOR_C_GRID]
 
 
 def _make_random_data(shape: Tuple[int, int], seed: int) -> np.ndarray:
@@ -105,17 +105,6 @@ def _make_scalar_grid_data(grid_type):
     return grid_type, data, extra_kwargs
 
 
-def pop_test_data():
-    import pooch
-
-    fname = pooch.retrieve(
-        url="doi:10.5281/zenodo.5947728/pop_hires_test_data.nc",
-        known_hash="md5:e88ee4d310f476abe5fa3aac72d2e51e",
-    )
-    ds = xr.open_dataset(fname)
-    return ds
-
-
 @pytest.fixture(scope="session", params=scalar_grids)
 def scalar_grid_type_data_and_extra_kwargs(request):
     return _make_scalar_grid_data(request.param)
@@ -145,7 +134,25 @@ def tripolar_grid_type_data_and_extra_kwargs(request):
     return grid_type, data, extra_kwargs
 
 
-def spherical_geometry(ny, nx):
+@pytest.fixture(scope="session", params=scalar_grids)
+# test data for filter.py: need xr.DataArray's
+def grid_type_and_input_ds(request, scalar_grid_type_data_and_extra_kwargs):
+
+    grid_type, data, extra_kwargs = scalar_grid_type_data_and_extra_kwargs
+
+    da = xr.DataArray(data, dims=["y", "x"])
+
+    grid_vars = {}
+    for name in extra_kwargs:
+        grid_vars[name] = xr.DataArray(extra_kwargs[name], dims=["y", "x"])
+
+    return grid_type, da, grid_vars
+
+
+@pytest.fixture(scope="session")
+def spherical_geometry():
+    ny, nx = (128, 256)
+
     # construct spherical coordinate system similar to MOM6 NeverWorld2 grid
     # define latitudes and longitudes
     lat_min = -70
@@ -170,13 +177,17 @@ def spherical_geometry(ny, nx):
     return geolon_u, geolat_u, geolon_v, geolat_v
 
 
-def gen_mom_vector_data():
-    ny, nx = (128, 256)
-
-    geolon_u, geolat_u, geolon_v, geolat_v = spherical_geometry(ny, nx)
+@pytest.fixture(scope="session", params=vector_grids)
+def vector_grid_type_data_and_extra_kwargs(request, spherical_geometry):
+    grid_type = request.param
+    geolon_u, geolat_u, geolon_v, geolat_v = spherical_geometry
     ny, nx = geolon_u.shape
 
     extra_kwargs = {}
+
+    # for now, we assume that the only implemented vector grid is VECTOR_C_GRID
+    # we can relax this if we implement other vector grids
+    assert grid_type == GridType.VECTOR_C_GRID
 
     R = 6378000
     # dx varies spatially
@@ -206,40 +217,23 @@ def gen_mom_vector_data():
     extra_kwargs["wet_mask_t"] = mask_data
     extra_kwargs["wet_mask_q"] = mask_data
 
-    # fill area_u, area_v with zeros over land; e.g., you will find that in MOM6 model output
-    extra_kwargs["area_u"] = np.where(
-        extra_kwargs["wet_mask_t"] > 0, extra_kwargs["area_u"], 0
-    )
-    extra_kwargs["area_v"] = np.where(
-        extra_kwargs["wet_mask_t"] > 0, extra_kwargs["area_v"], 0
-    )
-
     data_u = _make_random_data((ny, nx), 42)
     data_v = _make_random_data((ny, nx), 43)
 
-    return (data_u, data_v), extra_kwargs
-
-
-def gen_pop_vector_data():
-    ds = pop_test_data()
-    grid_vars = ["DXU", "DYU", "HUS", "HUW", "HTE", "HTN", "UAREA", "TAREA"]
-    extra_kwargs = {name: ds[name].values for name in grid_vars}
-    u_data = ds.U1_1.values
-    v_data = ds.V1_1.values
-    return (u_data, v_data), extra_kwargs
-
-
-@pytest.fixture(
-    scope="session",
-    params=[
-        (GridType.VECTOR_C_GRID, gen_mom_vector_data),
-        (GridType.VECTOR_B_GRID, gen_pop_vector_data),
-    ],
-    ids=["MOM-C-GRID", "POP-B-GRID"],
-)
-def vector_grid_type_data_and_extra_kwargs(request):
-    grid_type, gen_kwargs = request.param
-    (data_u, data_v), extra_kwargs = gen_kwargs()
-
     # use same return signature as other kernel fixtures
     return grid_type, (data_u, data_v), extra_kwargs
+
+
+@pytest.fixture(scope="session", params=vector_grids)
+def vector_grid_type_and_input_ds(request, vector_grid_type_data_and_extra_kwargs):
+    # test data for filter.py: need xr.DataArray's
+    grid_type, (data_u, data_v), extra_kwargs = vector_grid_type_data_and_extra_kwargs
+
+    da_u = xr.DataArray(data_u, dims=["y", "x"])
+    da_v = xr.DataArray(data_v, dims=["y", "x"])
+
+    grid_vars = {}
+    for name in extra_kwargs:
+        grid_vars[name] = xr.DataArray(extra_kwargs[name], dims=["y", "x"])
+
+    return grid_type, (da_u, da_v), grid_vars
