@@ -698,7 +698,7 @@ ALL_KERNELS[GridType.VECTOR_C_GRID] = CgridVectorLaplacian
 
 @dataclass
 class BgridVectorLaplacian(BaseVectorLaplacian):
-    """̵Vector Laplacian on B-Grid. To be implemented for viscosity operators on B-grids based on POP code.
+    """̵Vector Laplacian on B-Grid. Implemented for viscosity operators on B-grids based on POP code. Assumes periodic boundary conditions.
 
     Attributes
     ----------
@@ -749,50 +749,50 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
             WORK1 * self.UAREA_R
         )  # South coefficient of 5-point stencil for the Del**2 operator acting at U points
         DUN = (
-            np.roll(WORK1, 1, axis=1) * self.UAREA_R
+            np.roll(WORK1, 1, axis=-1) * self.UAREA_R
         )  # North coefficient of 5-point stencil
 
         WORK1 = (self.HUW / self.HTN)
 
         DUW = WORK1 * self.UAREA_R  # West coefficient of 5-point stencil
         DUE = (
-            np.roll(WORK1, 1, axis=0) * self.UAREA_R
+            np.roll(WORK1, 1, axis=-2) * self.UAREA_R
         )  # East coefficient of 5-point stencil
 
         # Calculate coefficients for metric terms and for metric advection terms (KXU,KYU)
         KXU = (
-            np.roll(self.HUW, 1, axis=0) - self.HUW
+            np.roll(self.HUW, 1, axis=-2) - self.HUW
         ) * self.UAREA_R  # defined in (3.24) of POP manual
-        KYU = (np.roll(self.HUS, 1, axis=1) - self.HUS) * self.UAREA_R
+        KYU = (np.roll(self.HUS, 1, axis=-1) - self.HUS) * self.UAREA_R
 
-        WORK1 = (self.HTE - np.roll(self.HTE, -1, axis=0)) * self.TAREA_R  # KXT
+        WORK1 = (self.HTE - np.roll(self.HTE, -1, axis=-2)) * self.TAREA_R  # KXT
         WORK2 = (
             p5
-            * (WORK1 + np.roll(WORK1, 1, axis=1))
+            * (WORK1 + np.roll(WORK1, 1, axis=-1))
         )
-        DXKX = (np.roll(WORK2, 1, axis=0) - WORK2) * self.DXUR
-
-        WORK2 = (
-            p5
-            * (WORK1 + np.roll(WORK1, 1, axis=0))
-        )
-        DYKX = (np.roll(WORK2, 1, axis=1) - WORK2) * self.DYUR
-
-        WORK1 = (self.HTN - np.roll(self.HTN, -1, axis=1)) * self.TAREA_R  # KYT
-        WORK2 = (
-            p5
-            * (WORK1 + np.roll(WORK1, 1, axis=0))
-        )
-        DYKY = (np.roll(WORK2, 1, axis=1) - WORK2) * self.DYUR
+        DXKX = (np.roll(WORK2, 1, axis=-2) - WORK2) * self.DXUR
 
         WORK2 = (
             p5
-            * (WORK1 + np.roll(WORK1, 1, axis=1))
+            * (WORK1 + np.roll(WORK1, 1, axis=-2))
         )
-        DXKY = (np.roll(WORK2, axis=0, shift=1) - WORK2) * self.DXUR
+        DYKX = (np.roll(WORK2, 1, axis=-1) - WORK2) * self.DYUR
+
+        WORK1 = (self.HTN - np.roll(self.HTN, -1, axis=-1)) * self.TAREA_R  # KYT
+        WORK2 = (
+            p5
+            * (WORK1 + np.roll(WORK1, 1, axis=-2))
+        )
+        DYKY = (np.roll(WORK2, 1, axis=-1) - WORK2) * self.DYUR
+
+        WORK2 = (
+            p5
+            * (WORK1 + np.roll(WORK1, 1, axis=-1))
+        )
+        DXKY = (np.roll(WORK2, axis=-2, shift=1) - WORK2) * self.DXUR
 
         DUM = -(
-            DXKX + DYKY + c2 * (KXU ** 2 + KYU ** 2)
+            DXKX + DYKY + c2 * (KXU * KXU + KYU * KYU)
         )  # central coefficient for metric terms that do not mix U,V
         DMC = (
             DXKY - DYKX
@@ -800,11 +800,11 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
 
         # Calculate the central coefficient for metric mixing terms that mix U,V
         DME = (c2 * KYU) / (
-            self.HTN + np.roll(self.HTN, axis=0, shift=1)
+            self.HTN + np.roll(self.HTN, axis=-2, shift=1)
         )  # East coefficient of 5-point stencil for the metric terms that mix U,V
 
         DMN = -(c2 * KXU) / (
-            self.HTE + np.roll(self.HTE, axis=1, shift=1)
+            self.HTE + np.roll(self.HTE, axis=-1, shift=1)
         )  # North coefficient of 5-point stencil
 
         DUC = -(DUN + DUS + DUE + DUW)  # central coefficient of 5-point stencil
@@ -817,28 +817,28 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
 
         u_component = am * (
             cc * ufield
-            + DUN * np.roll(ufield, -1, axis=0)
-            + DUS * np.roll(ufield, 1, axis=0)
-            + DUE * np.roll(ufield, -1, axis=1)
-            + DUW * np.roll(ufield, 1, axis=1)
+            + DUN * np.roll(ufield, -1, axis=-2)
+            + DUS * np.roll(ufield, 1, axis=-2)
+            + DUE * np.roll(ufield, -1, axis=-1)
+            + DUW * np.roll(ufield, 1, axis=-1)
             + DMC * vfield
-            + DMN * np.roll(vfield, -1, axis=0)
-            + DMS * np.roll(vfield, 1, axis=0)
-            + DME * np.roll(vfield, -1, axis=1)
-            + DMW * np.roll(vfield, 1, axis=1)
+            + DMN * np.roll(vfield, -1, axis=-2)
+            + DMS * np.roll(vfield, 1, axis=-2)
+            + DME * np.roll(vfield, -1, axis=-1)
+            + DMW * np.roll(vfield, 1, axis=-1)
         )
 
         v_component = am * (
             cc * vfield
-            + DUN * np.roll(vfield, -1, axis=0)
-            + DUS * np.roll(vfield, 1, axis=0)
-            + DUE * np.roll(vfield, -1, axis=1)
-            + DUW * np.roll(vfield, 1, axis=1)
+            + DUN * np.roll(vfield, -1, axis=-2)
+            + DUS * np.roll(vfield, 1, axis=-2)
+            + DUE * np.roll(vfield, -1, axis=-1)
+            + DUW * np.roll(vfield, 1, axis=-1)
             + DMC * ufield
-            + DMN * np.roll(ufield, -1, axis=0)
-            + DMS * np.roll(ufield, 1, axis=0)
-            + DME * np.roll(ufield, -1, axis=1)
-            + DMW * np.roll(ufield, 1, axis=1)
+            + DMN * np.roll(ufield, -1, axis=-2)
+            + DMS * np.roll(ufield, 1, axis=-2)
+            + DME * np.roll(ufield, -1, axis=-1)
+            + DMW * np.roll(ufield, 1, axis=-1)
         )
 
         return (u_component, v_component)
