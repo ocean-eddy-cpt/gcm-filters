@@ -2,6 +2,7 @@ from typing import Tuple
 
 import numpy as np
 import pytest
+import xarray as xr
 
 from numpy.random import PCG64, Generator
 
@@ -133,6 +134,21 @@ def tripolar_grid_type_data_and_extra_kwargs(request):
     return grid_type, data, extra_kwargs
 
 
+@pytest.fixture(scope="session", params=scalar_grids)
+# test data for filter.py: need xr.DataArray's
+def grid_type_and_input_ds(request, scalar_grid_type_data_and_extra_kwargs):
+
+    grid_type, data, extra_kwargs = scalar_grid_type_data_and_extra_kwargs
+
+    da = xr.DataArray(data, dims=["y", "x"])
+
+    grid_vars = {}
+    for name in extra_kwargs:
+        grid_vars[name] = xr.DataArray(extra_kwargs[name], dims=["y", "x"])
+
+    return grid_type, da, grid_vars
+
+
 @pytest.fixture(scope="session")
 def spherical_geometry():
     ny, nx = (128, 256)
@@ -206,3 +222,18 @@ def vector_grid_type_data_and_extra_kwargs(request, spherical_geometry):
 
     # use same return signature as other kernel fixtures
     return grid_type, (data_u, data_v), extra_kwargs
+
+
+@pytest.fixture(scope="session", params=vector_grids)
+def vector_grid_type_and_input_ds(request, vector_grid_type_data_and_extra_kwargs):
+    # test data for filter.py: need xr.DataArray's
+    grid_type, (data_u, data_v), extra_kwargs = vector_grid_type_data_and_extra_kwargs
+
+    da_u = xr.DataArray(data_u, dims=["y", "x"])
+    da_v = xr.DataArray(data_v, dims=["y", "x"])
+
+    grid_vars = {}
+    for name in extra_kwargs:
+        grid_vars[name] = xr.DataArray(extra_kwargs[name], dims=["y", "x"])
+
+    return grid_type, (da_u, da_v), grid_vars
