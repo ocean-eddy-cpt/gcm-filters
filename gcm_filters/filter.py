@@ -24,6 +24,7 @@ from .kernels import (
 FilterShape = enum.Enum("FilterShape", ["GAUSSIAN", "TAPER"])
 
 
+# These parameters are used to set the default n_steps
 filter_params = {
     FilterShape.GAUSSIAN: {
         1: {"offset": 0.8, "factor": 0.0, "exponent": 1},
@@ -74,7 +75,6 @@ class FilterSpec(NamedTuple):
     n_steps: int
     s_max: float
     p: Iterable[float]
-    n_iterations: int
     dx_min_sq: float
 
 
@@ -85,7 +85,6 @@ def _compute_filter_spec(
     transition_width=np.pi,
     ndim=2,
     n_steps=0,
-    n_iterations=1,
 ):
 
     # Set up the mass matrix for the Galerkin basis from Shen (SISC95)
@@ -98,6 +97,7 @@ def _compute_filter_spec(
 
     # The range of wavenumbers is 0<=|k|<=sqrt(ndim)*pi/dxMin.
     # However, our 2nd order laplacians only get to sqrt(ndim)*2/dxMin at most.
+    # Caveat: Not sure what is a good max wavenumber for the C-grid vector Laplacian
     # Per the paper, define s=k^2.
     # Need to rescale to t in [-1,1]: t = (2/sMax)*s -1; s = sMax*(t+1)/2
     s_max = ndim * (2 / dx_min) ** 2
@@ -130,7 +130,7 @@ def _compute_filter_spec(
 
     dx_min_sq = dx_min**2  # For nondimensional Laplacians
 
-    return FilterSpec(n_steps, s_max, p, n_iterations, dx_min_sq)
+    return FilterSpec(n_steps, s_max, p, dx_min_sq)
 
 
 def _create_filter_func(
@@ -170,23 +170,22 @@ def _create_filter_func(
         # filters, and does nothing for all other filters)
         field_bar = laplacian.prepare(field_bar)
 
-        for n in range(filter_spec.n_iterations):
-            T_minus_2 = field_bar.copy()
-            T_minus_1 = shifted_laplacian(
-                field_bar, filter_spec.s_max, laplacian, filter_spec.dx_min_sq
-            )
-            field_bar = filter_spec.p[0] * T_minus_2 + filter_spec.p[1] * T_minus_1
-            for i in range(2, filter_spec.n_steps + 1):
-                T_minus_0 = (
-                    2
-                    * shifted_laplacian(
-                        T_minus_1, filter_spec.s_max, laplacian, filter_spec.dx_min_sq
-                    )
-                    - T_minus_2
+        T_minus_2 = field_bar.copy()
+        T_minus_1 = shifted_laplacian(
+            field_bar, filter_spec.s_max, laplacian, filter_spec.dx_min_sq
+        )
+        field_bar = filter_spec.p[0] * T_minus_2 + filter_spec.p[1] * T_minus_1
+        for i in range(2, filter_spec.n_steps + 1):
+            T_minus_0 = (
+                2
+                * shifted_laplacian(
+                    T_minus_1, filter_spec.s_max, laplacian, filter_spec.dx_min_sq
                 )
-                field_bar += filter_spec.p[i] * T_minus_0
-                T_minus_2 = T_minus_1.copy()
-                T_minus_1 = T_minus_0.copy()
+                - T_minus_2
+            )
+            field_bar += filter_spec.p[i] * T_minus_0
+            T_minus_2 = T_minus_1.copy()
+            T_minus_1 = T_minus_0.copy()
 
         # finalize filtering (this divides by area for simple fixed factor filters,
         # and does nothing for all other filters)
@@ -237,34 +236,33 @@ def _create_filter_func_vec(
         # filters, and does nothing for all other filters)
         (ufield_bar, vfield_bar) = laplacian.prepare(ufield_bar, vfield_bar)
 
-        for n in range(filter_spec.n_iterations):
-            uT_minus_2 = ufield_bar.copy()
-            vT_minus_2 = vfield_bar.copy()
-            (uT_minus_1, vT_minus_1) = shifted_laplacian_vec(
-                ufield_bar,
-                vfield_bar,
+        uT_minus_2 = ufield_bar.copy()
+        vT_minus_2 = vfield_bar.copy()
+        (uT_minus_1, vT_minus_1) = shifted_laplacian_vec(
+            ufield_bar,
+            vfield_bar,
+            filter_spec.s_max,
+            laplacian,
+            filter_spec.dx_min_sq,
+        )
+        ufield_bar = filter_spec.p[0] * uT_minus_2 + filter_spec.p[1] * uT_minus_1
+        vfield_bar = filter_spec.p[0] * vT_minus_2 + filter_spec.p[1] * vT_minus_1
+        for i in range(2, filter_spec.n_steps + 1):
+            (uT_minus_0, vT_minus_0) = shifted_laplacian_vec(
+                uT_minus_1,
+                vT_minus_1,
                 filter_spec.s_max,
                 laplacian,
                 filter_spec.dx_min_sq,
             )
-            ufield_bar = filter_spec.p[0] * uT_minus_2 + filter_spec.p[1] * uT_minus_1
-            vfield_bar = filter_spec.p[0] * vT_minus_2 + filter_spec.p[1] * vT_minus_1
-            for i in range(2, filter_spec.n_steps + 1):
-                (uT_minus_0, vT_minus_0) = shifted_laplacian_vec(
-                    uT_minus_1,
-                    vT_minus_1,
-                    filter_spec.s_max,
-                    laplacian,
-                    filter_spec.dx_min_sq,
-                )
-                uT_minus_0 = 2 * uT_minus_0 - uT_minus_2
-                vT_minus_0 = 2 * vT_minus_0 - vT_minus_2
-                ufield_bar += filter_spec.p[i] * uT_minus_0
-                vfield_bar += filter_spec.p[i] * vT_minus_0
-                uT_minus_2 = uT_minus_1.copy()
-                uT_minus_1 = uT_minus_0.copy()
-                vT_minus_2 = vT_minus_1.copy()
-                vT_minus_1 = vT_minus_0.copy()
+            uT_minus_0 = 2 * uT_minus_0 - uT_minus_2
+            vT_minus_0 = 2 * vT_minus_0 - vT_minus_2
+            ufield_bar += filter_spec.p[i] * uT_minus_0
+            vfield_bar += filter_spec.p[i] * vT_minus_0
+            uT_minus_2 = uT_minus_1.copy()
+            uT_minus_1 = uT_minus_0.copy()
+            vT_minus_2 = vT_minus_1.copy()
+            vT_minus_1 = vT_minus_0.copy()
 
         # finalize filtering (this divides by area for simple fixed factor filters,
         # and does nothing for all other filters)
@@ -286,11 +284,8 @@ class Filter:
     dx_min : float
         The smallest grid spacing. Should have same units as ``filter_scale``
     n_steps : int, optional
-        Number of total steps in the filter (A biharmonic step counts as two steps)
+        Number of total steps in the filter
         ``n_steps == 0`` means the number of steps is chosen automatically
-    n_iterations : int, optional
-        Achieve a Gaussian filter of scale L by applying n_iterations times a Gaussian filter of scale
-        L / np.sqrt(n_iterations)
     filter_shape : FilterShape
         - ``FilterShape.GAUSSIAN``: The target filter has shape :math:`e^{-(k filter_scale)^2/24}`
         - ``FilterShape.TAPER``: The target filter has target grid scale Lf. Smaller scales are zeroed out.
@@ -316,7 +311,6 @@ class Filter:
     transition_width: float = np.pi
     ndim: int = 2
     n_steps: int = 0
-    n_iterations: int = 1
     grid_type: GridType = GridType.REGULAR
     grid_vars: dict = field(default_factory=dict, repr=False)
 
@@ -333,25 +327,12 @@ class Filter:
                     "dx_min must be set to 1."
                 )
 
-        # Check for n_iterations is < 1
-        if self.n_iterations < 1:
-            raise ValueError(
-                f"Number of intermediate filters into which the final filter is factored must be >= 1."
-            )
-
-        # Check for n_iterations != 1 with Taper
-        if self.n_iterations > 1 and self.filter_shape == FilterShape.TAPER:
-            raise ValueError(f"n_iterations must be 1 for the Taper filter shape.")
-
         # Check if transition_width is <=1
         if self.transition_width <= 1:
             raise ValueError(f"Transition width must be > 1.")
 
-        # If n_iterations is > 1 then modify the filter scale of the iterated filter
-        self.filter_scale_iterated = self.filter_scale / np.sqrt(self.n_iterations)
-
         # Get default number of steps
-        filter_factor = self.filter_scale_iterated / self.dx_min
+        filter_factor = self.filter_scale / self.dx_min
         if self.ndim > 2:
             if self.n_steps < 3:
                 raise ValueError(f"When ndim > 2, you must set n_steps manually")
@@ -377,13 +358,12 @@ class Filter:
             )
 
         self.filter_spec = _compute_filter_spec(
-            self.filter_scale_iterated,
+            self.filter_scale,
             self.dx_min,
             self.filter_shape,
             self.transition_width,
             self.ndim,
             self.n_steps,
-            self.n_iterations,
         )
 
         # check that we have all the required grid aguments
@@ -401,18 +381,16 @@ class Filter:
 
         # Plot the target filter and the approximate filter
         s_max = self.filter_spec.s_max
-        target_spec = TargetSpec(
-            s_max, self.filter_scale_iterated, self.transition_width
-        )
+        target_spec = TargetSpec(s_max, self.filter_scale, self.transition_width)
         F = _target_function[self.filter_shape](target_spec)
         x = np.linspace(-1, 1, 10001)
         k = np.sqrt(s_max * (x + 1) / 2)
         if ax is None:
             fig, ax = plt.subplots()
-        ax.plot(k, F(x) ** self.n_iterations, "g", label="target filter", linewidth=4)
+        ax.plot(k, F(x), "g", label="target filter", linewidth=4)
         ax.plot(
             k,
-            np.polynomial.chebyshev.chebval(x, self.filter_spec.p) ** self.n_iterations,
+            np.polynomial.chebyshev.chebval(x, self.filter_spec.p),
             "m",
             label="approximation",
             linewidth=4,

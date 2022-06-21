@@ -13,7 +13,7 @@ For a more detailed treatment, see `Grooms et al. (2021) <https://doi.org/10.102
 Filter Scale and Shape
 ----------------------
 
-Any low-pass spatial filter should have a target length scale such that the filtered field keeps the part of the signal with length scales larger than the target length scale, and smoothes out smaller scales. In the context of this package the target length scale is called ``filter_scale``.
+Any low-pass spatial filter should have a target length scale such that the filtered field keeps the part of the signal with length scales larger than the target length scale, and smooths out smaller scales. In the context of this package the target length scale is called ``filter_scale``.
 
 A spatial filter can also have a *shape* that determines how sharply it separates scales above and below the target length scale.
 The filter shape can be thought of in terms of the kernel of a convolution filter
@@ -116,7 +116,7 @@ Larger values for ``transition_width`` reduce the cost and the likelihood of pro
 Filter Steps
 ------------
 
-The filter goes through several steps to produce the final filtered field.
+Versions of the filter before v0.3 go through several steps to produce the final filtered field.
 There are two different kinds of steps: *Laplacian* and *Biharmonic* steps.
 At each Laplacian step, the filtered field is updated using the following formula
 
@@ -189,11 +189,11 @@ The example below shows what happens with ``n_steps`` = 4.
 The minimum number of steps is 3; if ``n_steps`` is not set by the user, or if it is set to a value less than 3, the code automatically changes ``n_steps`` to the default value.
 
 
-Numerical Stability
--------------------
+Numerical Stability and Chebyshev Algorithm
+-------------------------------------------
 
-The foregoing algorithm approximates the target filter using a polynomial.
-Applying the polynomial to the data is accomplished via the stepwise algorithm described above, which relies on the following representation of the polynomial
+``gcm-filters`` approximates the target filter using a polynomial.
+The foregoing section describes how the polynomial can be applied to data via a stepwise algorithm, which relies on the following representation of the polynomial
 
 .. math:: p(s) = \Pi_{i=1}^N\left(1 - \frac{s}{s_i}\right)
 
@@ -242,6 +242,7 @@ In summary, the Chebyshev representation of the filter polynomial, together with
 Despite being a different *algorithm*, in the absence of roundoff errors this will produce exactly the same result as the original algorithm.
 Experience has shown that the Chebyshev-based algorithm is much more stable to roundoff errors.
 As of version v0.3, the code uses the more stable Chebyshev-based algorithm described in this section.
+
 Spatially-Varying Filter Scale
 ------------------------------
 
