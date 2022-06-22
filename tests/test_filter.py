@@ -11,12 +11,9 @@ from gcm_filters.filter import FilterSpec
 
 
 def _check_equal_filter_spec(spec1, spec2):
-    assert spec1.n_steps_total == spec2.n_steps_total
-    np.testing.assert_allclose(spec1.s, spec2.s)
-    assert (spec1.is_laplacian == spec2.is_laplacian).all()
+    assert spec1.n_steps == spec2.n_steps
     assert spec1.s_max == spec2.s_max
     np.testing.assert_allclose(spec1.p, spec2.p, rtol=1e-07, atol=1e-07)
-    assert spec1.n_iterations == spec2.n_iterations
     np.testing.assert_allclose(spec1.dx_min_sq, spec2.dx_min_sq)
 
 
@@ -36,31 +33,7 @@ def _check_equal_filter_spec(spec1, spec2):
                 grid_vars={},
             ),
             FilterSpec(
-                n_steps_total=10,
-                s=[
-                    8.0 + 0.0j,
-                    3.42929331 + 0.0j,
-                    7.71587822 + 0.0j,
-                    2.41473596 + 0.0j,
-                    7.18021542 + 0.0j,
-                    1.60752541 + 0.0j,
-                    6.42502377 + 0.0j,
-                    0.81114415 - 0.55260985j,
-                    5.50381534 + 0.0j,
-                    4.48146765 + 0.0j,
-                ],
-                is_laplacian=[
-                    True,
-                    True,
-                    True,
-                    True,
-                    True,
-                    True,
-                    True,
-                    False,
-                    True,
-                    True,
-                ],
+                n_steps=11,
                 s_max=8.0,
                 p=[
                     0.09887381,
@@ -76,7 +49,6 @@ def _check_equal_filter_spec(spec1, spec2):
                     0.00995974,
                     -0.00454758,
                 ],
-                n_iterations=1,
                 dx_min_sq=1.0,
             ),
         ),
@@ -90,13 +62,7 @@ def _check_equal_filter_spec(spec1, spec2):
                 grid_vars={},
             ),
             FilterSpec(
-                n_steps_total=3,
-                s=[
-                    5.23887374 - 1.09644141j,
-                    -0.76856043 - 1.32116962j,
-                    3.00058907 - 2.95588288j,
-                ],
-                is_laplacian=[False, False, False],
+                n_steps=6,
                 s_max=4.0,
                 p=[
                     0.83380304,
@@ -107,7 +73,6 @@ def _check_equal_filter_spec(spec1, spec2):
                     -0.00495532,
                     0.00168445,
                 ],
-                n_iterations=1,
                 dx_min_sq=1.0,
             ),
         ),
@@ -136,7 +101,6 @@ area_weighted_regular_grids = [
             dx_min=1.0,
             n_steps=0,
             filter_shape=FilterShape.GAUSSIAN,
-            n_iterations=1,
         )
     ],
 )
@@ -175,17 +139,6 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
             )
 
     bad_filter_args = copy.deepcopy(filter_args)
-    # check that we get an error when n_iterations < 1
-    bad_filter_args["n_iterations"] = 0
-    with pytest.raises(ValueError, match=r"Number of intermediate .*"):
-        filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
-    # check that we get an error when n_iterations > 1 with Taper
-    bad_filter_args["n_iterations"] = 2
-    bad_filter_args["filter_shape"] = FilterShape.TAPER
-    with pytest.raises(ValueError, match=r"n_iterations must be .*"):
-        filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
-    bad_filter_args["n_iterations"] = 1
-    bad_filter_args["filter_shape"] = FilterShape.GAUSSIAN
     # check that we get an error when transition_width <= 1
     bad_filter_args["transition_width"] = 1
     with pytest.raises(ValueError, match=r"Transition width .*"):
@@ -200,11 +153,6 @@ def test_diffusion_filter(grid_type_and_input_ds, filter_args):
     bad_filter_args["ndim"] = 2
     bad_filter_args["n_steps"] = 3
     with pytest.warns(UserWarning, match=r"You have set n_steps .*"):
-        filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
-    # check that we get a warning if numerical instability possible
-    bad_filter_args["n_steps"] = 0
-    bad_filter_args["filter_scale"] = 1000
-    with pytest.warns(UserWarning, match=r"Filter scale much larger .*"):
         filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **bad_filter_args)
     # check that we get an error if we pass dx_min != 1 to a regular scalar Laplacian
     if grid_type in area_weighted_regular_grids:
@@ -275,7 +223,7 @@ def test_nondimensional_invariance():
         ),
     )
 
-    # Filter it using a nondimenisional filter, dx_min = 1
+    # Filter it using a nondimensional filter, dx_min = 1
     filter = Filter(
         filter_scale=4,
         dx_min=1,
@@ -295,51 +243,6 @@ def test_nondimensional_invariance():
 
     # Check if they are the same
     xr.testing.assert_allclose(filtered_dataset.spatial, filtered_dataset_v2.spatial)
-
-
-@pytest.mark.parametrize(
-    "filter_args",
-    [
-        dict(
-            filter_scale=8.0,
-            dx_min=1.0,
-            n_steps=0,
-            filter_shape=FilterShape.GAUSSIAN,
-            n_iterations=1,
-        )
-    ],
-)
-@pytest.mark.parametrize(
-    "n_iterations",
-    [2, 3, 4],
-)
-def test_iterated_filter(grid_type_and_input_ds, filter_args, n_iterations):
-    "Test that the iterated Gaussian filter gives a result close to the original"
-
-    grid_type, da, grid_vars = grid_type_and_input_ds
-
-    iterated_filter_args = filter_args.copy()
-    iterated_filter_args["n_iterations"] = n_iterations
-
-    filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **filter_args)
-    iterated_filter = Filter(
-        grid_type=grid_type, grid_vars=grid_vars, **iterated_filter_args
-    )
-
-    filtered = filter.apply(da, dims=["y", "x"])
-    iteratively_filtered = iterated_filter.apply(da, dims=["y", "x"])
-
-    area = 1
-    for k, v in grid_vars.items():
-        if "area" in k:
-            area = v
-            break
-
-    # The following tests whether a relative error bound in L^2 holds.
-    # See the "Factoring the Gaussian Filter" section of the docs for details.
-    assert (((filtered - iteratively_filtered) ** 2) * area).sum() < (
-        (0.01 * (1 + n_iterations)) ** 2
-    ) * ((da**2) * area).sum()
 
 
 #################### Visosity-based filter tests ########################################
@@ -378,46 +281,3 @@ def test_viscosity_filter(
             filter = Filter(
                 grid_type=grid_type, grid_vars=grid_vars_missing, **filter_args
             )
-
-
-@pytest.mark.parametrize(
-    "filter_args",
-    [dict(filter_scale=4.0, dx_min=1.0, n_steps=0, filter_shape=FilterShape.GAUSSIAN)],
-)
-@pytest.mark.parametrize(
-    "n_iterations",
-    [2, 3, 4],
-)
-def test_iterated_viscosity_filter(
-    vector_grid_type_and_input_ds, filter_args, n_iterations
-):
-    """Test error in the iterated Gaussian filter for vectors"""
-    grid_type, (da_u, da_v), grid_vars = vector_grid_type_and_input_ds
-
-    filter = Filter(grid_type=grid_type, grid_vars=grid_vars, **filter_args)
-    filtered_u, filtered_v = filter.apply_to_vector(da_u, da_v, dims=["y", "x"])
-
-    iterated_filter_args = filter_args.copy()
-    iterated_filter_args["n_iterations"] = n_iterations
-    iterated_filter = Filter(
-        grid_type=grid_type, grid_vars=grid_vars, **iterated_filter_args
-    )
-    iteratively_filtered_u, iteratively_filtered_v = iterated_filter.apply_to_vector(
-        da_u, da_v, dims=["y", "x"]
-    )
-
-    area = 1
-    for k, v in grid_vars.items():
-        if "area" in k:
-            area = v
-            break
-
-    # The following tests whether a relative error bound in L^2 holds.
-    # See the "Factoring the Gaussian Filter" section of the docs for details.
-    difference = (filtered_u - iteratively_filtered_u) ** 2 + (
-        filtered_v - iteratively_filtered_v
-    ) ** 2
-    unfiltered = da_u**2 + da_v**2
-    assert (difference * area).sum() < ((0.01 * (1 + n_iterations)) ** 2) * (
-        unfiltered * area
-    ).sum()

@@ -44,8 +44,6 @@ Getting Started
    examples/example_filter_types
    examples/example_tripole_grid
    examples/example_vector_laplacian
-   factored_gaussian
-   examples/example_numerical_instability
    examples/example_satellite_observations
 
 References
