@@ -9,7 +9,7 @@ dependencies:
   - dask
   - matplotlib
   - numpydoc
-  - sphinx
+  - sphinx==4.2
   - ipython
   - nbconvert
   - nbformat
