@@ -46,6 +46,8 @@ The following table provides an overview of these different grid type options: w
 +--------------------------------+-----------------------------------------------------------------+--------------+--------------------+------------------+------------------------------------------+
 | ``VECTOR_C_GRID``              | `Arakawa C-Grid <https://en.wikipedia.org/wiki/Arakawa_grids>`_ | yes          | periodic           | Vector Laplacian | :doc:`examples/example_vector_laplacian` |
 +--------------------------------+-----------------------------------------------------------------+--------------+--------------------+------------------+------------------------------------------+
+| ``VECTOR_B_GRID``              | `Arakawa B-Grid <https://en.wikipedia.org/wiki/Arakawa_grids>`_ | no           | periodic           | Vector Laplacian |                                          |
++--------------------------------+-----------------------------------------------------------------+--------------+--------------------+------------------+------------------------------------------+
 
 Grid types with scalar Laplacians can be used for filtering scalar fields (such as temperature), and grid types with vector Laplacians can be used for filtering vector fields (such as velocity).
 
