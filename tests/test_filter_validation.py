@@ -55,7 +55,6 @@ def _get_results(grid_data_and_input_ds, filter_args):
             dx_min=1.0,
             n_steps=0,
             filter_shape=FilterShape.GAUSSIAN,
-            n_iterations=1,
         )
     ],
 )
@@ -81,7 +80,6 @@ def test_save_results(grid_data_and_input_ds, filter_args):
             dx_min=1.0,
             n_steps=0,
             filter_shape=FilterShape.GAUSSIAN,
-            n_iterations=1,
         )
     ],
 )
