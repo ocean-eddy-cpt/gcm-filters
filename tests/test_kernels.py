@@ -11,8 +11,6 @@ from gcm_filters.kernels import (
     required_grid_vars,
 )
 
-from .conftest import spherical_geometry
-
 
 def test_conservation(scalar_grid_type_data_and_extra_kwargs):
     """This test checks that scalar Laplacians preserve the area integral."""
@@ -250,15 +248,14 @@ def test_tripolar_exchanges(tripolar_grid_type_data_and_extra_kwargs):
 #################### Vector Laplacian tests ########################################
 
 
-def test_conservation_under_solid_body_rotation(vector_grid_type_data_and_extra_kwargs):
+def test_conservation_under_solid_body_rotation(vector_grid_type_data_and_extra_kwargs, spherical_geometry):
     """This test checks that vector Laplacians are invariant under solid body rotations:
     a corollary of conserving angular momentum."""
 
-    grid_type, (u, _), extra_kwargs = vector_grid_type_data_and_extra_kwargs
+    grid_type, _, extra_kwargs = vector_grid_type_data_and_extra_kwargs
 
-    ny, nx = u.shape
 
-    _, geolat_u, _, _ = spherical_geometry(ny, nx)
+    _, geolat_u, _, _ = spherical_geometry
     # u = cos(lat), v=0 is solid body rotation
     data_u = np.cos(geolat_u / 360 * 2 * np.pi)
     data_v = np.zeros_like(data_u)
