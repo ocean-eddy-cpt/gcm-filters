@@ -713,6 +713,8 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
     TAREA: T-cell area
     """
 
+    is_dimensional = True
+
     DXU: ArrayType
     DYU: ArrayType
     HUS: ArrayType
@@ -743,7 +745,7 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
         p5 = 0.5
 
         # Calculate coefficients for the stencil without metric terms
-        WORK1 = (self.HUS / self.HTE)
+        WORK1 = self.HUS / self.HTE
 
         DUS = (
             WORK1 * self.UAREA_R
@@ -752,7 +754,7 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
             np.roll(WORK1, 1, axis=-1) * self.UAREA_R
         )  # North coefficient of 5-point stencil
 
-        WORK1 = (self.HUW / self.HTN)
+        WORK1 = self.HUW / self.HTN
 
         DUW = WORK1 * self.UAREA_R  # West coefficient of 5-point stencil
         DUE = (
@@ -766,29 +768,17 @@ class BgridVectorLaplacian(BaseVectorLaplacian):
         KYU = (np.roll(self.HUS, 1, axis=-1) - self.HUS) * self.UAREA_R
 
         WORK1 = (self.HTE - np.roll(self.HTE, -1, axis=-2)) * self.TAREA_R  # KXT
-        WORK2 = (
-            p5
-            * (WORK1 + np.roll(WORK1, 1, axis=-1))
-        )
+        WORK2 = p5 * (WORK1 + np.roll(WORK1, 1, axis=-1))
         DXKX = (np.roll(WORK2, 1, axis=-2) - WORK2) * self.DXUR
 
-        WORK2 = (
-            p5
-            * (WORK1 + np.roll(WORK1, 1, axis=-2))
-        )
+        WORK2 = p5 * (WORK1 + np.roll(WORK1, 1, axis=-2))
         DYKX = (np.roll(WORK2, 1, axis=-1) - WORK2) * self.DYUR
 
         WORK1 = (self.HTN - np.roll(self.HTN, -1, axis=-1)) * self.TAREA_R  # KYT
-        WORK2 = (
-            p5
-            * (WORK1 + np.roll(WORK1, 1, axis=-2))
-        )
+        WORK2 = p5 * (WORK1 + np.roll(WORK1, 1, axis=-2))
         DYKY = (np.roll(WORK2, 1, axis=-1) - WORK2) * self.DYUR
 
-        WORK2 = (
-            p5
-            * (WORK1 + np.roll(WORK1, 1, axis=-1))
-        )
+        WORK2 = p5 * (WORK1 + np.roll(WORK1, 1, axis=-1))
         DXKY = (np.roll(WORK2, axis=-2, shift=1) - WORK2) * self.DXUR
 
         DUM = -(

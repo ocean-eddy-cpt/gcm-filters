@@ -9,8 +9,7 @@ flake8-print
 interrogate
 isort
 nbsphinx
-netcdf4
-pooch
+numcodecs==0.10.1
 pre-commit
 pylint
 pytest
