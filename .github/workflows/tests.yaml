@@ -33,6 +33,7 @@ jobs:
           mamba-version: "*"
           channels: conda-forge, defaults
           channel-priority: true
+          python-version: ${{ matrix.python-version }}
           activate-environment: gcm-filters-env
           use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
       - shell: bash -l {0}
