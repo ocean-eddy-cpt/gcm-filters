@@ -13,7 +13,7 @@ For a more detailed treatment, see `Grooms et al. (2021) <https://doi.org/10.102
 Filter Scale and Shape
 ----------------------
 
-Any low-pass spatial filter should have a target length scale such that the filtered field keeps the part of the signal with length scales larger than the target length scale, and smoothes out smaller scales. In the context of this package the target length scale is called ``filter_scale``.
+Any low-pass spatial filter should have a target length scale such that the filtered field keeps the part of the signal with length scales larger than the target length scale, and smooths out smaller scales. In the context of this package the target length scale is called ``filter_scale``.
 
 A spatial filter can also have a *shape* that determines how sharply it separates scales above and below the target length scale.
 The filter shape can be thought of in terms of the kernel of a convolution filter
@@ -116,7 +116,7 @@ Larger values for ``transition_width`` reduce the cost and the likelihood of pro
 Filter Steps
 ------------
 
-The filter goes through several steps to produce the final filtered field.
+Versions of the filter before v0.3 go through several steps to produce the final filtered field.
 There are two different kinds of steps: *Laplacian* and *Biharmonic* steps.
 At each Laplacian step, the filtered field is updated using the following formula
 
@@ -189,22 +189,59 @@ The example below shows what happens with ``n_steps`` = 4.
 The minimum number of steps is 3; if ``n_steps`` is not set by the user, or if it is set to a value less than 3, the code automatically changes ``n_steps`` to the default value.
 
 
-Numerical Stability
--------------------
+Numerical Stability and Chebyshev Algorithm
+-------------------------------------------
 
-When the filter scale is much larger than the grid scale the filter can become unstable to roundoff errors.
-The usual manifestation of these roundoff errors is high-amplitude small-scale noise in the filtered field.
-(This problem is worse for the Taper filter than the Gaussian filter.)
+``gcm-filters`` approximates the target filter using a polynomial.
+The foregoing section describes how the polynomial can be applied to data via a stepwise algorithm, which relies on the following representation of the polynomial
 
-.. tip::
-    In such cases, the user has a few options to try to regain stability.
+.. math:: p(s) = \Pi_{i=1}^N\left(1 - \frac{s}{s_i}\right)
 
-    1. If the data being filtered is single-precision, it might help to promote it to double precision (or higher) before filtering.
-    2. The user can also try reducing ``n_steps``, but must not reduce it too much or the resulting filter will not behave as expected.
-    3. Users might elect to *coarsen* their data before filtering, i.e. to reduce the resolution of the input data before applying the filter. This has the effect of increasing the grid size, and thus decreasing the gap between the filter scale and the grid scale.
-    4. The final option is simply to use a different approach to filtering, not based on ``gcm-filters``.
+where :math:`-s` corresponds to the discrete Laplacian and :math:`s_i` are the roots of the polynomial.
+The numerical stability of this algorithm depends strongly on the ordering of the steps, i.e. of the polynomial roots.
+As described by `Grooms et al. (2021) <https://doi.org/10.1029/2021MS002552>`_, roundoff error can accumulate and corrupt the results, especially when the filter scale is much larger than the grid scale.
 
-:doc:`examples/example_numerical_instability` has an example of numerical instability, as well as examples of avoiding the instability by increasing the precision and coarsening the data.
+A different iterative algorithm for applying the filter to data can be formulated based on a different representation of the polynomial.
+The polynomial approximation is actually found using a new variable :math:`t` (which does not represent time!)
+
+.. math::
+       t(s) &= \frac{2}{s_{\text{max}}}s -1,\\
+       s(t) &= s_{\text{max}}\frac{t+1}{2}
+
+and it is represented using Chebyshev coordinates :math:`c_i` rather than roots :math:`s_i`:
+
+.. math:: p(s) = \sum_{i=0}^Nc_iT_i(t(s))
+
+where :math:`T_i(t)` are Chebyshev polynomials of the first kind.
+Where the variable :math:`-s` corresponds to the discrete Laplacian, the new variable :math:`t` corresponds to a scaled and shifted Laplacian.
+
+This suggests an alternative way of applying the filter to data.
+Let
+
+.. math:: \mathbf{A} = -\left(\frac{2}{s_{\text{max}}}\Delta + \mathbf{I}\right)
+
+be the discrete Laplacian :math:`\Delta` with a rescaling and a shift.
+In principle one could apply the filter to a vector of data :math:`\mathbf{f}` by computing the vectors :math:`T_i(\mathbf{A})\mathbf{f}` and then taking a linear combination with weights :math:`c_i`.
+This begs the question of how to compute the vectors :math:`T_i(\mathbf{A})\mathbf{f}`.
+
+Fortunately, this can be done using the three-term recurrence for Chebyshev polynomials.
+Chebyshev polynomials satisfy the following recurrence relation
+
+.. math::
+        T_0(x) &= 1 \\
+        T_1(x) &= x \\
+        T_{i+1}(x) &= 2xT_i(x)-T_{i-1}(x).
+
+This relation implies that we can evaluate the vectors :math:`T_i(\mathbf{A})\mathbf{f}` using the following recurrence
+
+.. math:: T_0(\mathbf{A})\mathbf{f} = \mathbf{f}
+.. math:: T_1(\mathbf{A})\mathbf{f} = \mathbf{Af}
+.. math:: T_{i+1}(\mathbf{A})\mathbf{f} = 2\mathbf{A}T_i(\mathbf{A})\mathbf{f}-T_{i-1}(\mathbf{A})\mathbf{f}.
+
+In summary, the Chebyshev representation of the filter polynomial, together with the three-term recurrence for Chebyshev polynomials and a method for applying a *scaled and shifted* discrete Laplacian to data, result in an alternative algorithm for applying the filter to data that is different from the one described in `Grooms et al. (2021) <https://doi.org/10.1029/2021MS002552>`_.
+Despite being a different *algorithm*, in the absence of roundoff errors this will produce exactly the same result as the original algorithm.
+Experience has shown that the Chebyshev-based algorithm is much more stable to roundoff errors.
+As of version v0.3, the code uses the more stable Chebyshev-based algorithm described in this section.
 
 Spatially-Varying Filter Scale
 ------------------------------

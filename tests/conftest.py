@@ -2,6 +2,7 @@ from typing import Tuple
 
 import numpy as np
 import pytest
+import xarray as xr
 
 from numpy.random import PCG64, Generator
 
@@ -29,6 +30,34 @@ _grid_kwargs = {
     GridType.TRIPOLAR_POP_WITH_LAND: ["wet_mask", "dxe", "dye", "dxn", "dyn", "tarea"],
 }
 
+_vector_grid_kwargs = {
+    GridType.VECTOR_C_GRID: [
+        "wet_mask_t",
+        "wet_mask_q",
+        "dxT",
+        "dyT",
+        "dxCu",
+        "dyCu",
+        "dxCv",
+        "dyCv",
+        "dxBu",
+        "dyBu",
+        "area_u",
+        "area_v",
+        "kappa_iso",
+        "kappa_aniso",
+    ],
+    GridType.VECTOR_B_GRID: [
+        "DXU",
+        "DYU",
+        "HUS",
+        "HUW",
+        "HTE",
+        "HTN",
+        "UAREA",
+        "TAREA",
+    ],
+}
 
 scalar_grids = [
     GridType.REGULAR,
@@ -44,7 +73,7 @@ tripolar_grids = [
     GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED,
     GridType.TRIPOLAR_POP_WITH_LAND,
 ]
-vector_grids = [GridType.VECTOR_C_GRID]
+vector_grids = [GridType.VECTOR_C_GRID, GridType.VECTOR_B_GRID]
 
 
 def _make_random_data(shape: Tuple[int, int], seed: int) -> np.ndarray:
@@ -133,76 +162,124 @@ def tripolar_grid_type_data_and_extra_kwargs(request):
     return grid_type, data, extra_kwargs
 
 
+@pytest.fixture(scope="session", params=scalar_grids)
+# test data for filter.py: need xr.DataArray's
+def grid_type_and_input_ds(request, scalar_grid_type_data_and_extra_kwargs):
+
+    grid_type, data, extra_kwargs = scalar_grid_type_data_and_extra_kwargs
+
+    da = xr.DataArray(data, dims=["y", "x"])
+
+    grid_vars = {}
+    for name in extra_kwargs:
+        grid_vars[name] = xr.DataArray(extra_kwargs[name], dims=["y", "x"])
+
+    return grid_type, da, grid_vars
+
+
 @pytest.fixture(scope="session")
+# compute latitudes and longitudes for a spherical C-grid geometry
 def spherical_geometry():
+
     ny, nx = (128, 256)
 
     # construct spherical coordinate system similar to MOM6 NeverWorld2 grid
     # define latitudes and longitudes
     lat_min = -70
     lat_max = 70
-    lat_u = np.linspace(
+
+    # compute latitude of u-points on C-grid
+    latCu = np.linspace(
         lat_min + 0.5 * (lat_max - lat_min) / ny,
         lat_max - 0.5 * (lat_max - lat_min) / ny,
         ny,
     )
-    lat_v = np.linspace(lat_min + (lat_max - lat_min) / ny, lat_max, ny)
+    # compute latitude of v-points on C-grid
+    latCv = np.linspace(lat_min + (lat_max - lat_min) / ny, lat_max, ny)
+
     lon_min = 0
     lon_max = 60
-    lon_u = np.linspace(lon_min + (lon_max - lon_min) / nx, lon_max, nx)
-    lon_v = np.linspace(
+
+    lonCu = np.linspace(lon_min + (lon_max - lon_min) / nx, lon_max, nx)
+    lonCv = np.linspace(
         lon_min + 0.5 * (lon_max - lon_min) / nx,
         lon_max - 0.5 * (lon_max - lon_min) / nx,
         nx,
     )
-    (geolon_u, geolat_u) = np.meshgrid(lon_u, lat_u)
-    (geolon_v, geolat_v) = np.meshgrid(lon_v, lat_v)
 
-    return geolon_u, geolat_u, geolon_v, geolat_v
+    (geolonCu, geolatCu) = np.meshgrid(lonCu, latCu)
+    (geolonCv, geolatCv) = np.meshgrid(lonCv, latCv)
+
+    return geolonCu, geolatCu, geolonCv, geolatCv
 
 
 @pytest.fixture(scope="session", params=vector_grids)
 def vector_grid_type_data_and_extra_kwargs(request, spherical_geometry):
     grid_type = request.param
-    geolon_u, geolat_u, geolon_v, geolat_v = spherical_geometry
-    ny, nx = geolon_u.shape
+    geolonCu, geolatCu, geolonCv, geolatCv = spherical_geometry
+    ny, nx = geolonCu.shape
 
     extra_kwargs = {}
 
-    # for now, we assume that the only implemented vector grid is VECTOR_C_GRID
-    # we can relax this if we implement other vector grids
-    assert grid_type == GridType.VECTOR_C_GRID
-
     R = 6378000
+
     # dx varies spatially
-    extra_kwargs["dxCu"] = R * np.cos(geolat_u / 360 * 2 * np.pi)
-    extra_kwargs["dxCv"] = R * np.cos(geolat_v / 360 * 2 * np.pi)
-    extra_kwargs["dxBu"] = extra_kwargs["dxCv"] + np.roll(
-        extra_kwargs["dxCv"], -1, axis=1
-    )
-    extra_kwargs["dxT"] = extra_kwargs["dxCu"] + np.roll(
-        extra_kwargs["dxCu"], 1, axis=1
-    )
-    # dy is set constant, equal to dx at the equator
-    dy = np.max(extra_kwargs["dxCu"]) * np.ones((ny, nx))
-    extra_kwargs["dyCu"] = dy
-    extra_kwargs["dyCv"] = dy
-    extra_kwargs["dyBu"] = dy
-    extra_kwargs["dyT"] = dy
+    for name in _vector_grid_kwargs[grid_type]:
+        if name in ["dxCu", "dxT", "HUS", "HTE"]:
+            extra_kwargs[name] = R * np.cos(geolatCu / 360 * 2 * np.pi)
+            # compute dy for later
+            # dy is set constant, equal to dx at the equator
+            dy = np.max(extra_kwargs[name]) * np.ones((ny, nx))
+        if name in ["dxCv", "dxBu", "DXU", "HUW", "HTN"]:
+            extra_kwargs[name] = R * np.cos(geolatCv / 360 * 2 * np.pi)
+
+    # dy
+    for name in _vector_grid_kwargs[grid_type]:
+        if name in ["dyCu", "dyCv", "dyBu", "dyT", "DYU"]:
+            extra_kwargs[name] = dy
+
     # compute grid cell areas
-    extra_kwargs["area_u"] = extra_kwargs["dxCu"] * extra_kwargs["dyCu"]
-    extra_kwargs["area_v"] = extra_kwargs["dxCv"] * extra_kwargs["dyCv"]
+    for name in _vector_grid_kwargs[grid_type]:
+        if name == "area_u":
+            extra_kwargs[name] = extra_kwargs["dxCu"] * extra_kwargs["dyCu"]
+        elif name == "area_v":
+            extra_kwargs[name] = extra_kwargs["dxCv"] * extra_kwargs["dyCv"]
+        elif name == "UAREA":
+            extra_kwargs[name] = extra_kwargs["DXU"] * extra_kwargs["DYU"]
+        elif name == "TAREA":
+            # on a spherical grid, HTE is the same as x-spacing centered at tracer point
+            # on a spherical grid, DYU is the same as y-spacing centered at tracer point
+            extra_kwargs[name] = extra_kwargs["HTE"] * extra_kwargs["DYU"]
+
     # set isotropic and anisotropic kappas
-    extra_kwargs["kappa_iso"] = np.ones((ny, nx))
-    extra_kwargs["kappa_aniso"] = np.ones((ny, nx))
+    for name in _vector_grid_kwargs[grid_type]:
+        if name in ["kappa_iso", "kappa_aniso"]:
+            extra_kwargs[name] = np.ones((ny, nx))
+
     # put a big island in the middle
     mask_data = np.ones((ny, nx))
     mask_data[: (ny // 2), : (nx // 2)] = 0
-    extra_kwargs["wet_mask_t"] = mask_data
-    extra_kwargs["wet_mask_q"] = mask_data
+    for name in _vector_grid_kwargs[grid_type]:
+        if name in ["wet_mask_t", "wet_mask_q"]:
+            extra_kwargs[name] = mask_data
 
     data_u = _make_random_data((ny, nx), 42)
     data_v = _make_random_data((ny, nx), 43)
 
     # use same return signature as other kernel fixtures
     return grid_type, (data_u, data_v), extra_kwargs
+
+
+@pytest.fixture(scope="session", params=vector_grids)
+def vector_grid_type_and_input_ds(request, vector_grid_type_data_and_extra_kwargs):
+    # test data for filter.py: need xr.DataArray's
+    grid_type, (data_u, data_v), extra_kwargs = vector_grid_type_data_and_extra_kwargs
+
+    da_u = xr.DataArray(data_u, dims=["y", "x"])
+    da_v = xr.DataArray(data_v, dims=["y", "x"])
+
+    grid_vars = {}
+    for name in extra_kwargs:
+        grid_vars[name] = xr.DataArray(extra_kwargs[name], dims=["y", "x"])
+
+    return grid_type, (da_u, da_v), grid_vars

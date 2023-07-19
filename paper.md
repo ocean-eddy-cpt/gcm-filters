@@ -18,7 +18,7 @@ authors:
   - name: Julius Busecke
     orcid: 0000-0001-8571-865X
     affiliation: 2
-  - name: Arthur Barthe
+  - name: Arthur Guillaumin
     orcid: 0000-0003-1571-4228
     affiliation: 3
   - name: Elizabeth Yankovsky
@@ -42,6 +42,9 @@ authors:
   - name: Laure Zanna
     orcid: 0000-0002-8472-4828
     affiliation: 3
+  - name: Paige Martin
+    orcid: 0000-0003-3538-633X
+    affiliation: "2, 7"
 affiliations:
   - name: Department of Applied Mathematics, University of Colorado Boulder, Boulder, CO, USA
     index: 1
@@ -55,6 +58,8 @@ affiliations:
     index: 5
   - name: Earth, Ocean and Ecological Sciences, University of Liverpool, UK
     index: 6
+  - name: Research School of Earth Sciences, Australian National University, Canberra, Australia
+    index: 7
 
 date: 1 November 2021
 bibliography: paper.bib
@@ -73,7 +78,7 @@ Finally, the filter shape -- currently: either Gaussian or Taper -- determines h
 
 # Statement of Need
 
-Spatial filtering is commonly used as a scientific tool for analyzing gridded data. An example of an existing spatial filtering tool in python is `SciPy`'s [@2020SciPy-NMeth] `ndimage.gaussian_filter` function, implemented as a sequence of convolution filters. While being a valuable tool for image processing (or blurring), `SciPy`'s Gaussian filter is of limited use for GCM data; it assumes a regular and rectangular Cartesian grid, employs a simple boundary condition, and the definitions of filter scale and shape have little or no flexibility. The python package `GCM-Filters` is specificially designed to filter GCM data, and seeks to solve a number of challenges for the user:
+Spatial filtering is commonly used as a scientific tool for analyzing gridded data. An example of an existing spatial filtering tool in python is the `ndimage.gaussian_filter` function in `SciPy` [@2020SciPy-NMeth], implemented as a sequence of convolution filters. While being a valuable tool for image processing (or blurring), `SciPy`'s Gaussian filter is of limited use for GCM data; it assumes a regular and rectangular Cartesian grid, employs a simple boundary condition, and the definitions of filter scale and shape have little or no flexibility. The python package `GCM-Filters` is specificially designed to filter GCM data, and seeks to solve a number of challenges for the user:
 
 1. GCM data comes on irregular curvilinear grids with spatially varying grid-cell geometry.
 2. Continental boundaries require careful and special treatment when filtering ocean GCM output.
@@ -91,8 +96,8 @@ The main `GCM-Filters` class that the user will interface with is the `gcm_filte
 * Grid types with **scalar Laplacians** that can be used for filtering scalar fields, for example temperature or vorticity (see \autoref{fig1}). The currently implemented grid types are compatible with different ocean GCM grids including MOM5 [@mom5], MOM6 [@adcroft2019MOM6] and the POP2 [@pop2] tripole grid.
 * Grid types with **vector Laplacians** that can be used for filtering vector fields, for example horizontal velocity $(u,v)$. The currently implemented grid type is compatible with ocean GCM grids that use an Arakawa C-grid convention; examples include MOM6 [@adcroft2019MOM6] and the MITgcm [@mitgcm].
 
-Atmospheric model grids are not yet supported, but could be implemented within the `GCM-Filters` package. Users are encouraged to contribute more grid types and Laplacians via pull requests.
-While we are excited to share GCM-Filters in its current beta state at version `0.1.3`, we plan to continue improving and maintaining the package for the long run and welcome new contributors from the broader community.
+Atmospheric model grids are not yet supported, but could be implemented in `GCM-Filters`. Users are encouraged to contribute more grid types and Laplacians via pull requests.
+While we are excited to share `GCM-Filters` at version `0.2.3`, we plan to continue improving and maintaining the package for the long run and welcome new contributors from the broader community.
 
 # Acknowledgements
 

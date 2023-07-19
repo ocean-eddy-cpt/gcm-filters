@@ -33,7 +33,6 @@ def test_conservation(scalar_grid_type_data_and_extra_kwargs):
 
     res = laplacian(data)
 
-    # currently failing only for TRIPOLAR_POP_WITH_LAND. Why?
     np.testing.assert_allclose((area * res).sum(), 0.0, atol=1e-12)
 
 
@@ -41,6 +40,25 @@ def test_required_grid_vars(scalar_grid_type_data_and_extra_kwargs):
     grid_type, _, extra_kwargs = scalar_grid_type_data_and_extra_kwargs
     grid_vars = required_grid_vars(grid_type)
     assert set(grid_vars) == set(extra_kwargs)
+
+
+def test_dimensionality_scalar(scalar_grid_type_data_and_extra_kwargs):
+    """This test checks that REGULAR Laplacians are marked as nondimensional"""
+    grid_type, data, extra_kwargs = scalar_grid_type_data_and_extra_kwargs
+
+    LaplacianClass = ALL_KERNELS[grid_type]
+    switch = {
+        GridType.REGULAR: True,
+        GridType.REGULAR_AREA_WEIGHTED: True,
+        GridType.REGULAR_WITH_LAND: True,
+        GridType.REGULAR_WITH_LAND_AREA_WEIGHTED: True,
+        GridType.IRREGULAR_WITH_LAND: False,
+        GridType.MOM5U: False,
+        GridType.MOM5T: False,
+        GridType.TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED: True,
+        GridType.TRIPOLAR_POP_WITH_LAND: False,
+    }
+    assert switch.get(grid_type, "Invalid input") != LaplacianClass.is_dimensional
 
 
 ################## Irregular grid tests for scalar Laplacians ##############################################
@@ -256,16 +274,8 @@ def test_zero_area(vector_grid_type_data_and_extra_kwargs):
 
     grid_type, (data_u, data_v), extra_kwargs = vector_grid_type_data_and_extra_kwargs
 
-    test_kwargs = copy.deepcopy(extra_kwargs)
-    # fill area_u, area_v with zeros over land; e.g., you will find that in MOM6 model output
-    test_kwargs["area_u"] = np.where(
-        extra_kwargs["wet_mask_t"] > 0, test_kwargs["area_u"], 0
-    )
-    test_kwargs["area_v"] = np.where(
-        extra_kwargs["wet_mask_t"] > 0, test_kwargs["area_v"], 0
-    )
     LaplacianClass = ALL_KERNELS[grid_type]
-    laplacian = LaplacianClass(**test_kwargs)
+    laplacian = LaplacianClass(**extra_kwargs)
     res_u, res_v = laplacian(data_u, data_v)
     assert not np.any(np.isinf(res_u))
     assert not np.any(np.isnan(res_u))
@@ -276,3 +286,14 @@ def test_required_vector_grid_vars(vector_grid_type_data_and_extra_kwargs):
     grid_type, _, extra_kwargs = vector_grid_type_data_and_extra_kwargs
     grid_vars = required_grid_vars(grid_type)
     assert set(grid_vars) == set(extra_kwargs)
+
+
+def test_dimensionality_vector(vector_grid_type_data_and_extra_kwargs):
+    """This test checks that REGULAR Laplacians are marked as nondimensional"""
+    grid_type, (data_u, data_v), extra_kwargs = vector_grid_type_data_and_extra_kwargs
+
+    LaplacianClass = ALL_KERNELS[grid_type]
+    switch = {
+        GridType.VECTOR_C_GRID: False,
+    }
+    assert switch.get(grid_type, "Invalid input") != LaplacianClass.is_dimensional

@@ -46,6 +46,8 @@ The following table provides an overview of these different grid type options: w
 +--------------------------------+-----------------------------------------------------------------+--------------+--------------------+------------------+------------------------------------------+
 | ``VECTOR_C_GRID``              | `Arakawa C-Grid <https://en.wikipedia.org/wiki/Arakawa_grids>`_ | yes          | periodic           | Vector Laplacian | :doc:`examples/example_vector_laplacian` |
 +--------------------------------+-----------------------------------------------------------------+--------------+--------------------+------------------+------------------------------------------+
+| ``VECTOR_B_GRID``              | `Arakawa B-Grid <https://en.wikipedia.org/wiki/Arakawa_grids>`_ | no           | periodic           | Vector Laplacian |                                          |
++--------------------------------+-----------------------------------------------------------------+--------------+--------------------+------------------+------------------------------------------+
 
 Grid types with scalar Laplacians can be used for filtering scalar fields (such as temperature), and grid types with vector Laplacians can be used for filtering vector fields (such as velocity).
 
@@ -97,6 +99,11 @@ Each grid type from the above two tables has different *grid variables* that mus
 
 We have made a big island.
 
+
+.. note:: Some more complicated grid types require more grid variables.
+    The units for these variables should be *consistent*, but no specific system of units is required.
+    For example, if grid cell edge lengths are defined using kilometers, then the filter scale and ``dx_min`` should also be defined using kilometers, and the grid cell areas should be defined in square kilometers.
+
 Creating the Filter Object
 --------------------------
 
@@ -141,6 +148,12 @@ We now mask our data with the ``wet_mask``.
     da_masked.isel(time=0).plot()
 
 Now that we have some data, we can apply our filter. We need to specify which dimension names to apply the filter over. In this case, it is ``y``, ``x``.
+
+.. warning:: The dimension order matters! Since some filters deal
+    with anisotropic grids, the latitude / y dimension must appear first
+    in order to obtain the correct result. That is not an issue for this simple
+    (isotropic) toy example but needs to be kept in mind for applications on
+    real GCM grids.
 
 .. ipython:: python
 

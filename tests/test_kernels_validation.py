@@ -28,7 +28,7 @@ all_grids_data_and_extra_kwargs = [
 def _get_fname(grid_data_and_extra_kwargs):
     grid_type, data, extra_kwargs = grid_data_and_extra_kwargs
     dirname = os.path.dirname(__file__)
-    return os.path.join(dirname, "test_data", f"{grid_type.name}.zarr")
+    return os.path.join(dirname, "test_data_kernels", f"{grid_type.name}.zarr")
 
 
 def _get_results(grid_data_and_extra_kwargs):

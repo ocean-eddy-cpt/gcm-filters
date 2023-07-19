@@ -23,6 +23,7 @@ GridType = enum.Enum(
         "TRIPOLAR_REGULAR_WITH_LAND_AREA_WEIGHTED",
         "TRIPOLAR_POP_WITH_LAND",
         "VECTOR_C_GRID",
+        "VECTOR_B_GRID",
     ],
 )
 
@@ -41,7 +42,7 @@ def _prepare_tripolar_exchanges(field):
 
 @dataclass
 class BaseScalarLaplacian(ABC):
-    """̵Base class for scalar Laplacians."""
+    """Base class for scalar Laplacians."""
 
     def prepare(self, field):
         return field
@@ -107,6 +108,8 @@ class AreaWeightedMixin(ABC):
 class RegularLaplacian(BaseScalarLaplacian):
     """̵Scalar Laplacian for regularly spaced Cartesian grids."""
 
+    is_dimensional = False
+
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
         return (
@@ -134,6 +137,8 @@ class RegularLaplacianWithArea(AreaWeightedMixin, RegularLaplacian):
     area: cell area
     """
 
+    is_dimensional = False
+
     area: ArrayType
 
     pass
@@ -150,6 +155,8 @@ class RegularLaplacianWithLandMask(BaseScalarLaplacian):
     ----------
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
+
+    is_dimensional = False
 
     wet_mask: ArrayType
 
@@ -199,6 +206,8 @@ class RegularLaplacianWithLandMaskAndArea(
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
 
+    is_dimensional = False
+
     area: ArrayType
     wet_mask: ArrayType
 
@@ -235,6 +244,8 @@ class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
     kappa_s: meridional diffusivity centered at southern cell edge, values must be <= 1, and at
              least one place in the domain must have kappa_s = 1 if kappa_w < 1.
     """
+
+    is_dimensional = True
 
     wet_mask: ArrayType
     dxw: ArrayType
@@ -319,6 +330,8 @@ class MOM5LaplacianU(BaseScalarLaplacian):
     area_u: area of U-cell, dxu*dyu
     """
 
+    is_dimensional = True
+
     wet_mask: ArrayType
     dxt: ArrayType
     dyt: ArrayType
@@ -374,6 +387,8 @@ class MOM5LaplacianT(BaseScalarLaplacian):
     area_t: area of T-cell, dxt*dyt
     """
 
+    is_dimensional = True
+
     wet_mask: ArrayType
     dxt: ArrayType
     dyt: ArrayType
@@ -427,6 +442,8 @@ class TripolarRegularLaplacianTpoint(AreaWeightedMixin, BaseScalarLaplacian):
     area: cell area
     wet_mask: Mask array, 1 for ocean, 0 for land
     """
+
+    is_dimensional = False
 
     area: ArrayType
     wet_mask: ArrayType
@@ -485,6 +502,8 @@ class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
     tarea: cell area, provided by POP model diagnostic TAREA(nlat, nlon)
     """
 
+    is_dimensional = True
+
     wet_mask: ArrayType
     dxe: ArrayType
     dye: ArrayType
@@ -499,27 +518,16 @@ class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
         if self.wet_mask[..., 0, :].any():
             raise AssertionError("Wet mask requires zeros in southernmost row")
 
-        # check that northern edge grid data folds onto itself
-        nx = np.shape(self.dxn)[-1]
-        first_half = self.dxn[..., [-1], : (nx // 2)]
-        second_half = self.dxn[..., [-1], (nx // 2) :]
-        if not np.all(first_half[..., ::-1] == second_half):
-            raise AssertionError(
-                "Northernmost row of dxn does not fold onto itself. This is a requirement for using a tripole boundary condition."
-            )
-        first_half = self.dyn[..., [-1], : (nx // 2)]
-        second_half = self.dyn[..., [-1], (nx // 2) :]
-        if not np.all(first_half[..., ::-1] == second_half):
-            raise AssertionError(
-                "Northernmost row of dyn does not fold onto itself. This is a requirement for using a tripole boundary condition."
-            )
-
         # prepare grid information for northern boundary exchanges
+        self.wet_mask = _prepare_tripolar_exchanges(self.wet_mask)
+        # note: extending the next 4 fields (dxe, dye, dxn, dyn) consistent with the tripolar geometry would actually require
+        # some more complex mirroring than what _prepare_tripolar_exchanges does; but the following is sufficient because the way we
+        # extend dxe, dye, dxn, dyn only affects filtered data in the nothernmost appended row, which we will disregard at the end of
+        # the call routine; in other words: anything will do the job as long as we change the shape from (..., ny, nx) --> (..., ny+1, nx)
         self.dxe = _prepare_tripolar_exchanges(self.dxe)
         self.dye = _prepare_tripolar_exchanges(self.dye)
         self.dxn = _prepare_tripolar_exchanges(self.dxn)
         self.dyn = _prepare_tripolar_exchanges(self.dyn)
-        self.wet_mask = _prepare_tripolar_exchanges(self.wet_mask)
 
         # derive wet mask for eastern cell edge from wet_mask at T points via
         # e_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j,i+1)
@@ -530,6 +538,25 @@ class POPTripolarLaplacianTpoint(BaseScalarLaplacian):
         # n_wet_mask(j,i) = wet_mask(j,i) * wet_mask(j+1,i)
         # note: wet_mask(j+1,i) corresponds to np.roll(wet_mask, -1, axis=-2)
         self.n_wet_mask = self.wet_mask * np.roll(self.wet_mask, -1, axis=-2)
+
+        # check that northern edge grid data folds onto itself if not on land;
+        # note: grid data goes crazy for POP model land points so we don't want to check for land points
+        nx = np.shape(self.dxn)[-1]  # number of longitudes or columns
+        # grab second to last row since we have already appended one extra row
+        first_half = np.where(self.n_wet_mask == 1, self.dxn, 0)[..., -2, : (nx // 2)]
+        second_half = np.where(self.n_wet_mask == 1, self.dxn, 0)[..., -2, (nx // 2) :]
+        if not np.all(first_half[..., ::-1] == second_half):
+            raise AssertionError(
+                "Northernmost row of dxn does not fold onto itself. This is a requirement for using a tripole boundary condition."
+            )
+        first_half = np.where(self.n_wet_mask == 1, self.dyn, 0)[..., -2, : (nx // 2)]
+        second_half = np.where(self.n_wet_mask == 1, self.dyn, 0)[..., -2, (nx // 2) :]
+        # need np.allclose for dyn because there are small residuals for POP grid data
+        # (for 0.1 degree POP grid, residuals are of order 1e-12 where dyn is order 1000 at northern boundary)
+        if not np.allclose(first_half[..., ::-1], second_half):
+            raise AssertionError(
+                "Northernmost row of dyn does not fold onto itself. This is a requirement for using a tripole boundary condition."
+            )
 
     def __call__(self, field: ArrayType):
         np = get_array_module(field)
@@ -579,6 +606,8 @@ class CgridVectorLaplacian(BaseVectorLaplacian):
     kappa_iso: isotropic viscosity
     kappa_aniso: additive anisotropic viscosity aligned with x-direction
     """
+
+    is_dimensional = True
 
     wet_mask_t: ArrayType
     wet_mask_q: ArrayType
@@ -665,6 +694,147 @@ class CgridVectorLaplacian(BaseVectorLaplacian):
 
 
 ALL_KERNELS[GridType.VECTOR_C_GRID] = CgridVectorLaplacian
+
+
+@dataclass
+class BgridVectorLaplacian(BaseVectorLaplacian):
+    """̵Vector Laplacian on B-Grid. Implemented for viscosity operators on B-grids based on POP code. Assumes periodic boundary conditions.
+
+    Attributes
+    ----------
+
+    DXU: x-spacing centered at U points
+    DYU: y-spacing centered at U points
+    HUS: cell widths on south side of U cell
+    HUW: cell widths on west side of U cell
+    HTE: cell widths on east side of T cell
+    HTN: cell widths on north side of T cell
+    UAREA: U-cell area
+    TAREA: T-cell area
+    """
+
+    is_dimensional = True
+
+    DXU: ArrayType
+    DYU: ArrayType
+    HUS: ArrayType
+    HUW: ArrayType
+    HTE: ArrayType
+    HTN: ArrayType
+    UAREA: ArrayType
+    TAREA: ArrayType
+
+    def __post_init__(self):
+        np = get_array_module(self.DXU)
+
+        # Derived quantities
+        self.UAREA_R = 1 / self.UAREA
+        self.TAREA_R = 1 / self.TAREA
+
+        self.DXUR = 1 / self.DXU
+        self.DYUR = 1 / self.DYU
+
+    def __call__(self, ufield: ArrayType, vfield: ArrayType):
+        np = get_array_module(ufield)
+
+        ufield = np.nan_to_num(ufield)
+        vfield = np.nan_to_num(vfield)
+
+        # Constants
+        c2 = 2
+        p5 = 0.5
+
+        # Calculate coefficients for the stencil without metric terms
+        WORK1 = self.HUS / self.HTE
+
+        DUS = (
+            WORK1 * self.UAREA_R
+        )  # South coefficient of 5-point stencil for the Del**2 operator acting at U points
+        DUN = (
+            np.roll(WORK1, 1, axis=-1) * self.UAREA_R
+        )  # North coefficient of 5-point stencil
+
+        WORK1 = self.HUW / self.HTN
+
+        DUW = WORK1 * self.UAREA_R  # West coefficient of 5-point stencil
+        DUE = (
+            np.roll(WORK1, 1, axis=-2) * self.UAREA_R
+        )  # East coefficient of 5-point stencil
+
+        # Calculate coefficients for metric terms and for metric advection terms (KXU,KYU)
+        KXU = (
+            np.roll(self.HUW, 1, axis=-2) - self.HUW
+        ) * self.UAREA_R  # defined in (3.24) of POP manual
+        KYU = (np.roll(self.HUS, 1, axis=-1) - self.HUS) * self.UAREA_R
+
+        WORK1 = (self.HTE - np.roll(self.HTE, -1, axis=-2)) * self.TAREA_R  # KXT
+        WORK2 = p5 * (WORK1 + np.roll(WORK1, 1, axis=-1))
+        DXKX = (np.roll(WORK2, 1, axis=-2) - WORK2) * self.DXUR
+
+        WORK2 = p5 * (WORK1 + np.roll(WORK1, 1, axis=-2))
+        DYKX = (np.roll(WORK2, 1, axis=-1) - WORK2) * self.DYUR
+
+        WORK1 = (self.HTN - np.roll(self.HTN, -1, axis=-1)) * self.TAREA_R  # KYT
+        WORK2 = p5 * (WORK1 + np.roll(WORK1, 1, axis=-2))
+        DYKY = (np.roll(WORK2, 1, axis=-1) - WORK2) * self.DYUR
+
+        WORK2 = p5 * (WORK1 + np.roll(WORK1, 1, axis=-1))
+        DXKY = (np.roll(WORK2, axis=-2, shift=1) - WORK2) * self.DXUR
+
+        DUM = -(
+            DXKX + DYKY + c2 * (KXU * KXU + KYU * KYU)
+        )  # central coefficient for metric terms that do not mix U,V
+        DMC = (
+            DXKY - DYKX
+        )  # central coefficient of 5-point stencil for the metric terms that mix U,V
+
+        # Calculate the central coefficient for metric mixing terms that mix U,V
+        DME = (c2 * KYU) / (
+            self.HTN + np.roll(self.HTN, axis=-2, shift=1)
+        )  # East coefficient of 5-point stencil for the metric terms that mix U,V
+
+        DMN = -(c2 * KXU) / (
+            self.HTE + np.roll(self.HTE, axis=-1, shift=1)
+        )  # North coefficient of 5-point stencil
+
+        DUC = -(DUN + DUS + DUE + DUW)  # central coefficient of 5-point stencil
+        DMW = -DME  # West coefficient of 5-point stencil
+        DMS = -DMN  # East coefficient of 5-point stencil
+
+        # Compute the horizontal diffusion of momentum
+        am = 1
+        cc = DUC + DUM
+
+        u_component = am * (
+            cc * ufield
+            + DUN * np.roll(ufield, -1, axis=-2)
+            + DUS * np.roll(ufield, 1, axis=-2)
+            + DUE * np.roll(ufield, -1, axis=-1)
+            + DUW * np.roll(ufield, 1, axis=-1)
+            + DMC * vfield
+            + DMN * np.roll(vfield, -1, axis=-2)
+            + DMS * np.roll(vfield, 1, axis=-2)
+            + DME * np.roll(vfield, -1, axis=-1)
+            + DMW * np.roll(vfield, 1, axis=-1)
+        )
+
+        v_component = am * (
+            cc * vfield
+            + DUN * np.roll(vfield, -1, axis=-2)
+            + DUS * np.roll(vfield, 1, axis=-2)
+            + DUE * np.roll(vfield, -1, axis=-1)
+            + DUW * np.roll(vfield, 1, axis=-1)
+            + DMC * ufield
+            + DMN * np.roll(ufield, -1, axis=-2)
+            + DMS * np.roll(ufield, 1, axis=-2)
+            + DME * np.roll(ufield, -1, axis=-1)
+            + DMW * np.roll(ufield, 1, axis=-1)
+        )
+
+        return (u_component, v_component)
+
+
+ALL_KERNELS[GridType.VECTOR_B_GRID] = BgridVectorLaplacian
 
 
 def required_grid_vars(grid_type: GridType):
