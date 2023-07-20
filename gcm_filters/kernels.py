@@ -271,9 +271,12 @@ class IrregularLaplacianWithLandMask(BaseScalarLaplacian):
                 f"Please make sure all kappa_s are <=1."
             )
 
-        if not (np.any(self.kappa_w == 1.0) or np.any(self.kappa_s == 1.0)):
+        if not (
+            np.any(np.isclose(self.kappa_w, 1.0, rtol=0, atol=1e-05))
+            or np.any(np.isclose(self.kappa_s, 1.0, rtol=0, atol=1e-05))
+        ):
             raise ValueError(
-                f"At least one place in the domain must have either kappa_w = 1.0 or kappa_s = 1."
+                f"At least one place in the domain must have either kappa_w = 1 or kappa_s = 1. "
                 f"Otherwise the filter's scale will not be equal to filter_scale anywhere in the domain."
             )
 
