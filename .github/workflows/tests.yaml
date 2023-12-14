@@ -9,6 +9,10 @@ on:
   schedule:
     - cron: "0 13 * * 1"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build (${{ matrix.python-version }} | ${{ matrix.os }})
@@ -20,25 +24,15 @@ jobs:
         python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v2
-      - name: Cache conda
-        uses: actions/cache@v1
-        env:
-          # Increase this value to reset cache if ci/environment.yml has not changed
-          CACHE_NUMBER: 0
+      - name: Create conda environment
+        uses: mamba-org/provision-with-micromamba@main
         with:
-          path: ~/conda_pkgs_dir
-          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          mamba-version: "*"
-          channels: conda-forge, defaults
-          channel-priority: true
-          python-version: ${{ matrix.python-version }}
-          activate-environment: gcm-filters-env
-          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
-      - shell: bash -l {0}
-        run: mamba install --yes --file requirements.txt --file requirements-dev.txt
-      - name: Set up conda environment
+          cache-downloads: true
+          micromamba-version: 'latest'
+          environment-file: requirments.txt
+          extra-specs: |
+            python=${{ matrix.python-version }}
+      - name: Install gcm-filters
         shell: bash -l {0}
         run: |
           python -m pip install -e . --no-deps --force-reinstall
