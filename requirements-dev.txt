@@ -9,6 +9,7 @@ flake8-print
 interrogate
 isort
 nbsphinx
+numcodecs
 pre-commit
 pylint
 pytest

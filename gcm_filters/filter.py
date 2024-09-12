@@ -277,7 +277,7 @@ def _create_filter_func_vec(
 class Filter:
     """A class for applying diffusion-based smoothing filters to gridded data.
 
-    ̦Parameters
+    Parameters
     ----------
     filter_scale : float
         The filter scale, which has different meaning depending on filter shape
