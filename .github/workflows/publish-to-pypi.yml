@@ -82,4 +82,3 @@ jobs:
         uses: pypa/gh-action-pypi-publish@v1.8.10
         with:
           repository-url: https://upload.pypi.org/legacy/
-
