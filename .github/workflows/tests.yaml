@@ -44,7 +44,14 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          pytest --cov=./ --cov-report=xml
+           python -V
+           coverage run --rcfile=coverage.toml -m pytest --verbose tests/*
+
+      - name: Get coverage report
+        shell: bash -l {0}
+        run: |
+          coverage report -m
+          coverage xml
 
       - name: Upload code coverage to Codecov
         uses: codecov/codecov-action@v4.0.1
