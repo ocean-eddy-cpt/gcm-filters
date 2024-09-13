@@ -1,4 +1,0 @@
-dask[array]
-matplotlib
-scipy
-xarray

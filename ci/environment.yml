@@ -1,0 +1,11 @@
+name: gcm-filters-env
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python>=3.9
+  - zarr
+  - pytest
+  - pytest-lazy-fixtures
+  - pre-commit
+  - coverage
