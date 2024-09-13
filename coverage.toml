@@ -1,0 +1,5 @@
+[tool.coverage.run]
+omit = [
+    "tests/*",
+    "**/__init__.py",
+]
