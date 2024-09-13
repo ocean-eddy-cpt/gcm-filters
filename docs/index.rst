@@ -6,7 +6,7 @@
 GCM-Filters: Diffusion-based Spatial Filtering of Gridded Data
 ===============================================================
 
-.. image:: https://github.com/ocean-eddy-cpt/gcm-filters/workflows/Tests/badge.svg
+.. image:: https://github.com/ocean-eddy-cpt/gcm-filters/actions/workflows/tests.yaml/badge.svg
    :target: https://github.com/ocean-eddy-cpt/gcm-filters/actions?query=workflow%3ATests
 
 .. image:: https://codecov.io/gh/ocean-eddy-cpt/gcm-filters/branch/master/graph/badge.svg?token=ZKRiulYe68
