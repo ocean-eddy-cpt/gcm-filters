@@ -5,7 +5,7 @@ import pytest
 import xarray as xr
 import zarr
 
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf
 
 from gcm_filters import Filter, FilterShape
 
@@ -20,8 +20,8 @@ def requires_env(varname, value):
 
 
 all_grids_data_and_input_ds = [
-    lazy_fixture("grid_type_and_input_ds"),
-    lazy_fixture("vector_grid_type_and_input_ds"),
+    lf("grid_type_and_input_ds"),
+    lf("vector_grid_type_and_input_ds"),
 ]
 
 

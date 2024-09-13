@@ -17,37 +17,44 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v2
-      - name: Cache conda
-        uses: actions/cache@v1
-        env:
-          # Increase this value to reset cache if ci/environment.yml has not changed
-          CACHE_NUMBER: 0
+      - uses: actions/checkout@v4
+
+      - name: Create conda environment
+        uses: mamba-org/setup-micromamba@v1
         with:
-          path: ~/conda_pkgs_dir
-          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          mamba-version: "*"
-          channels: conda-forge, defaults
-          channel-priority: true
-          python-version: ${{ matrix.python-version }}
-          activate-environment: gcm-filters-env
-          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
-      - shell: bash -l {0}
-        run: mamba install --yes --file requirements.txt --file requirements-dev.txt
-      - name: Set up conda environment
-        shell: bash -l {0}
+          cache-downloads: true
+          cache-environment: true
+          micromamba-version: 'latest'
+          environment-file: ci/environment.yml
+          create-args: |
+            python=${{ matrix.python-version }}
+          cache-key: micromamba-${{ matrix.python-version }}-${{ runner.os }}
+
+      - name: Conda info
+        run: conda info
+
+      - name: Install gcm-filters
+        shell: micromamba-shell {0}
         run: |
-          python -m pip install -e . --no-deps --force-reinstall
+           python -V
+           python -m pip install -e . --force-reinstall
+
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          pytest --cov=./ --cov-report=xml
+           python -V
+           coverage run --rcfile=coverage.toml -m pytest --verbose tests/*
+
+      - name: Get coverage report
+        shell: bash -l {0}
+        run: |
+          coverage report -m
+          coverage xml
+
       - name: Upload code coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v4.0.1
         with:
           file: ./coverage.xml
           flags: unittests

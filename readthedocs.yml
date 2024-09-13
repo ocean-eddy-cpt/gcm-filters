@@ -11,7 +11,4 @@ python:
          path: .
 
 conda:
-  environment: docs/environment.yml
-
-# sphinx:
-#   fail_on_warning: true
+  environment: ci/environment_docs.yml

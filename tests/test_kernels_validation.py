@@ -5,7 +5,7 @@ import pytest
 import xarray as xr
 import zarr
 
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf
 
 from gcm_filters.kernels import ALL_KERNELS
 
@@ -20,8 +20,8 @@ def requires_env(varname, value):
 
 
 all_grids_data_and_extra_kwargs = [
-    lazy_fixture("scalar_grid_type_data_and_extra_kwargs"),
-    lazy_fixture("vector_grid_type_data_and_extra_kwargs"),
+    lf("scalar_grid_type_data_and_extra_kwargs"),
+    lf("vector_grid_type_data_and_extra_kwargs"),
 ]
 
 

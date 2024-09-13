@@ -84,3 +84,9 @@ html_static_path = ["_static"]
 # -- nbsphinx specific options ----------------------------------------------
 # this allows notebooks to be run even if they produce errors.
 nbsphinx_allow_errors = True
+
+
+html_theme_options = {
+    "repository_url": "https://github.com/ocean-eddy-cpt/gcm-filters",
+    "use_repository_button": True,
+}

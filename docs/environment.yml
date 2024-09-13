@@ -1,4 +1,4 @@
-name: gcm-filters-docs
+name: gcm-filters-docs-and-notebooks
 channels:
   - conda-forge
 dependencies:
@@ -13,7 +13,7 @@ dependencies:
   - ipython
   - nbconvert
   - nbformat
-  - ipykernel # not strictly necessary but this is nice to run notebooks in this env to test
+  - ipykernel
   - pandoc
   - jupyter_client
   - sphinx-book-theme
