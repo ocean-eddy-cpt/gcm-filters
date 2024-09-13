@@ -56,12 +56,13 @@ until all checks pass.
 
 Once you got everything to pass, you can stage and commit your changes and push them to the remote github repository.
 
+
 How to build the documentation locally
 ---------------------------------------
 
 In order to build the documentation locally you should build and activate the docs environment::
 
-   conda env create -f docs/environment.yml
+   conda env create -f ci/environment_docs.yml
 
    conda activate gcm-filters-docs
 

@@ -1,4 +1,4 @@
-name: gcm-filters-docs
+name: gcm-filters-docs-and-notebooks
 channels:
   - conda-forge
 dependencies:

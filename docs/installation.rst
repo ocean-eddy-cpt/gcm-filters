@@ -57,4 +57,4 @@ If you want to run the example notebooks in this documentation, you will need a 
 
    conda env create -f docs/environment.yml
 
-   conda activate gcm-filters-docs
+   conda activate gcm-filters-docs-and-notebooks

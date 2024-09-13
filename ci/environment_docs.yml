@@ -1,0 +1,15 @@
+name: gcm-filters-docs
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.9
+  - numpy
+  - scipy
+  - xarray
+  - matplotlib
+  - sphinx==4.2
+  - sphinx-book-theme
+  - sphinx-copybutton
+  - myst-parser
+  - myst-nb
+  - sphinxcontrib-srclinks
