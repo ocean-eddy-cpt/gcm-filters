@@ -7,7 +7,8 @@ dependencies:
   - scipy
   - xarray
   - matplotlib
-  - sphinx==4.2
+  - numpydoc
+  - sphinx
   - sphinx-book-theme
   - sphinx-copybutton
   - myst-parser
