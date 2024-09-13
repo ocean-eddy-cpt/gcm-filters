@@ -54,10 +54,8 @@ jobs:
           coverage xml
 
       - name: Upload code coverage to Codecov
-        uses: codecov/codecov-action@v4.0.1
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
           flags: unittests
-          env_vars: OS,PYTHON
-          name: codecov-umbrella
           fail_ci_if_error: false
