@@ -15,8 +15,8 @@ GCM-Filters: Diffusion-based Spatial Filtering of Gridded Data
 .. image:: https://img.shields.io/conda/vn/conda-forge/gcm_filters.svg
    :target: https://anaconda.org/conda-forge/gcm_filters
 
-.. image:: https://badge.fury.io/py/gcm-filters.svg
-   :target: https://badge.fury.io/py/gcm-filters
+.. image:: https://img.shields.io/pypi/v/gcm-filters.svg
+   :target: https://pypi.org/project/gcm-filters/
 
 .. image:: https://pepy.tech/badge/gcm-filters
    :target: https://pepy.tech/project/gcm-filters
