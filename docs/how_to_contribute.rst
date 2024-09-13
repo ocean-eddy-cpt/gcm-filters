@@ -15,21 +15,15 @@ Fork the main repository, and clone your fork onto the machine of your choice.
 
 Make sure to install and activate the environment with::
 
-   conda create -n gcm-filters-env -c conda-forge --file requirements.txt --file requirements-dev.txt
+   conda env create -f ci/environment.yml
 
-If you find that `conda` takes a long time, try to install `mamba` with ``conda install mamba`` and then
-and do::
-
-   mamba create -n gcm-filters-env -c conda-forge --file requirements.txt --file requirements-dev.txt
-
-
-and finally activate the environment::
+and activate the environment::
 
    conda activate gcm-filters-env
 
 Before you can efficiently test your code you need to install this package in the now activated environment::
 
-   pip install -e . --no-deps
+   pip install -e .
 
 For the linting also install `pre-commit <https://pre-commit.com>`_ now::
 
@@ -62,12 +56,12 @@ until all checks pass.
 
 Once you got everything to pass, you can stage and commit your changes and push them to the remote github repository.
 
-How to change the documentation
--------------------------------
+How to build the documentation locally
+---------------------------------------
 
 In order to build the documentation locally you should build and activate the docs environment::
 
-   mamba env create -f docs/environment.yml
+   conda env create -f docs/environment.yml
 
    conda activate gcm-filters-docs
 
