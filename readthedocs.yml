@@ -12,6 +12,3 @@ python:
 
 conda:
   environment: ci/environment_docs.yml
-
-# sphinx:
-#   fail_on_warning: true
