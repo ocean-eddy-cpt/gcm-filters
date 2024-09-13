@@ -1,33 +1,85 @@
-# https://github.com/pypa/gh-action-pypi-publish
-name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-on: push
+name: Build distribution
+on:
+  release:
+    types:
+      - published
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-n-publish:
-    name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-    runs-on: ubuntu-18.04
+  build-artifacts:
+    runs-on: ubuntu-latest
+    if: github.repository == 'ocean-eddy-cpt/gcm-filters'
     steps:
-    - uses: actions/checkout@master
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.8
-    - name: Install pep517
-      run: >-
-        python -m
-        pip install
-        pep517
-        --user
-    - name: Build a binary wheel and a source tarball
-      run: >-
-        python -m
-        pep517.build
-        --source
-        --binary
-        --out-dir dist/
-        .
-    - name: Publish distribution 📦 to PyPI
-      if: startsWith(github.event.ref, 'refs/tags')
-      uses: pypa/gh-action-pypi-publish@master
-      with:
-        user: __token__
-        password: ${{ secrets.pypi_password }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v4
+        name: Install Python
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+
+      - name: Build tarball and wheels
+        run: |
+          git clean -xdf
+          git restore -SW .
+          python -m build --sdist --wheel .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: releases
+          path: dist
+
+  test-built-dist:
+    needs: build-artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v4
+        name: Install Python
+        with:
+          python-version: '3.10'
+      - uses: actions/download-artifact@v4
+        with:
+          name: releases
+          path: dist
+      - name: List contents of built dist
+        run: |
+          ls -ltrh
+          ls -ltrh dist
+
+      - name: Verify the built dist/wheel is valid
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install dist/gcm_filters*.whl
+          python -c "import gcm_filters; print(gcm_filters.__version__)"
+
+  upload-to-pypi:
+    needs: test-built-dist
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: releases
+          path: dist
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.8.10
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_password }}
