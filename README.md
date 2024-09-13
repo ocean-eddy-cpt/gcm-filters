@@ -5,7 +5,7 @@
 [![pre-commit](https://github.com/ocean-eddy-cpt/gcm-filters/workflows/pre-commit/badge.svg)](https://github.com/ocean-eddy-cpt/gcm-filters/actions?query=workflow%3Apre-commit)
 [![Documentation Status](https://readthedocs.org/projects/gcm-filters/badge/?version=latest)](https://gcm-filters.readthedocs.io/en/latest/?badge=latest)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/gcm_filters.svg)](https://anaconda.org/conda-forge/gcm_filters)
-[![PyPI version](https://badge.fury.io/py/gcm-filters.svg)](https://badge.fury.io/py/gcm-filters)
+[![PyPI version](https://img.shields.io/pypi/v/gcm-filters.svg)](https://pypi.org/project/gcm-filters/)
 [![Downloads](https://pepy.tech/badge/gcm-filters)](https://pepy.tech/project/gcm-filters)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.03947/status.svg)](https://doi.org/10.21105/joss.03947)
 
