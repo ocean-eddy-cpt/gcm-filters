@@ -6,6 +6,7 @@ dependencies:
   - numpy
   - scipy
   - xarray
+  - dask  # necessary for basic_filtering.rst
   - matplotlib
   - numpydoc
   - sphinx
