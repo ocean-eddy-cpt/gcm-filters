@@ -64,7 +64,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install dist/gcm_filters*.whl
-          python -c "import roms_tools; print(gcm_filters.__version__)"
+          python -c "import gcm_filters; print(gcm_filters.__version__)"
 
   upload-to-pypi:
     needs: test-built-dist
@@ -81,4 +81,5 @@ jobs:
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@v1.8.10
         with:
-          repository-url: https://upload.pypi.org/legacy/
+          user: __token__
+          password: ${{ secrets.pypi_password }}
