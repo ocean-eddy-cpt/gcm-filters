@@ -39,7 +39,7 @@ jobs:
         shell: micromamba-shell {0}
         run: |
            python -V
-           python -m pip install -e . --no-deps --force-reinstall
+           python -m pip install -e . --force-reinstall
 
       - name: Run Tests
         shell: bash -l {0}
