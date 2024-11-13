@@ -7,7 +7,7 @@ import pytest
 import xarray as xr
 
 from gcm_filters import Filter, FilterShape, GridType
-from gcm_filters.filter import FilterSpec
+from gcm_filters.filter import FilterSpec, _compute_n_steps_default
 
 
 def _check_equal_filter_spec(spec1, spec2):
@@ -83,6 +83,13 @@ def test_filter_spec(filter_args, expected_filter_spec):
     filter = Filter(**filter_args)
     _check_equal_filter_spec(filter.filter_spec, expected_filter_spec)
     # TODO: check other properties of filter_spec?
+
+
+def test_default_n_steps_larger_equal_3():
+    n_steps_default = _compute_n_steps_default(2, FilterShape.GAUSSIAN, 1.5, 1, np.pi)
+
+    # Assert that the number of steps is greater than or equal to 3
+    assert n_steps_default >= 3
 
 
 #################### Diffusion-based filter tests ########################################

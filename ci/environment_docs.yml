@@ -15,3 +15,4 @@ dependencies:
   - myst-parser
   - myst-nb
   - sphinxcontrib-srclinks
+  - setuptools
