@@ -68,6 +68,12 @@ exclude_patterns = ["_build", "**.ipynb_checkpoints", "Thumbs.db", ".DS_Store"]
 
 nb_execution_mode = "off"
 
+numpydoc_class_members_toctree = False
+
+myst_enable_extensions = [
+    "dollarmath",
+]
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
