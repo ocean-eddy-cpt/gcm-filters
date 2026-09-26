@@ -75,11 +75,17 @@ jupyter_execute_notebooks = "off"
 #
 html_theme = "sphinx_book_theme"
 
+html_title = "gcm-filters documentation"
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+html_theme_options = {
+    "repository_url": "https://github.com/ocean-eddy-cpt/gcm-filters",
+    "use_repository_button": True,
+}
 
 # -- nbsphinx specific options ----------------------------------------------
 # this allows notebooks to be run even if they produce errors.
